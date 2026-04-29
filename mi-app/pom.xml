@@ -141,7 +141,7 @@
 				<configuration>
 					<url>jdbc:postgresql://localhost:5432/MVPClinica</url>
 					<user>postgres</user>
-					<password>Jimenez02</password>
+					<password>200518</password>
 					<locations>
 						<location>classpath:db/migration</location>
 					</locations>
