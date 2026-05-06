@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<MedicoResponse> listarPorOrganizacion(@PathVariable UUID orgId) {
         return service.listarPorOrganizacion(orgId);
     }
@@ -47,7 +48,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<MedicoResponse> listarActivos(@PathVariable UUID orgId) {
         return service.listarActivosPorOrganizacion(orgId);
     }
@@ -59,7 +60,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<MedicoResponse> listarPorConsultorio(@PathVariable UUID consultorioId) {
         return service.listarPorConsultorio(consultorioId);
     }
@@ -72,7 +73,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos de administrador"),
         @ApiResponse(responseCode = "404", description = "Médico no encontrado")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public MedicoResponse buscarPorId(@PathVariable UUID id) {
         return service.buscarPorId(id);
     }
@@ -86,7 +87,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos de administrador")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public MedicoResponse crear(@Valid @RequestBody MedicoRequest req) {
         return service.crear(req);
     }
@@ -100,7 +101,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos de administrador"),
         @ApiResponse(responseCode = "404", description = "Médico no encontrado")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public MedicoResponse actualizar(@PathVariable UUID id, @Valid @RequestBody MedicoRequest req) {
         return service.actualizar(id, req);
     }
@@ -114,7 +115,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos de administrador"),
         @ApiResponse(responseCode = "404", description = "Médico no encontrado")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public void eliminar(@PathVariable UUID id) {
         service.buscarPorId(id);
         service.eliminar(id);
