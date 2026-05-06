@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -35,7 +36,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<AdjuntoResponse> listarPorPaciente(@PathVariable UUID pacienteId) {
         return service.listarPorPaciente(pacienteId);
     }
@@ -47,7 +48,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<AdjuntoResponse> listarPorCita(@PathVariable UUID citaId) {
         return service.listarPorCita(citaId);
     }
@@ -59,7 +60,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "404", description = "Archivo no encontrado")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public AdjuntoResponse buscarPorId(@PathVariable UUID id) {
         return service.buscarPorId(id);
     }
@@ -73,7 +74,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public AdjuntoResponse crear(@Valid @RequestBody AdjuntoRequest req) {
         return service.crear(req);
     }
@@ -87,7 +88,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos"),
         @ApiResponse(responseCode = "404", description = "Archivo no encontrado")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public AdjuntoResponse actualizar(@PathVariable UUID id, @Valid @RequestBody AdjuntoRequest req) {
         return service.actualizar(id, req);
     }
@@ -101,7 +102,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos"),
         @ApiResponse(responseCode = "404", description = "Archivo no encontrado")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public void eliminar(@PathVariable UUID id) {
         service.buscarPorId(id);
         service.eliminar(id);

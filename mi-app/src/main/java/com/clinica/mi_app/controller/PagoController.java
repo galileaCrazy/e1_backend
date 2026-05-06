@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -36,7 +37,7 @@ public class PagoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<PagoResponse> listarPorOrganizacion(@PathVariable UUID orgId) {
         return service.listarPorOrganizacion(orgId);
     }
@@ -48,7 +49,7 @@ public class PagoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<PagoResponse> listarPorEstado(@PathVariable UUID orgId, @PathVariable String estado) {
         return service.listarPorEstado(orgId, estado);
     }
@@ -73,7 +74,7 @@ public class PagoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "404", description = "Pago no encontrado")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public PagoResponse buscarPorId(@PathVariable UUID id) {
         return service.buscarPorId(id);
     }
@@ -87,7 +88,7 @@ public class PagoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public PagoResponse crear(@Valid @RequestBody PagoRequest req) {
         return service.crear(req);
     }
@@ -101,7 +102,7 @@ public class PagoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos"),
         @ApiResponse(responseCode = "404", description = "Pago no encontrado")
     })
-    @PreAuthorize("hasAnyRole('ADMIN', 'MEDICO')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public PagoResponse actualizar(@PathVariable UUID id, @Valid @RequestBody PagoRequest req) {
         return service.actualizar(id, req);
     }
@@ -115,7 +116,7 @@ public class PagoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos"),
         @ApiResponse(responseCode = "404", description = "Pago no encontrado")
     })
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public void eliminar(@PathVariable UUID id) {
         service.buscarPorId(id);
         service.eliminar(id);
