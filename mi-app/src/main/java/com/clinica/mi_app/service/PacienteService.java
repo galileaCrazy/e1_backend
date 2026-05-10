@@ -3,10 +3,13 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.PacienteRequest;
 import com.clinica.mi_app.dto.response.PacienteResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.PacienteMapper;
 import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.model.Paciente;
 import com.clinica.mi_app.repository.OrganizacionRepository;
 import com.clinica.mi_app.repository.PacienteRepository;
+import com.clinica.mi_app.security.AuthenticatedUser;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,21 +28,27 @@ public class PacienteService {
     }
 
     public List<PacienteResponse> listarPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionId(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionId(organizacionId).stream().map(PacienteMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<PacienteResponse> listarActivosPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionIdAndActivoTrue(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionIdAndActivoTrue(organizacionId).stream().map(PacienteMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<PacienteResponse> buscarPorNombre(UUID organizacionId, String nombre) {
         return repo.findByOrganizacionIdAndNombreContainingIgnoreCase(organizacionId, nombre)
-                .stream().map(this::toResponse).collect(Collectors.toList());
+                .stream().map(PacienteMapper::toResponse).collect(Collectors.toList());
     }
 
     public PacienteResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        Paciente p = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", id.toString()));
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            if (!AuthenticatedUser.getEmail().equals(p.getEmail())) {
+                throw new ResourceNotFoundException("Paciente", id.toString());
+            }
+        }
+        return PacienteMapper.toResponse(p);
     }
 
     public PacienteResponse crear(PacienteRequest req) {
@@ -53,7 +62,7 @@ public class PacienteService {
         p.setSexo(req.getSexo());
         p.setEmail(req.getEmail());
         p.setNotas(req.getNotas());
-        return toResponse(repo.save(p));
+        return PacienteMapper.toResponse(repo.save(p));
     }
 
     public PacienteResponse actualizar(UUID id, PacienteRequest req) {
@@ -65,25 +74,10 @@ public class PacienteService {
         p.setSexo(req.getSexo());
         p.setEmail(req.getEmail());
         p.setNotas(req.getNotas());
-        return toResponse(repo.save(p));
+        return PacienteMapper.toResponse(repo.save(p));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private PacienteResponse toResponse(Paciente p) {
-        PacienteResponse r = new PacienteResponse();
-        r.setId(p.getId());
-        r.setOrganizacionId(p.getOrganizacion().getId());
-        r.setNombre(p.getNombre());
-        r.setTelefono(p.getTelefono());
-        r.setFechaNacimiento(p.getFechaNacimiento());
-        r.setSexo(p.getSexo());
-        r.setEmail(p.getEmail());
-        r.setNotas(p.getNotas());
-        r.setActivo(p.getActivo());
-        r.setCreatedAt(p.getCreatedAt());
-        return r;
     }
 }

@@ -3,8 +3,11 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.AdjuntoRequest;
 import com.clinica.mi_app.dto.response.AdjuntoResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.AdjuntoMapper;
 import com.clinica.mi_app.model.*;
 import com.clinica.mi_app.repository.*;
+import com.clinica.mi_app.security.AuthenticatedUser;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -31,20 +34,33 @@ public class AdjuntoService {
     }
 
     public List<AdjuntoResponse> listarPorPaciente(UUID pacienteId) {
-        return repo.findByPacienteId(pacienteId).stream().map(this::toResponse).collect(Collectors.toList());
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            Paciente paciente = pacienteRepo.findById(pacienteId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Adjunto", pacienteId.toString()));
+            if (!AuthenticatedUser.getEmail().equals(paciente.getEmail())) {
+                throw new ResourceNotFoundException("Adjunto", pacienteId.toString());
+            }
+        }
+        return repo.findByPacienteId(pacienteId).stream().map(AdjuntoMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<AdjuntoResponse> listarPorCita(UUID citaId) {
-        return repo.findByCitaId(citaId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByCitaId(citaId).stream().map(AdjuntoMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<AdjuntoResponse> listarPendientesDeNotificar(UUID organizacionId) {
-        return repo.findByOrganizacionIdAndNotificarTrue(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionIdAndNotificarTrue(organizacionId).stream().map(AdjuntoMapper::toResponse).collect(Collectors.toList());
     }
 
     public AdjuntoResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        Adjunto a = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Adjunto", id.toString()));
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            if (!AuthenticatedUser.getEmail().equals(a.getPaciente().getEmail())) {
+                throw new ResourceNotFoundException("Adjunto", id.toString());
+            }
+        }
+        return AdjuntoMapper.toResponse(a);
     }
 
     public AdjuntoResponse crear(AdjuntoRequest req) {
@@ -68,7 +84,7 @@ public class AdjuntoService {
                     .orElseThrow(() -> new ResourceNotFoundException("Cita", req.getCitaId().toString()));
             a.setCita(cita);
         }
-        return toResponse(repo.save(a));
+        return AdjuntoMapper.toResponse(repo.save(a));
     }
 
     public AdjuntoResponse actualizar(UUID id, AdjuntoRequest req) {
@@ -79,27 +95,10 @@ public class AdjuntoService {
         a.setUrlArchivo(req.getUrlArchivo());
         a.setMimeType(req.getMimeType());
         a.setNotificar(req.getNotificar() != null ? req.getNotificar() : false);
-        return toResponse(repo.save(a));
+        return AdjuntoMapper.toResponse(repo.save(a));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private AdjuntoResponse toResponse(Adjunto a) {
-        AdjuntoResponse r = new AdjuntoResponse();
-        r.setId(a.getId());
-        r.setOrganizacionId(a.getOrganizacion().getId());
-        r.setPacienteId(a.getPaciente().getId());
-        r.setCitaId(a.getCita() != null ? a.getCita().getId() : null);
-        r.setSubidoPorId(a.getSubidoPor().getId());
-        r.setTipo(a.getTipo());
-        r.setNombreArchivo(a.getNombreArchivo());
-        r.setUrlArchivo(a.getUrlArchivo());
-        r.setMimeType(a.getMimeType());
-        r.setNotificar(a.getNotificar());
-        r.setNotificadoEn(a.getNotificadoEn());
-        r.setCreatedAt(a.getCreatedAt());
-        return r;
     }
 }

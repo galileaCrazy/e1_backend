@@ -3,6 +3,7 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.NotificacionRequest;
 import com.clinica.mi_app.dto.response.NotificacionResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.NotificacionMapper;
 import com.clinica.mi_app.model.Adjunto;
 import com.clinica.mi_app.model.Cita;
 import com.clinica.mi_app.model.Notificacion;
@@ -34,19 +35,19 @@ public class NotificacionService {
     }
 
     public List<NotificacionResponse> listarPorCita(UUID citaId) {
-        return repo.findByCitaId(citaId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByCitaId(citaId).stream().map(NotificacionMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<NotificacionResponse> listarPendientes() {
-        return repo.findByEstado("PENDIENTE").stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByEstado("PENDIENTE").stream().map(NotificacionMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<NotificacionResponse> listarPorEstado(UUID organizacionId, String estado) {
-        return repo.findByOrganizacionIdAndEstado(organizacionId, estado).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionIdAndEstado(organizacionId, estado).stream().map(NotificacionMapper::toResponse).collect(Collectors.toList());
     }
 
     public NotificacionResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        return repo.findById(id).map(NotificacionMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Notificacion", id.toString()));
     }
 
@@ -65,7 +66,7 @@ public class NotificacionService {
                     .orElseThrow(() -> new ResourceNotFoundException("Adjunto", req.getAdjuntoId().toString()));
             n.setAdjunto(adjunto);
         }
-        return toResponse(repo.save(n));
+        return NotificacionMapper.toResponse(repo.save(n));
     }
 
     public NotificacionResponse actualizar(UUID id, NotificacionRequest req) {
@@ -73,24 +74,10 @@ public class NotificacionService {
                 .orElseThrow(() -> new ResourceNotFoundException("Notificacion", id.toString()));
         n.setCanal(req.getCanal());
         n.setTipo(req.getTipo());
-        return toResponse(repo.save(n));
+        return NotificacionMapper.toResponse(repo.save(n));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private NotificacionResponse toResponse(Notificacion n) {
-        NotificacionResponse r = new NotificacionResponse();
-        r.setId(n.getId());
-        r.setOrganizacionId(n.getOrganizacion().getId());
-        r.setCitaId(n.getCita().getId());
-        r.setAdjuntoId(n.getAdjunto() != null ? n.getAdjunto().getId() : null);
-        r.setCanal(n.getCanal());
-        r.setTipo(n.getTipo());
-        r.setEstado(n.getEstado());
-        r.setEnviadaEn(n.getEnviadaEn());
-        r.setRespuesta(n.getRespuesta());
-        return r;
     }
 }

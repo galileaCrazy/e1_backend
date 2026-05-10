@@ -3,6 +3,7 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.UsuarioRequest;
 import com.clinica.mi_app.dto.response.UsuarioResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.UsuarioMapper;
 import com.clinica.mi_app.model.Medico;
 import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.model.Usuario;
@@ -34,15 +35,15 @@ public class UsuarioService {
     }
 
     public List<UsuarioResponse> listarPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionId(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionId(organizacionId).stream().map(UsuarioMapper::toResponse).collect(Collectors.toList());
     }
 
     public Optional<UsuarioResponse> buscarPorEmail(String email) {
-        return repo.findByEmail(email).map(this::toResponse);
+        return repo.findByEmail(email).map(UsuarioMapper::toResponse);
     }
 
     public UsuarioResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        return repo.findById(id).map(UsuarioMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario", id.toString()));
     }
 
@@ -59,7 +60,7 @@ public class UsuarioService {
                     .orElseThrow(() -> new ResourceNotFoundException("Medico", req.getMedicoId().toString()));
             u.setMedico(medico);
         }
-        return toResponse(repo.save(u));
+        return UsuarioMapper.toResponse(repo.save(u));
     }
 
     public UsuarioResponse actualizar(UUID id, UsuarioRequest req) {
@@ -72,21 +73,10 @@ public class UsuarioService {
                     .orElseThrow(() -> new ResourceNotFoundException("Medico", req.getMedicoId().toString()));
             u.setMedico(medico);
         }
-        return toResponse(repo.save(u));
+        return UsuarioMapper.toResponse(repo.save(u));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private UsuarioResponse toResponse(Usuario u) {
-        UsuarioResponse r = new UsuarioResponse();
-        r.setId(u.getId());
-        r.setOrganizacionId(u.getOrganizacion().getId());
-        r.setMedicoId(u.getMedico() != null ? u.getMedico().getId() : null);
-        r.setEmail(u.getEmail());
-        r.setRol(u.getRol());
-        r.setActivo(u.getActivo());
-        return r;
     }
 }
