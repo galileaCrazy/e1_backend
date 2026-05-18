@@ -1,5 +1,6 @@
 package com.clinica.mi_app.security;
 
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -7,11 +8,13 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 // Intercepta cada request, extrae el Bearer token y, si es válido,
 // carga el usuario en el SecurityContext para que @PreAuthorize funcione.
@@ -45,14 +48,20 @@ public class JwtFilter extends OncePerRequestFilter {
             return;
         }
 
-        String email = jwtUtil.extractEmail(token);
+        Claims claims = jwtUtil.extractClaims(token);
+        String email = claims.getSubject();
 
         if (email != null && SecurityContextHolder.getContext().getAuthentication() == null) {
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
 
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
-            authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+
+            Map<String, Object> jwtClaims = new HashMap<>();
+            jwtClaims.put("userId", UUID.fromString(claims.get("userId", String.class)));
+            jwtClaims.put("organizacionId", UUID.fromString(claims.get("organizacionId", String.class)));
+            jwtClaims.put("rol", claims.get("rol", String.class));
+            authToken.setDetails(jwtClaims);
 
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }

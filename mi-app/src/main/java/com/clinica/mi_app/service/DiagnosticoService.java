@@ -3,10 +3,13 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.DiagnosticoRequest;
 import com.clinica.mi_app.dto.response.DiagnosticoResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.DiagnosticoMapper;
 import com.clinica.mi_app.model.Cita;
 import com.clinica.mi_app.model.Diagnostico;
 import com.clinica.mi_app.repository.CitaRepository;
 import com.clinica.mi_app.repository.DiagnosticoRepository;
+import com.clinica.mi_app.security.AuthenticatedUser;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -25,16 +28,36 @@ public class DiagnosticoService {
     }
 
     public List<DiagnosticoResponse> listarPorCita(UUID citaId) {
-        return repo.findByCitaId(citaId).stream().map(this::toResponse).collect(Collectors.toList());
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            Cita cita = citaRepo.findById(citaId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Diagnostico", citaId.toString()));
+            if (!AuthenticatedUser.getEmail().equals(cita.getPaciente().getEmail())) {
+                throw new ResourceNotFoundException("Diagnostico", citaId.toString());
+            }
+        }
+        return repo.findByCitaId(citaId).stream().map(DiagnosticoMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<DiagnosticoResponse> listarPorCitaYTipo(UUID citaId, String tipo) {
-        return repo.findByCitaIdAndTipo(citaId, tipo).stream().map(this::toResponse).collect(Collectors.toList());
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            Cita cita = citaRepo.findById(citaId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Diagnostico", citaId.toString()));
+            if (!AuthenticatedUser.getEmail().equals(cita.getPaciente().getEmail())) {
+                throw new ResourceNotFoundException("Diagnostico", citaId.toString());
+            }
+        }
+        return repo.findByCitaIdAndTipo(citaId, tipo).stream().map(DiagnosticoMapper::toResponse).collect(Collectors.toList());
     }
 
     public DiagnosticoResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        Diagnostico d = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Diagnostico", id.toString()));
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            if (!AuthenticatedUser.getEmail().equals(d.getCita().getPaciente().getEmail())) {
+                throw new ResourceNotFoundException("Diagnostico", id.toString());
+            }
+        }
+        return DiagnosticoMapper.toResponse(d);
     }
 
     public DiagnosticoResponse crear(DiagnosticoRequest req) {
@@ -45,7 +68,7 @@ public class DiagnosticoService {
         d.setCodigoCie10(req.getCodigoCie10());
         d.setDescripcion(req.getDescripcion());
         d.setTipo(req.getTipo());
-        return toResponse(repo.save(d));
+        return DiagnosticoMapper.toResponse(repo.save(d));
     }
 
     public DiagnosticoResponse actualizar(UUID id, DiagnosticoRequest req) {
@@ -54,21 +77,10 @@ public class DiagnosticoService {
         d.setCodigoCie10(req.getCodigoCie10());
         d.setDescripcion(req.getDescripcion());
         d.setTipo(req.getTipo());
-        return toResponse(repo.save(d));
+        return DiagnosticoMapper.toResponse(repo.save(d));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private DiagnosticoResponse toResponse(Diagnostico d) {
-        DiagnosticoResponse r = new DiagnosticoResponse();
-        r.setId(d.getId());
-        r.setCitaId(d.getCita().getId());
-        r.setCodigoCie10(d.getCodigoCie10());
-        r.setDescripcion(d.getDescripcion());
-        r.setTipo(d.getTipo());
-        r.setCreatedAt(d.getCreatedAt());
-        return r;
     }
 }

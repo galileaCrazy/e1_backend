@@ -3,6 +3,7 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.PagoRequest;
 import com.clinica.mi_app.dto.response.PagoResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.PagoMapper;
 import com.clinica.mi_app.model.Cita;
 import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.model.Pago;
@@ -30,19 +31,19 @@ public class PagoService {
     }
 
     public Optional<PagoResponse> buscarPorCita(UUID citaId) {
-        return repo.findByCitaId(citaId).map(this::toResponse);
+        return repo.findByCitaId(citaId).map(PagoMapper::toResponse);
     }
 
     public List<PagoResponse> listarPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionId(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionId(organizacionId).stream().map(PagoMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<PagoResponse> listarPorEstado(UUID organizacionId, String estado) {
-        return repo.findByOrganizacionIdAndEstado(organizacionId, estado).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionIdAndEstado(organizacionId, estado).stream().map(PagoMapper::toResponse).collect(Collectors.toList());
     }
 
     public PagoResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        return repo.findById(id).map(PagoMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Pago", id.toString()));
     }
 
@@ -58,7 +59,7 @@ public class PagoService {
         p.setMetodo(req.getMetodo());
         p.setConcepto(req.getConcepto());
         p.setReferencia(req.getReferencia());
-        return toResponse(repo.save(p));
+        return PagoMapper.toResponse(repo.save(p));
     }
 
     public PagoResponse actualizar(UUID id, PagoRequest req) {
@@ -68,24 +69,10 @@ public class PagoService {
         p.setMetodo(req.getMetodo());
         p.setConcepto(req.getConcepto());
         p.setReferencia(req.getReferencia());
-        return toResponse(repo.save(p));
+        return PagoMapper.toResponse(repo.save(p));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private PagoResponse toResponse(Pago p) {
-        PagoResponse r = new PagoResponse();
-        r.setId(p.getId());
-        r.setOrganizacionId(p.getOrganizacion().getId());
-        r.setCitaId(p.getCita().getId());
-        r.setMonto(p.getMonto());
-        r.setMetodo(p.getMetodo());
-        r.setConcepto(p.getConcepto());
-        r.setEstado(p.getEstado());
-        r.setReferencia(p.getReferencia());
-        r.setPagadoEn(p.getPagadoEn());
-        return r;
     }
 }

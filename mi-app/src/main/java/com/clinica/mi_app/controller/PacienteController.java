@@ -113,7 +113,7 @@ public class PacienteController {
         @ApiResponse(responseCode = "403", description = "Sin permisos"),
         @ApiResponse(responseCode = "404", description = "Paciente no encontrado")
     })
-    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public void eliminar(@PathVariable UUID id) {
         service.buscarPorId(id);
         service.eliminar(id);

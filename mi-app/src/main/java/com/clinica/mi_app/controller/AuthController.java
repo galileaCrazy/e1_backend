@@ -9,6 +9,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -41,6 +42,6 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Datos inválidos o email ya existe")
     })
     public ResponseEntity<AuthResponse> registro(@Valid @RequestBody RegistroRequest req) {
-        return ResponseEntity.ok(authService.registro(req));
+        return ResponseEntity.status(HttpStatus.CREATED).body(authService.registro(req));
     }
 }

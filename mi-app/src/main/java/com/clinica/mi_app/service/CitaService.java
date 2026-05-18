@@ -3,8 +3,11 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.CitaRequest;
 import com.clinica.mi_app.dto.response.CitaResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.CitaMapper;
 import com.clinica.mi_app.model.*;
 import com.clinica.mi_app.repository.*;
+import com.clinica.mi_app.security.AuthenticatedUser;
+import com.clinica.mi_app.security.Roles;
 import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
@@ -32,28 +35,41 @@ public class CitaService {
     }
 
     public List<CitaResponse> listarPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionId(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionId(organizacionId).stream().map(CitaMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<CitaResponse> listarPorMedico(UUID medicoId) {
-        return repo.findByMedicoId(medicoId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByMedicoId(medicoId).stream().map(CitaMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<CitaResponse> listarPorPaciente(UUID pacienteId) {
-        return repo.findByPacienteId(pacienteId).stream().map(this::toResponse).collect(Collectors.toList());
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            Paciente paciente = pacienteRepo.findById(pacienteId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Cita", pacienteId.toString()));
+            if (!AuthenticatedUser.getEmail().equals(paciente.getEmail())) {
+                throw new ResourceNotFoundException("Cita", pacienteId.toString());
+            }
+        }
+        return repo.findByPacienteId(pacienteId).stream().map(CitaMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<CitaResponse> listarPorEstado(UUID organizacionId, String estado) {
-        return repo.findByOrganizacionIdAndEstado(organizacionId, estado).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionIdAndEstado(organizacionId, estado).stream().map(CitaMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<CitaResponse> listarPorMedicoEnRango(UUID medicoId, OffsetDateTime inicio, OffsetDateTime fin) {
-        return repo.findByMedicoIdAndFechaHoraBetween(medicoId, inicio, fin).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByMedicoIdAndFechaHoraBetween(medicoId, inicio, fin).stream().map(CitaMapper::toResponse).collect(Collectors.toList());
     }
 
     public CitaResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        Cita cita = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cita", id.toString()));
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            if (!AuthenticatedUser.getEmail().equals(cita.getPaciente().getEmail())) {
+                throw new ResourceNotFoundException("Cita", id.toString());
+            }
+        }
+        return CitaMapper.toResponse(cita);
     }
 
     public CitaResponse crear(CitaRequest req) {
@@ -73,7 +89,7 @@ public class CitaService {
         c.setFechaHora(req.getFechaHora());
         c.setDuracionMin(req.getDuracionMin());
         c.setMotivo(req.getMotivo());
-        return toResponse(repo.save(c));
+        return CitaMapper.toResponse(repo.save(c));
     }
 
     public CitaResponse actualizar(UUID id, CitaRequest req) {
@@ -82,27 +98,10 @@ public class CitaService {
         c.setFechaHora(req.getFechaHora());
         c.setDuracionMin(req.getDuracionMin());
         c.setMotivo(req.getMotivo());
-        return toResponse(repo.save(c));
+        return CitaMapper.toResponse(repo.save(c));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private CitaResponse toResponse(Cita c) {
-        CitaResponse r = new CitaResponse();
-        r.setId(c.getId());
-        r.setOrganizacionId(c.getOrganizacion().getId());
-        r.setPacienteId(c.getPaciente().getId());
-        r.setMedicoId(c.getMedico().getId());
-        r.setConsultorioId(c.getConsultorio().getId());
-        r.setFechaHora(c.getFechaHora());
-        r.setDuracionMin(c.getDuracionMin());
-        r.setEstado(c.getEstado());
-        r.setMotivo(c.getMotivo());
-        r.setCanceladaEn(c.getCanceladaEn());
-        r.setCanceladaPor(c.getCanceladaPor());
-        r.setCreatedAt(c.getCreatedAt());
-        return r;
     }
 }

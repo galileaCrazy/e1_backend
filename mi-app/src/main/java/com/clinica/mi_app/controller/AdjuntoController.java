@@ -36,7 +36,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "', '" + Roles.PACIENTE + "')")
     public List<AdjuntoResponse> listarPorPaciente(@PathVariable UUID pacienteId) {
         return service.listarPorPaciente(pacienteId);
     }
@@ -60,7 +60,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "404", description = "Archivo no encontrado")
     })
-    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "', '" + Roles.PACIENTE + "')")
     public AdjuntoResponse buscarPorId(@PathVariable UUID id) {
         return service.buscarPorId(id);
     }
@@ -102,7 +102,7 @@ public class AdjuntoController {
         @ApiResponse(responseCode = "403", description = "Sin permisos"),
         @ApiResponse(responseCode = "404", description = "Archivo no encontrado")
     })
-    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
     public void eliminar(@PathVariable UUID id) {
         service.buscarPorId(id);
         service.eliminar(id);

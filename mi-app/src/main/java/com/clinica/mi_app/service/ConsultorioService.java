@@ -3,6 +3,7 @@ package com.clinica.mi_app.service;
 import com.clinica.mi_app.dto.request.ConsultorioRequest;
 import com.clinica.mi_app.dto.response.ConsultorioResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
+import com.clinica.mi_app.mapper.ConsultorioMapper;
 import com.clinica.mi_app.model.Consultorio;
 import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.repository.ConsultorioRepository;
@@ -25,15 +26,15 @@ public class ConsultorioService {
     }
 
     public List<ConsultorioResponse> listarPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionId(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionId(organizacionId).stream().map(ConsultorioMapper::toResponse).collect(Collectors.toList());
     }
 
     public List<ConsultorioResponse> listarActivosPorOrganizacion(UUID organizacionId) {
-        return repo.findByOrganizacionIdAndActivoTrue(organizacionId).stream().map(this::toResponse).collect(Collectors.toList());
+        return repo.findByOrganizacionIdAndActivoTrue(organizacionId).stream().map(ConsultorioMapper::toResponse).collect(Collectors.toList());
     }
 
     public ConsultorioResponse buscarPorId(UUID id) {
-        return repo.findById(id).map(this::toResponse)
+        return repo.findById(id).map(ConsultorioMapper::toResponse)
                 .orElseThrow(() -> new ResourceNotFoundException("Consultorio", id.toString()));
     }
 
@@ -45,7 +46,7 @@ public class ConsultorioService {
         c.setNombre(req.getNombre());
         c.setDireccion(req.getDireccion());
         c.setTelefono(req.getTelefono());
-        return toResponse(repo.save(c));
+        return ConsultorioMapper.toResponse(repo.save(c));
     }
 
     public ConsultorioResponse actualizar(UUID id, ConsultorioRequest req) {
@@ -54,22 +55,10 @@ public class ConsultorioService {
         c.setNombre(req.getNombre());
         c.setDireccion(req.getDireccion());
         c.setTelefono(req.getTelefono());
-        return toResponse(repo.save(c));
+        return ConsultorioMapper.toResponse(repo.save(c));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
-    }
-
-    private ConsultorioResponse toResponse(Consultorio c) {
-        ConsultorioResponse r = new ConsultorioResponse();
-        r.setId(c.getId());
-        r.setOrganizacionId(c.getOrganizacion().getId());
-        r.setNombre(c.getNombre());
-        r.setDireccion(c.getDireccion());
-        r.setTelefono(c.getTelefono());
-        r.setActivo(c.getActivo());
-        r.setCreatedAt(c.getCreatedAt());
-        return r;
     }
 }

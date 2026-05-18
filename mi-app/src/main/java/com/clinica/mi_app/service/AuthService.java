@@ -13,6 +13,7 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -35,6 +36,7 @@ public class AuthService {
         this.jwtUtil = jwtUtil;
     }
 
+    @Transactional(readOnly = true)
     public AuthResponse login(LoginRequest req) {
         authenticationManager.authenticate(
             new UsernamePasswordAuthenticationToken(req.getEmail(), req.getPassword())
@@ -46,6 +48,7 @@ public class AuthService {
             usuario.getRol(), usuario.getOrganizacion().getId());
     }
 
+    @Transactional
     public AuthResponse registro(RegistroRequest req) {
         if (usuarioRepository.findByEmail(req.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Ya existe un usuario con ese email");
