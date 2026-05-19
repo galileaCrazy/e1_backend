@@ -1,5 +1,11 @@
 package com.clinica.mi_app.service;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
 import com.clinica.mi_app.dto.request.LoginRequest;
 import com.clinica.mi_app.dto.request.RegistroRequest;
 import com.clinica.mi_app.dto.response.AuthResponse;
@@ -9,11 +15,6 @@ import com.clinica.mi_app.model.Usuario;
 import com.clinica.mi_app.repository.OrganizacionRepository;
 import com.clinica.mi_app.repository.UsuarioRepository;
 import com.clinica.mi_app.security.JwtUtil;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AuthService {
@@ -62,10 +63,10 @@ public class AuthService {
         usuario.setRol("PACIENTE");
         usuario.setOrganizacion(org);
         usuario.setActivo(true);
-        usuarioRepository.save(usuario);
+        Usuario saved = usuarioRepository.save(usuario);
 
-        String token = jwtUtil.generateToken(usuario);
-        return new AuthResponse(token, usuario.getId(), usuario.getEmail(),
-            usuario.getRol(), usuario.getOrganizacion().getId());
+        String token = jwtUtil.generateToken(saved);
+        return new AuthResponse(token, saved.getId(), saved.getEmail(),
+            saved.getRol(), saved.getOrganizacion().getId());
     }
 }
