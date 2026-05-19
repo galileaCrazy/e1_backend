@@ -1,0 +1,11 @@
+.env
+.venv
+.venv-1
+venv
+venv311
+__pycache__
+*.pyc
+.pytest_cache
+tests/
+conftest.py
+requirements-dev.txt

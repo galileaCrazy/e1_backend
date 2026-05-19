@@ -1,0 +1,10 @@
+target/
+.mvn/
+.git/
+*.md
+.vscode/
+.github/
+postman/
+.claude/
+.docs/
+src/test/

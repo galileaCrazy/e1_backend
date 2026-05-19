@@ -40,3 +40,6 @@ tmp/
 .settings/
 .springBeans
 .sts4-cache
+# ─────────────────── Docker ───────────────────
+docker-compose.override.yml
+docker.md
