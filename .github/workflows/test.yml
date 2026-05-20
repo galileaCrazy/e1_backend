@@ -7,7 +7,26 @@ on:
     branches: [main]
 
 jobs:
-  test:
+  test-java:
+    name: Tests Spring Boot
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Setup Java 21
+        uses: actions/setup-java@v4
+        with:
+          java-version: "21"
+          distribution: "temurin"
+
+      - name: Run tests
+        working-directory: mi-app
+        run: ./mvnw clean test -B
+
+  test-python:
+    name: Tests FastAPI
     runs-on: ubuntu-latest
 
     steps:
