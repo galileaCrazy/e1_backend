@@ -2,12 +2,14 @@ package com.clinica.mi_app.service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
@@ -18,6 +20,8 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.mockito.MockitoAnnotations;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.clinica.mi_app.dto.request.CitaRequest;
 import com.clinica.mi_app.dto.response.CitaResponse;
@@ -67,6 +71,17 @@ public class CitaServiceTest {
         medicoId = UUID.randomUUID();
         consultorioId = UUID.randomUUID();
         citaId = UUID.randomUUID();
+    }
+
+    @AfterEach
+    public void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    private void autenticarComo(String rol, UUID userId, UUID orgId) {
+        var auth = new UsernamePasswordAuthenticationToken("test@clinic.com", null, List.of());
+        auth.setDetails(Map.of("rol", rol, "userId", userId, "organizacionId", orgId));
+        SecurityContextHolder.getContext().setAuthentication(auth);
     }
 
     @Test
@@ -159,6 +174,7 @@ public class CitaServiceTest {
         cita.setMotivo("Consulta general");
 
         when(citaRepository.findById(citaId)).thenReturn(Optional.of(cita));
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
 
         // Act
         CitaResponse response = citaService.buscarPorId(citaId);

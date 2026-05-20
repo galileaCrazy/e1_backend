@@ -135,7 +135,7 @@ public class AuthControllerTest {
         mockMvc.perform(post("/api/auth/registro")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.token", notNullValue()))
                 .andExpect(jsonPath("$.email", is("newuser@example.com")))
                 .andExpect(jsonPath("$.rol", is("PACIENTE")));
