@@ -1,34 +1,46 @@
-HELP.md
+# ── Entornos virtuales Python ──────────────────────────────────
+medinflow-ia/venv/
+medinflow-ia/venv311/
+medinflow-ia/.venv/
+
+# ── Variables de entorno y secretos ───────────────────────────
+.env
+medinflow-ia/.env
+
+# ── Compilados Python ─────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Compilados / artefactos Java ──────────────────────────────
 target/
-.mvn/wrapper/maven-wrapper.jar
-src/main/resources/application.properties
 !**/src/main/**/target/
 !**/src/test/**/target/
+*.class
+*.jar
+*.war
+mi-app/.mvn/wrapper/maven-wrapper.jar
 
-### STS ###
+# ── application.properties real (usar application-example) ────
+mi-app/src/main/resources/application.properties
+
+# ── Logs y temporales ─────────────────────────────────────────
+*.log
+tmp/
+
+# ── IDEs (IntelliJ, VS Code, STS, NetBeans) ───────────────────
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
 .apt_generated
 .classpath
 .factorypath
 .project
-.settings
+.settings/
 .springBeans
 .sts4-cache
-
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
-
-### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
-!**/src/main/**/build/
-!**/src/test/**/build/
-
-### VS Code ###
-.vscode/
+# ─────────────────── Docker ───────────────────
+docker-compose.override.yml
+docker.md

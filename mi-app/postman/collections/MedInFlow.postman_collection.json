@@ -1,0 +1,1249 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "MedInFlow ClinicaMVP",
+    "description": "Colección completa de endpoints REST para el sistema MedInFlow. Admin de prueba: admin@medinflow.com / temporal123",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{token}}", "type": "string" }
+    ]
+  },
+  "variable": [
+    { "key": "baseUrl",         "value": "http://localhost:8080" },
+    { "key": "token",           "value": "" },
+    { "key": "orgId",           "value": "20352770-80b9-403b-9a3d-e55e02e98edd" },
+    { "key": "consultorioId",   "value": "00000000-0000-0000-0000-000000000001" },
+    { "key": "medicoId",        "value": "00000000-0000-0000-0000-000000000002" },
+    { "key": "horarioId",       "value": "00000000-0000-0000-0000-000000000003" },
+    { "key": "pacienteId",      "value": "00000000-0000-0000-0000-000000000004" },
+    { "key": "usuarioId",       "value": "00000000-0000-0000-0000-000000000005" },
+    { "key": "citaId",          "value": "00000000-0000-0000-0000-000000000006" },
+    { "key": "pagoId",          "value": "00000000-0000-0000-0000-000000000007" },
+    { "key": "adjuntoId",       "value": "00000000-0000-0000-0000-000000000008" },
+    { "key": "notificacionId",  "value": "00000000-0000-0000-0000-000000000009" },
+    { "key": "diagnosticoId",   "value": "00000000-0000-0000-0000-000000000010" }
+  ],
+  "item": [
+
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Registro paciente",
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"paciente@medinflow.com\",\n  \"password\": \"temporal123\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/registro",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "registro"]
+            },
+            "description": "Crea un nuevo usuario con rol PACIENTE. Devuelve token JWT."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "originalRequest": {
+                "method": "POST",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"paciente@medinflow.com\",\n  \"password\": \"temporal123\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\"\n}" }
+              },
+              "status": "Created",
+              "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiJ9...\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.environment.set(\"token\", pm.response.json().token);"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": { "type": "noauth" },
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@medinflow.com\",\n  \"password\": \"temporal123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "description": "Autentica usuario y retorna token JWT. El test guarda el token automáticamente en la variable de entorno."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "originalRequest": {
+                "method": "POST",
+                "body": { "mode": "raw", "raw": "{\n  \"email\": \"admin@medinflow.com\",\n  \"password\": \"temporal123\"\n}" }
+              },
+              "status": "OK",
+              "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"token\": \"eyJhbGciOiJIUzI1NiJ9...\"\n}"
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Organizaciones",
+      "item": [
+        {
+          "name": "Listar todas",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/organizaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizaciones"]
+            },
+            "description": "Solo ADMIN. Retorna todas las organizaciones registradas."
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "[\n  {\n    \"id\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n    \"nombre\": \"Clínica MedInFlow\",\n    \"plan\": \"CLINICA\",\n    \"trialHasta\": null,\n    \"activo\": true,\n    \"createdAt\": \"2026-01-15T10:00:00Z\"\n  }\n]"
+            }
+          ]
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/organizaciones/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizaciones", "{{orgId}}"]
+            }
+          },
+          "response": [
+            {
+              "name": "200 OK",
+              "status": "OK", "code": 200,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Clínica MedInFlow\",\n  \"plan\": \"CLINICA\",\n  \"trialHasta\": null,\n  \"activo\": true,\n  \"createdAt\": \"2026-01-15T10:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Crear organización",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Clínica San Rafael\",\n  \"plan\": \"CLINICA\",\n  \"trialHasta\": \"2026-12-31T23:59:59Z\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizaciones"]
+            },
+            "description": "Planes válidos: SOLO, CLINICA, ENTERPRISE"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"nombre\": \"Clínica San Rafael\",\n  \"plan\": \"CLINICA\",\n  \"trialHasta\": \"2026-12-31T23:59:59Z\",\n  \"activo\": true,\n  \"createdAt\": \"2026-05-10T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar organización",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombre\": \"Clínica MedInFlow Actualizada\",\n  \"plan\": \"ENTERPRISE\",\n  \"trialHasta\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/organizaciones/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizaciones", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar organización",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/organizaciones/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "organizaciones", "{{orgId}}"]
+            }
+          },
+          "response": [
+            { "name": "204 No Content", "status": "No Content", "code": 204, "body": "" }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "Consultorios",
+      "item": [
+        {
+          "name": "Listar por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultorios/organizacion/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultorios", "organizacion", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar activos por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultorios/organizacion/{{orgId}}/activos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultorios", "organizacion", "{{orgId}}", "activos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultorios/{{consultorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultorios", "{{consultorioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear consultorio",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Consultorio 1\",\n  \"direccion\": \"Av. Tecnológico 123, Oaxaca\",\n  \"telefono\": \"9511234567\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consultorios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultorios"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Consultorio 1\",\n  \"direccion\": \"Av. Tecnológico 123, Oaxaca\",\n  \"telefono\": \"9511234567\",\n  \"activo\": true,\n  \"createdAt\": \"2026-05-10T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar consultorio",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Consultorio 1 - Actualizado\",\n  \"direccion\": \"Av. Tecnológico 123, Oaxaca\",\n  \"telefono\": \"9519876543\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/consultorios/{{consultorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultorios", "{{consultorioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar consultorio",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/consultorios/{{consultorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "consultorios", "{{consultorioId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Médicos",
+      "item": [
+        {
+          "name": "Listar por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/organizacion/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "organizacion", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar activos por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/organizacion/{{orgId}}/activos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "organizacion", "{{orgId}}", "activos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por consultorio",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/consultorio/{{consultorioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "consultorio", "{{consultorioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/{{medicoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "{{medicoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear médico",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"consultorioId\": \"{{consultorioId}}\",\n  \"nombre\": \"Dr. Roberto Ramírez\",\n  \"especialidad\": \"Medicina General\",\n  \"cedula\": \"MED-2024-001\",\n  \"telefono\": \"9515551234\",\n  \"tarifaBase\": 350.00\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos"]
+            }
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"consultorioId\": \"{{consultorioId}}\",\n  \"nombre\": \"Dr. Roberto Ramírez\",\n  \"especialidad\": \"Medicina General\",\n  \"cedula\": \"MED-2024-001\",\n  \"telefono\": \"9515551234\",\n  \"tarifaBase\": 350.00,\n  \"activo\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar médico",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"consultorioId\": \"{{consultorioId}}\",\n  \"nombre\": \"Dr. Roberto Ramírez\",\n  \"especialidad\": \"Cardiología\",\n  \"cedula\": \"MED-2024-001\",\n  \"telefono\": \"9515551234\",\n  \"tarifaBase\": 500.00\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/{{medicoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "{{medicoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar médico",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/medicos/{{medicoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "medicos", "{{medicoId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Horarios",
+      "item": [
+        {
+          "name": "Listar por médico",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/horarios/medico/{{medicoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "horarios", "medico", "{{medicoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por médico y día",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/horarios/medico/{{medicoId}}/dia/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "horarios", "medico", "{{medicoId}}", "dia", "1"]
+            },
+            "description": "Día: 0=Domingo, 1=Lunes, 2=Martes, 3=Miércoles, 4=Jueves, 5=Viernes, 6=Sábado"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/horarios/{{horarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "horarios", "{{horarioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear horario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicoId\": \"{{medicoId}}\",\n  \"diaSemana\": 1,\n  \"horaInicio\": \"09:00:00\",\n  \"horaFin\": \"14:00:00\",\n  \"duracionConsulta\": 30\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/horarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "horarios"]
+            },
+            "description": "duracionConsulta válidos: 20, 30, 45, 60 minutos. diaSemana: 0=Dom ... 6=Sáb"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"diaSemana\": 1,\n  \"horaInicio\": \"09:00:00\",\n  \"horaFin\": \"14:00:00\",\n  \"duracionConsulta\": 30\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar horario",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"medicoId\": \"{{medicoId}}\",\n  \"diaSemana\": 1,\n  \"horaInicio\": \"08:00:00\",\n  \"horaFin\": \"13:00:00\",\n  \"duracionConsulta\": 30\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/horarios/{{horarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "horarios", "{{horarioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar horario",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/horarios/{{horarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "horarios", "{{horarioId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Pacientes",
+      "item": [
+        {
+          "name": "Listar por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/organizacion/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "organizacion", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar activos por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/organizacion/{{orgId}}/activos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "organizacion", "{{orgId}}", "activos"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por nombre",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/organizacion/{{orgId}}/buscar?nombre=garcia",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "organizacion", "{{orgId}}", "buscar"],
+              "query": [{ "key": "nombre", "value": "garcia" }]
+            },
+            "description": "Búsqueda parcial, insensible a mayúsculas."
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear paciente",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Ana García López\",\n  \"telefono\": \"9511112222\",\n  \"fechaNacimiento\": \"1990-05-15\",\n  \"sexo\": \"F\",\n  \"email\": \"ana.garcia@email.com\",\n  \"notas\": \"Alérgica a penicilina\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes"]
+            },
+            "description": "sexo válido: M, F, O"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Ana García López\",\n  \"telefono\": \"9511112222\",\n  \"fechaNacimiento\": \"1990-05-15\",\n  \"sexo\": \"F\",\n  \"email\": \"ana.garcia@email.com\",\n  \"notas\": \"Alérgica a penicilina\",\n  \"activo\": true,\n  \"createdAt\": \"2026-05-10T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar paciente",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"nombre\": \"Ana García López\",\n  \"telefono\": \"9513334444\",\n  \"fechaNacimiento\": \"1990-05-15\",\n  \"sexo\": \"F\",\n  \"email\": \"ana.garcia@email.com\",\n  \"notas\": \"Alérgica a penicilina y aspirina\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar paciente",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/pacientes/{{pacienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pacientes", "{{pacienteId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Usuarios",
+      "item": [
+        {
+          "name": "Listar por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/organizacion/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "organizacion", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "{{usuarioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear usuario",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"medicoId\": null,\n  \"email\": \"nuevo.admin@medinflow.com\",\n  \"rol\": \"ADMIN\",\n  \"password\": \"temporal123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios"]
+            },
+            "description": "Roles válidos: ADMIN, MEDICO. medicoId solo si rol=MEDICO."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"medicoId\": null,\n  \"email\": \"nuevo.admin@medinflow.com\",\n  \"rol\": \"ADMIN\",\n  \"activo\": true\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar usuario",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"medicoId\": null,\n  \"email\": \"nuevo.admin@medinflow.com\",\n  \"rol\": \"MEDICO\",\n  \"password\": \"nuevaPass123\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "{{usuarioId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar usuario",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/usuarios/{{usuarioId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "usuarios", "{{usuarioId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Citas",
+      "item": [
+        {
+          "name": "Listar por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/organizacion/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "organizacion", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por médico",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/medico/{{medicoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "medico", "{{medicoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por paciente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/paciente/{{pacienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "paciente", "{{pacienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por estado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/organizacion/{{orgId}}/estado/SIN_CONFIRMAR",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "organizacion", "{{orgId}}", "estado", "SIN_CONFIRMAR"]
+            },
+            "description": "Estados válidos: SIN_CONFIRMAR, CONFIRMADA, CANCELADA, REAGENDADA, NO_ASISTIO"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "{{citaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Agendar cita",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"consultorioId\": \"{{consultorioId}}\",\n  \"fechaHora\": \"2026-06-15T10:00:00-06:00\",\n  \"duracionMin\": 30,\n  \"motivo\": \"Consulta de seguimiento\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/citas",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas"]
+            },
+            "description": "La cita inicia con estado SIN_CONFIRMAR por defecto."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"consultorioId\": \"{{consultorioId}}\",\n  \"fechaHora\": \"2026-06-15T10:00:00-06:00\",\n  \"duracionMin\": 30,\n  \"estado\": \"SIN_CONFIRMAR\",\n  \"motivo\": \"Consulta de seguimiento\",\n  \"canceladaEn\": null,\n  \"canceladaPor\": null,\n  \"createdAt\": \"2026-05-10T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar cita",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"medicoId\": \"{{medicoId}}\",\n  \"consultorioId\": \"{{consultorioId}}\",\n  \"fechaHora\": \"2026-06-16T10:00:00-06:00\",\n  \"duracionMin\": 45,\n  \"motivo\": \"Consulta de seguimiento reagendada\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "{{citaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar cita",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/citas/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "citas", "{{citaId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Pagos",
+      "item": [
+        {
+          "name": "Listar por organización",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/organizacion/{{orgId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "organizacion", "{{orgId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por estado",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/organizacion/{{orgId}}/estado/PENDIENTE",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "organizacion", "{{orgId}}", "estado", "PENDIENTE"]
+            },
+            "description": "Estados válidos: PAGADO, PENDIENTE"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar pago de una cita",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/cita/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "cita", "{{citaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar pago",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"citaId\": \"{{citaId}}\",\n  \"monto\": 350.00,\n  \"metodo\": \"EFECTIVO\",\n  \"concepto\": \"Consulta médica general\",\n  \"referencia\": null\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos"]
+            },
+            "description": "Métodos válidos: EFECTIVO, TRANSFERENCIA, TARJETA"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"citaId\": \"{{citaId}}\",\n  \"monto\": 350.00,\n  \"metodo\": \"EFECTIVO\",\n  \"concepto\": \"Consulta médica general\",\n  \"estado\": \"PENDIENTE\",\n  \"referencia\": null,\n  \"pagadoEn\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar pago",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"citaId\": \"{{citaId}}\",\n  \"monto\": 350.00,\n  \"metodo\": \"TRANSFERENCIA\",\n  \"concepto\": \"Consulta médica general\",\n  \"referencia\": \"TRF-2026-001\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar pago",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/pagos/{{pagoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "pagos", "{{pagoId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Adjuntos",
+      "item": [
+        {
+          "name": "Listar por paciente",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/adjuntos/paciente/{{pacienteId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "adjuntos", "paciente", "{{pacienteId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por cita",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/adjuntos/cita/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "adjuntos", "cita", "{{citaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/adjuntos/{{adjuntoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "adjuntos", "{{adjuntoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar adjunto",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"citaId\": \"{{citaId}}\",\n  \"subidoPorId\": \"{{usuarioId}}\",\n  \"tipo\": \"LABORATORIO\",\n  \"nombreArchivo\": \"hemograma_ana_garcia.pdf\",\n  \"urlArchivo\": \"https://storage.medinflow.com/adjuntos/hemograma_ana_garcia.pdf\",\n  \"mimeType\": \"application/pdf\",\n  \"notificar\": true\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/adjuntos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "adjuntos"]
+            },
+            "description": "El archivo debe subirse previamente a un servicio de almacenamiento. Se guarda la URL."
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"citaId\": \"{{citaId}}\",\n  \"subidoPorId\": \"{{usuarioId}}\",\n  \"tipo\": \"LABORATORIO\",\n  \"nombreArchivo\": \"hemograma_ana_garcia.pdf\",\n  \"urlArchivo\": \"https://storage.medinflow.com/adjuntos/hemograma_ana_garcia.pdf\",\n  \"mimeType\": \"application/pdf\",\n  \"notificar\": true,\n  \"notificadoEn\": null,\n  \"createdAt\": \"2026-05-10T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar adjunto",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"pacienteId\": \"{{pacienteId}}\",\n  \"citaId\": \"{{citaId}}\",\n  \"subidoPorId\": \"{{usuarioId}}\",\n  \"tipo\": \"RECETA\",\n  \"nombreArchivo\": \"receta_ana_garcia.pdf\",\n  \"urlArchivo\": \"https://storage.medinflow.com/adjuntos/receta_ana_garcia.pdf\",\n  \"mimeType\": \"application/pdf\",\n  \"notificar\": false\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/adjuntos/{{adjuntoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "adjuntos", "{{adjuntoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar adjunto",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/adjuntos/{{adjuntoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "adjuntos", "{{adjuntoId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Notificaciones",
+      "item": [
+        {
+          "name": "Listar por cita",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/cita/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "cita", "{{citaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar pendientes",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/pendientes",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "pendientes"]
+            },
+            "description": "Solo ADMIN. Retorna todas las notificaciones en estado PENDIENTE."
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/{{notificacionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "{{notificacionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Crear notificación",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"citaId\": \"{{citaId}}\",\n  \"adjuntoId\": null,\n  \"canal\": \"WHATSAPP\",\n  \"tipo\": \"RECORDATORIO_24H\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones"]
+            },
+            "description": "Tipos válidos: RECORDATORIO_48H, RECORDATORIO_24H, ADJUNTO. Canal por defecto: WHATSAPP"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"citaId\": \"{{citaId}}\",\n  \"adjuntoId\": null,\n  \"canal\": \"WHATSAPP\",\n  \"tipo\": \"RECORDATORIO_24H\",\n  \"estado\": \"PENDIENTE\",\n  \"enviadaEn\": null,\n  \"respuesta\": null\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar notificación",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"organizacionId\": \"20352770-80b9-403b-9a3d-e55e02e98edd\",\n  \"citaId\": \"{{citaId}}\",\n  \"adjuntoId\": null,\n  \"canal\": \"WHATSAPP\",\n  \"tipo\": \"RECORDATORIO_48H\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/{{notificacionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "{{notificacionId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar notificación",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/notificaciones/{{notificacionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "notificaciones", "{{notificacionId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+
+    {
+      "name": "Diagnósticos",
+      "item": [
+        {
+          "name": "Listar por cita",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/diagnosticos/cita/{{citaId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "diagnosticos", "cita", "{{citaId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar por cita y tipo",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/diagnosticos/cita/{{citaId}}/tipo/PRINCIPAL",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "diagnosticos", "cita", "{{citaId}}", "tipo", "PRINCIPAL"]
+            },
+            "description": "Tipos válidos: PRINCIPAL, SECUNDARIO"
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/diagnosticos/{{diagnosticoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "diagnosticos", "{{diagnosticoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Registrar diagnóstico",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"citaId\": \"{{citaId}}\",\n  \"codigoCie10\": \"J06.9\",\n  \"descripcion\": \"Infección aguda de vías respiratorias superiores, no especificada\",\n  \"tipo\": \"PRINCIPAL\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/diagnosticos",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "diagnosticos"]
+            },
+            "description": "codigoCie10 es opcional. Tipos: PRINCIPAL, SECUNDARIO"
+          },
+          "response": [
+            {
+              "name": "201 Created",
+              "status": "Created", "code": 201,
+              "_postman_previewlanguage": "json",
+              "body": "{\n  \"id\": \"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx\",\n  \"citaId\": \"{{citaId}}\",\n  \"codigoCie10\": \"J06.9\",\n  \"descripcion\": \"Infección aguda de vías respiratorias superiores, no especificada\",\n  \"tipo\": \"PRINCIPAL\",\n  \"createdAt\": \"2026-05-10T12:00:00Z\"\n}"
+            }
+          ]
+        },
+        {
+          "name": "Actualizar diagnóstico",
+          "request": {
+            "method": "PUT",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"citaId\": \"{{citaId}}\",\n  \"codigoCie10\": \"J06.9\",\n  \"descripcion\": \"Infección aguda de vías respiratorias superiores con complicación\",\n  \"tipo\": \"PRINCIPAL\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/diagnosticos/{{diagnosticoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "diagnosticos", "{{diagnosticoId}}"]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Eliminar diagnóstico",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/diagnosticos/{{diagnosticoId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "diagnosticos", "{{diagnosticoId}}"]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+
+  ]
+}
