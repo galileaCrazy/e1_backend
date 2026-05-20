@@ -1,10 +1,11 @@
+import os
 import jwt
 import pytest
 from datetime import datetime, timedelta, timezone
 from fastapi.testclient import TestClient
 from main import app
 
-TEST_SECRET = "test-secret-key"
+TEST_SECRET = os.getenv("JWT_SECRET", "changeme")
 
 
 def make_token(rol: str, email: str = "test@clinic.com") -> str:

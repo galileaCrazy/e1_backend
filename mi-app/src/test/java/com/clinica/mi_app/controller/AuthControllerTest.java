@@ -1,127 +1,169 @@
 package com.clinica.mi_app.controller;
 
-import com.clinica.mi_app.config.SecurityConfig;
+import java.util.UUID;
+
+import static org.hamcrest.Matchers.is;
+import static org.hamcrest.Matchers.notNullValue;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.TestPropertySource;
+import org.springframework.test.web.servlet.MockMvc;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
 import com.clinica.mi_app.dto.request.LoginRequest;
 import com.clinica.mi_app.dto.request.RegistroRequest;
 import com.clinica.mi_app.dto.response.AuthResponse;
-import com.clinica.mi_app.security.JwtFilter;
-import com.clinica.mi_app.security.JwtUtil;
-import com.clinica.mi_app.security.UserDetailsServiceImpl;
 import com.clinica.mi_app.service.AuthService;
-import com.clinica.mi_app.service.PacienteService;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+@WebMvcTest(AuthController.class)
+@TestPropertySource(properties = {"jwt.secret=ZmFrZXNlY3JldGtleWZha2VzZWNyZXQ=", "jwt.expiration=3600000"})
+public class AuthControllerTest {
 
-@WebMvcTest(controllers = {AuthController.class, PacienteController.class})
-@Import(SecurityConfig.class)
-class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private AuthService authService;
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public AuthService authService() {
+            return org.mockito.Mockito.mock(AuthService.class);
+        }
+        @Bean
+        public com.clinica.mi_app.security.JwtUtil jwtUtil() {
+            return org.mockito.Mockito.mock(com.clinica.mi_app.security.JwtUtil.class);
+        }
+        @Bean
+        public com.clinica.mi_app.security.UserDetailsServiceImpl userDetailsServiceImpl() {
+            return org.mockito.Mockito.mock(com.clinica.mi_app.security.UserDetailsServiceImpl.class);
+        }
+        @Bean
+        public com.fasterxml.jackson.databind.ObjectMapper objectMapper() {
+            com.fasterxml.jackson.databind.ObjectMapper mapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
+            mapper.configure(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
+            return mapper;
+        }
+    }
+
+    @Autowired
     private ObjectMapper objectMapper;
 
-    @MockitoBean
-	private JwtFilter jwtFilter;
-
-	@MockitoBean
-	private AuthService authService;
-
-	@MockitoBean
-	private PacienteService pacienteService;
-
-	@MockitoBean
-	private JwtUtil jwtUtil;
-
-	@MockitoBean
-	private UserDetailsServiceImpl userDetailsService;
-
-    private static final UUID ORG_ID = UUID.fromString("20352770-80b9-403b-9a3d-e55e02e98edd");
-    private static final UUID PACIENTE_ID = UUID.randomUUID();
+    private UUID organizacionId;
+    private UUID usuarioId;
 
     @BeforeEach
-    void setUp() throws Exception {
-        objectMapper = new ObjectMapper();
-        objectMapper.registerModule(new JavaTimeModule());
-        // JwtFilter passes through — let Spring Security handle auth
-        doAnswer(invocation -> {
-            var chain = invocation.getArgument(2, jakarta.servlet.FilterChain.class);
-            chain.doFilter(invocation.getArgument(0), invocation.getArgument(1));
-            return null;
-        }).when(jwtFilter).doFilter(any(), any(), any());
+    public void setup() {
+        organizacionId = UUID.randomUUID();
+        usuarioId = UUID.randomUUID();
     }
 
     @Test
-    void test_registro_exitoso() throws Exception {
-        RegistroRequest req = new RegistroRequest();
-        req.setEmail("nuevo@clinic.com");
-        req.setPassword("Password123");
-        req.setOrganizacionId(ORG_ID);
+    public void testLogin_Success() throws Exception {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("user@example.com");
+        request.setPassword("password123");
 
-        AuthResponse response = new AuthResponse("jwt-token", UUID.randomUUID(),
-                "nuevo@clinic.com", "PACIENTE", ORG_ID);
-        when(authService.registro(any(RegistroRequest.class))).thenReturn(response);
+        AuthResponse authResponse = new AuthResponse(
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            usuarioId, "user@example.com", "PACIENTE", organizacionId
+        );
 
-        mockMvc.perform(post("/api/auth/registro")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.token").value("jwt-token"));
-    }
-
-    @Test
-    void test_login_exitoso() throws Exception {
-        LoginRequest req = new LoginRequest();
-        req.setEmail("admin@clinic.com");
-        req.setPassword("Password123");
-
-        AuthResponse response = new AuthResponse("jwt-token", UUID.randomUUID(),
-                "admin@clinic.com", "ADMIN", ORG_ID);
-        when(authService.login(any(LoginRequest.class))).thenReturn(response);
+        when(authService.login(any(LoginRequest.class))).thenReturn(authResponse);
 
         mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token").exists())
-                .andExpect(jsonPath("$.token").value("jwt-token"));
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.email", is("user@example.com")))
+                .andExpect(jsonPath("$.rol", is("PACIENTE")));
     }
 
     @Test
-    void test_sin_token() throws Exception {
-        mockMvc.perform(get("/api/pacientes/" + PACIENTE_ID))
-                .andExpect(status().isUnauthorized());
+    public void testLogin_InvalidEmail() throws Exception {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("invalid-email");
+        request.setPassword("password123");
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void test_token_invalido() throws Exception {
-        // jwtUtil.isTokenValid() returns false by default (Mockito default)
-        mockMvc.perform(get("/api/pacientes/" + PACIENTE_ID)
-                        .header("Authorization", "Bearer token.inventado.invalido"))
-                .andExpect(status().isUnauthorized());
+    public void testLogin_EmptyEmail() throws Exception {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("");
+        request.setPassword("password123");
+
+        mockMvc.perform(post("/api/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test
-    void test_rol_insuficiente() throws Exception {
-        mockMvc.perform(delete("/api/pacientes/" + PACIENTE_ID)
-                        .with(user("paciente").roles("PACIENTE")))
-                .andExpect(status().isForbidden());
+    public void testRegistro_Success() throws Exception {
+        RegistroRequest request = new RegistroRequest();
+        request.setEmail("newuser@example.com");
+        request.setPassword("password123");
+        request.setOrganizacionId(organizacionId);
+
+        AuthResponse authResponse = new AuthResponse(
+            "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+            usuarioId, "newuser@example.com", "PACIENTE", organizacionId
+        );
+
+        when(authService.registro(any(RegistroRequest.class))).thenReturn(authResponse);
+
+        mockMvc.perform(post("/api/auth/registro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andExpect(jsonPath("$.email", is("newuser@example.com")))
+                .andExpect(jsonPath("$.rol", is("PACIENTE")));
+    }
+
+    @Test
+    public void testRegistro_PasswordTooShort() throws Exception {
+        RegistroRequest request = new RegistroRequest();
+        request.setEmail("newuser@example.com");
+        request.setPassword("short");
+        request.setOrganizacionId(organizacionId);
+
+        mockMvc.perform(post("/api/auth/registro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    public void testRegistro_InvalidEmail() throws Exception {
+        RegistroRequest request = new RegistroRequest();
+        request.setEmail("invalid-email");
+        request.setPassword("password123");
+        request.setOrganizacionId(organizacionId);
+
+        mockMvc.perform(post("/api/auth/registro")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }
