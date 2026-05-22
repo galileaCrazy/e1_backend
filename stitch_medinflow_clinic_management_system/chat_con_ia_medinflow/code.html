@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#00714d",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "outline-variant": "#c3c6d7",
+                    "on-surface-variant": "#434655",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#eeefff",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "on-primary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#e5eeff",
+                    "outline": "#737686",
+                    "surface-tint": "#0053db",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-variant": "#d3e4fe",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "tertiary-container": "#bc4800",
+                    "primary-container": "#2563eb",
+                    "surface-container-highest": "#d3e4fe",
+                    "secondary-container": "#6cf8bb",
+                    "surface": "#f8f9ff",
+                    "primary": "#004ac6",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#f8f9ff",
+                    "inverse-primary": "#b4c5ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-background": "#0b1c30",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-tertiary-fixed": "#360f00",
+                    "on-tertiary-container": "#ffede6",
+                    "secondary": "#006c49",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed": "#6ffbbe",
+                    "on-surface": "#0b1c30",
+                    "tertiary": "#943700",
+                    "inverse-surface": "#213145",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#00174b",
+                    "primary-fixed": "#dbe1ff",
+                    "surface-container-high": "#dce9ff",
+                    "on-secondary-fixed": "#002113"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "sidebar-width": "260px",
+                    "gutter": "24px",
+                    "base": "4px",
+                    "lg": "1.5rem",
+                    "xs": "0.25rem",
+                    "md": "1rem",
+                    "xl": "2rem",
+                    "sm": "0.5rem"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "title-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "title-sm": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        .chat-container { height: calc(100vh - 80px - 80px); }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- TopNavBar (Patient View) -->
+<nav class="flex items-center justify-between px-gutter w-full h-20 z-40 bg-primary dark:bg-primary-container shadow-md sticky top-0">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-black text-on-primary dark:text-on-primary-container">MedInFlow Patient</span>
+<div class="hidden md:flex gap-6 items-center">
+<a class="text-on-primary/80 font-medium pb-1 transition-all hover:text-on-primary" href="#">My Health</a>
+<a class="text-on-primary/80 font-medium pb-1 transition-all hover:text-on-primary" href="#">Appointments</a>
+<a class="text-on-primary font-bold border-b-2 border-on-primary pb-1 transition-all" href="#">IA Assistant</a>
+<a class="text-on-primary/80 font-medium pb-1 transition-all hover:text-on-primary" href="#">Payments</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-secondary text-on-secondary px-6 py-2 rounded-full font-label-caps text-label-caps uppercase transition-transform hover:scale-95">Book Now</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-on-primary/20">
+<img alt="Patient Profile" class="w-full h-full object-cover" data-alt="A professional close-up portrait of a woman in a clinical setting, featuring soft, bright lighting consistent with a modern healthcare facility. She has a warm, neutral expression. The image is crisp with a shallow depth of field, highlighting her face against a blurred medical office background in tones of soft blue and white." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqo0KD3xp84iASyXdtLh25zkVGLEUFcc4MoFpZXPu-DzkN9qkonMa-rajkivR8-5AaQyKwJ9PSNiC6dUUjL_rn5I6MIlvxia0xYEdthm_m2QsCKq7CJN_0vekBha5tQxiXE-a6js2b0-pANCptJzJl48R1u4RLqzYDaHQxR08XkqErT_5Lrr_6I8k_1EqjAQhGIV8uYatkChbttdZW3mU79Yl9r98sT64v4ZWDign0DDPM1tW43Zf2sqRQlcKqN7-E-FAb6vz6Tvyp"/>
+</div>
+</div>
+</nav>
+<main class="max-w-[1280px] mx-auto min-h-screen bg-surface-container-lowest flex flex-col relative shadow-sm border-x border-outline-variant/30">
+<!-- Chat Header -->
+<header class="flex items-center justify-between px-6 py-4 bg-surface border-b border-outline-variant shadow-sm z-30 sticky top-20">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-primary-container rounded-full flex items-center justify-center text-on-primary-container">
+<span class="material-symbols-outlined text-3xl">smart_toy</span>
+</div>
+<div>
+<h1 class="font-title-sm text-title-sm text-on-surface">Asistente MedInFlow</h1>
+<div class="flex items-center gap-1.5">
+<span class="w-2.5 h-2.5 bg-secondary rounded-full"></span>
+<span class="font-body-sm text-body-sm text-on-surface-variant">En línea</span>
+</div>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="p-2 hover:bg-surface-container-high rounded-full transition-colors text-on-surface-variant">
+<span class="material-symbols-outlined">more_vert</span>
+</button>
+</div>
+</header>
+<!-- Chat Area -->
+<div class="flex-grow overflow-y-auto p-6 space-y-6 bg-[#F1F5F9] chat-container">
+<!-- IA Message -->
+<div class="flex items-end gap-3 max-w-[80%]">
+<div class="w-8 h-8 bg-primary-container rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<div class="bg-surface p-4 rounded-xl rounded-bl-none shadow-sm border border-outline-variant/30">
+<p class="font-body-md text-body-md text-on-surface">Hola, soy tu asistente médico virtual de MedInFlow. Estoy aquí para ayudarte con dudas sobre tus síntomas, medicamentos o próximas citas. ¿En qué puedo apoyarte hoy?</p>
+<span class="block mt-2 font-label-caps text-[10px] text-outline text-right uppercase">10:00 AM</span>
+</div>
+</div>
+<!-- Patient Message -->
+<div class="flex items-end gap-3 max-w-[80%] ml-auto flex-row-reverse">
+<div class="w-8 h-8 bg-surface-container-high rounded-full overflow-hidden flex-shrink-0 mb-1 border border-outline-variant/50">
+<img alt="User profile" class="w-full h-full object-cover" data-alt="A professional close-up portrait of a woman in a clinical setting, featuring soft, bright lighting consistent with a modern healthcare facility. The lighting is clean and professional, creating a light-mode aesthetic in line with medical software interfaces." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBjQ-8mLswTVH26_-PbaWHsDTeKkwWgtSl2Sh_gxL1W-OrZ5roMssu4gK9vYZJWmpYdRTV8h8_uctrbA5Jvhjrw_DQa0ojWh1uKilyMsv1bJOno7VkXxcUmRs90Iwx-BF5sbkd3ZrwN6uTTtPgxkKmeMJFen6cCvDPqVVYFIOAXIma77fDcaCbBrLuxF8xFd4JguzBQJY7T13PMhdYbbkcGjlwX7NLeP43W3yXebhLrRZhYyHWgn7zwuccYmzp4g3YJBSlbT2mNWipH"/>
+</div>
+<div class="bg-primary-container text-on-primary-container p-4 rounded-xl rounded-br-none shadow-sm">
+<p class="font-body-md text-body-md">Hola, he estado sintiendo un dolor persistente en la rodilla izquierda después de mi caminata matutina. ¿Debería preocuparme?</p>
+<span class="block mt-2 font-label-caps text-[10px] opacity-70 text-right uppercase">10:02 AM</span>
+</div>
+</div>
+<!-- IA Message -->
+<div class="flex items-end gap-3 max-w-[80%]">
+<div class="w-8 h-8 bg-primary-container rounded-full flex items-center justify-center flex-shrink-0 mb-1">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">smart_toy</span>
+</div>
+<div class="bg-surface p-4 rounded-xl rounded-bl-none shadow-sm border border-outline-variant/30">
+<p class="font-body-md text-body-md text-on-surface">Lamento escuchar eso. Para entender mejor la situación: ¿El dolor es agudo o una molestia constante? ¿Hay alguna inflamación o enrojecimiento visible en la zona?</p>
+<div class="mt-4 flex flex-wrap gap-2">
+<button class="bg-surface-container border border-primary text-primary px-3 py-1.5 rounded-full text-sm font-medium hover:bg-primary hover:text-on-primary transition-colors">Es un dolor agudo</button>
+<button class="bg-surface-container border border-primary text-primary px-3 py-1.5 rounded-full text-sm font-medium hover:bg-primary hover:text-on-primary transition-colors">Es una molestia constante</button>
+<button class="bg-surface-container border border-primary text-primary px-3 py-1.5 rounded-full text-sm font-medium hover:bg-primary hover:text-on-primary transition-colors">Hay inflamación</button>
+</div>
+<span class="block mt-2 font-label-caps text-[10px] text-outline text-right uppercase">10:03 AM</span>
+</div>
+</div>
+<!-- Patient Message -->
+<div class="flex items-end gap-3 max-w-[80%] ml-auto flex-row-reverse">
+<div class="w-8 h-8 bg-surface-container-high rounded-full overflow-hidden flex-shrink-0 mb-1 border border-outline-variant/50">
+<img alt="User profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABUmQ70GXkF0qSdxV_XXbNsVvsrL9Ixo9FELM6BJd3v5skN6Fmg0KTuYM3nrlMDhRvysplqJi9Sm5aUk-iHKp2iKF8TY4pyf6YdETt9PPQM0hS5IRjp-GlRBJB6-Ky549r__vxYedUMbojqNyr2Q2aRRf_fHYbX_m8UoJXqPs4UXQ7a8MJ6pVMUjRoAS8UC22VXGPFUsfXwjT47CUSszU_m_jWS7CPf787izPk8BCLzT5jt_WrCtnW0slyYaNRJHBw18NKuTDp2TEk"/>
+</div>
+<div class="bg-primary-container text-on-primary-container p-4 rounded-xl rounded-br-none shadow-sm">
+<p class="font-body-md text-body-md">Es más bien una molestia constante, pero no noto inflamación a simple vista.</p>
+<span class="block mt-2 font-label-caps text-[10px] opacity-70 text-right uppercase">10:05 AM</span>
+</div>
+</div>
+</div>
+<!-- Input Area -->
+<footer class="p-4 bg-surface border-t border-outline-variant sticky bottom-0 z-30">
+<div class="max-w-4xl mx-auto flex items-end gap-3">
+<button class="p-3 text-primary hover:bg-surface-container-low rounded-full transition-colors">
+<span class="material-symbols-outlined">attach_file</span>
+</button>
+<div class="flex-grow relative">
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none font-body-md text-body-md max-h-32" placeholder="Escribe tu mensaje aquí..." rows="1"></textarea>
+</div>
+<button class="bg-primary text-on-primary p-3 rounded-full shadow-md hover:bg-primary/90 transition-transform active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">send</span>
+</button>
+</div>
+<div class="mt-2 text-center">
+<p class="text-[10px] text-outline uppercase font-label-caps">El asistente IA no reemplaza un diagnóstico médico profesional.</p>
+</div>
+</footer>
+</main>
+<!-- Side Navigation (Suppressed based on Transactional/Focused UI Rule, but TopNavBar is present) -->
+</body></html>

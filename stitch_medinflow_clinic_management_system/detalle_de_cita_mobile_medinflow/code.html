@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#00714d",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "outline-variant": "#c3c6d7",
+                    "on-surface-variant": "#434655",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#eeefff",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "on-primary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#e5eeff",
+                    "outline": "#737686",
+                    "surface-tint": "#0053db",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-variant": "#d3e4fe",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "tertiary-container": "#bc4800",
+                    "primary-container": "#2563eb",
+                    "surface-container-highest": "#d3e4fe",
+                    "secondary-container": "#6cf8bb",
+                    "surface": "#f8f9ff",
+                    "primary": "#004ac6",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#f8f9ff",
+                    "inverse-primary": "#b4c5ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-background": "#0b1c30",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-tertiary-fixed": "#360f00",
+                    "on-tertiary-container": "#ffede6",
+                    "secondary": "#006c49",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed": "#6ffbbe",
+                    "on-surface": "#0b1c30",
+                    "tertiary": "#943700",
+                    "inverse-surface": "#213145",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#00174b",
+                    "primary-fixed": "#dbe1ff",
+                    "surface-container-high": "#dce9ff",
+                    "on-secondary-fixed": "#002113"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "sidebar-width": "260px",
+                    "gutter": "24px",
+                    "base": "4px",
+                    "lg": "1.5rem",
+                    "xs": "0.25rem",
+                    "md": "1rem",
+                    "xl": "2rem",
+                    "sm": "0.5rem"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "title-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "title-sm": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; background-color: #F8FAFC; }
+        /* Hide sidebar on mobile by default */
+        @media (max-width: 768px) {
+            .mobile-sidebar { transform: translateX(-100%); transition: transform 0.3s ease; }
+            .mobile-sidebar.open { transform: translateX(0); }
+            .main-content { margin-left: 0 !important; }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Sidebar - Desktop (static) & Mobile (off-canvas) -->
+<aside class="mobile-sidebar fixed left-0 top-0 h-full w-[260px] bg-surface border-r border-outline-variant flex flex-col py-6 px-4 z-50 lg:translate-x-0" id="sidebar">
+<div class="mb-8 px-4 flex justify-between items-center">
+<div>
+<span class="font-headline-md text-headline-md font-bold text-primary">MedInFlow</span>
+<p class="text-on-surface-variant font-body-sm text-body-sm">Clinical Admin</p>
+</div>
+<button class="lg:hidden material-symbols-outlined text-on-surface-variant" onclick="document.getElementById('sidebar').classList.remove('open')">close</button>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-full px-4 py-3 border-l-4 border-primary transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-caps text-label-caps">Appointments</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-caps text-label-caps">Patients</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span class="font-label-caps text-label-caps">Doctors</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-caps text-label-caps">Reports</span>
+</a>
+</nav>
+<div class="mt-auto border-t border-outline-variant pt-4 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-caps text-label-caps">Help</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high rounded-lg transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps">Logout</span>
+</a>
+</div>
+</aside>
+<div class="main-content lg:ml-[260px] flex flex-col min-h-screen">
+<header class="h-16 flex items-center justify-between px-gutter bg-surface border-b border-outline-variant sticky top-0 z-40">
+<div class="flex items-center gap-4">
+<button class="lg:hidden material-symbols-outlined text-outline" onclick="document.getElementById('sidebar').classList.add('open')">menu</button>
+<button class="material-symbols-outlined text-outline hover:text-primary transition-colors">arrow_back</button>
+<h1 class="font-headline-md text-headline-md font-bold text-primary truncate">Detalle de Cita</h1>
+</div>
+<div class="flex items-center gap-2 sm:gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:bg-surface-container-low p-2 rounded-full transition-colors">notifications</button>
+<div class="h-8 w-8 rounded-full overflow-hidden border border-outline-variant">
+<img alt="Doctor Profile" data-alt="Close up portrait of a professional male doctor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuClwX1-CBoid1UlMcF2DFXdpv6KzFZWlOdzWngb8pFQ9y-youeBC04JKn_griAa25MCjH5CgxSNkyc3nbZyB8zXO7sxKLh1mIxO-bwz5YeHsR4-6nb8TtyQ2Ng1eGeifTSJ6IzvnK40C-tATWuFbnux_9VtNY_k9fqHaBJVqVZjNxNWmIbw66YwHOrh1GbbfHRbfeXIEIC8tZBa1nf_H0LDQWY7G1LOZIhndoqDNPtLOEe4Gs_g6nUkK8znmdb4MYNbUeEDUZoK7IGh"/>
+</div>
+</div>
+</header>
+<main class="p-4 sm:p-xl max-w-[1280px] mx-auto w-full">
+<!-- Header Section -->
+<div class="flex flex-col mb-6 gap-3">
+<div class="flex justify-between items-start">
+<div>
+<h2 class="font-display-lg text-2xl sm:text-display-lg text-on-surface">Cita #98231</h2>
+</div>
+<div class="bg-[#10B981] bg-opacity-10 text-[#059669] px-3 py-1 rounded-full border border-[#10B981]/20 flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-[#10B981]"></span>
+<span class="font-label-caps text-[10px] sm:text-label-caps uppercase">Confirmada</span>
+</div>
+</div>
+<div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-3 text-on-surface-variant">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">calendar_month</span>
+<span class="font-body-md text-sm sm:text-body-md">Lunes, 24 de Julio, 2024</span>
+</div>
+<span class="hidden sm:block text-outline-variant">|</span>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span class="font-body-md text-sm sm:text-body-md">10:30 AM - 11:15 AM</span>
+</div>
+</div>
+</div>
+<!-- Main Sections Stacked Vertically -->
+<div class="flex flex-col gap-6 mb-8">
+<!-- Section 1: Patient -->
+<section class="bg-surface p-6 border border-outline-variant rounded-xl shadow-sm border-t-4 border-primary">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary" data-weight="fill">person</span>
+<h3 class="font-title-sm text-title-sm">Datos del Paciente</h3>
+</div>
+<div class="flex items-center gap-4 mb-6">
+<div class="w-16 h-16 rounded-full overflow-hidden bg-surface-container-high shrink-0">
+<img alt="Patient Photo" data-alt="A professional studio portrait of a middle-aged woman" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdobwgk2z6Qjt0OR3XOcl6qs9Y_ZJ3d7OWKJRJ8gqFl9e7ZItrYo2lsd4bxQWBZIBxKQAmO2K02XqmMppiocff7OpESqmyjw2hFpLqNi_G592H9H9qii4-ePKVFrJOSiGyQVVKSFkuYxopCECG7WIy2vR8FXkTCZxApU6gQOkl_wLs3B2FhRKPpU2xoHP0OmVP8eUg7Spofp5s6mToftgAXMyUUaxuO8Q8IQBFKgdHP1ksJvura4LJb2Se4kXoc8JmeSnqDbEIFfyw"/>
+</div>
+<div>
+<p class="font-title-sm text-lg leading-tight">Mariana Rodríguez</p>
+<p class="text-on-surface-variant font-body-sm text-body-sm">ID: 10452938-2</p>
+</div>
+</div>
+<div class="space-y-3">
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="text-on-surface-variant font-label-caps text-[10px] uppercase">Teléfono</span>
+<span class="font-body-md text-body-md">+56 9 8765 4321</span>
+</div>
+<div class="flex flex-col border-b border-outline-variant pb-2">
+<span class="text-on-surface-variant font-label-caps text-[10px] uppercase">Email</span>
+<span class="font-body-md text-body-md">m.rodriguez@email.com</span>
+</div>
+<div class="flex flex-col">
+<span class="text-on-surface-variant font-label-caps text-[10px] uppercase">Edad / Sexo</span>
+<span class="font-body-md text-body-md">34 años / F</span>
+</div>
+</div>
+</section>
+<!-- Section 2: Diagnoses -->
+<section class="bg-surface p-6 border border-outline-variant rounded-xl shadow-sm border-t-4 border-primary">
+<div class="flex items-center justify-between mb-6">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-weight="fill">assignment_turned_in</span>
+<h3 class="font-title-sm text-title-sm">Diagnósticos</h3>
+</div>
+</div>
+<div class="space-y-3 mb-6">
+<div class="p-3 bg-surface-container rounded-lg border border-outline-variant">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-caps text-[10px] text-on-secondary-container bg-secondary-container px-2 py-0.5 rounded">PRINCIPAL</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">J30.9</span>
+</div>
+<p class="font-body-md text-body-md font-semibold">Rinitis alérgica, no especificada</p>
+</div>
+<div class="p-3 bg-white border border-outline-variant rounded-lg">
+<div class="flex justify-between items-start mb-1">
+<span class="font-label-caps text-[10px] text-outline bg-surface-container-low px-2 py-0.5 rounded">SECUNDARIO</span>
+<span class="text-on-surface-variant font-body-sm text-body-sm">L20.9</span>
+</div>
+<p class="font-body-md text-body-md font-semibold">Dermatitis atópica, no especificada</p>
+</div>
+</div>
+<div class="mt-4 pt-4 border-t border-outline-variant space-y-3">
+<p class="font-label-caps text-[11px] text-on-surface-variant mb-2">AGREGAR DIAGNÓSTICO (CIE-10)</p>
+<div class="grid grid-cols-1 gap-3 mb-2">
+<input class="w-full border border-outline-variant rounded-lg p-3 text-sm focus:ring-primary focus:border-primary bg-surface-container-lowest" placeholder="Código CIE-10 (ej: J30.9)" type="text"/>
+<textarea class="w-full border border-outline-variant rounded-lg p-3 text-sm focus:ring-primary focus:border-primary bg-surface-container-lowest" placeholder="Descripción adicional..." rows="2"></textarea>
+</div>
+<button class="w-full bg-primary text-on-primary font-label-caps text-label-caps py-3 rounded-xl hover:brightness-110 transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm">save</span>
+                            Guardar Diagnóstico
+                        </button>
+</div>
+</section>
+<!-- Section 3: Payment -->
+<section class="bg-surface p-6 border border-outline-variant rounded-xl shadow-sm border-t-4 border-primary">
+<div class="flex items-center gap-3 mb-6">
+<span class="material-symbols-outlined text-primary" data-weight="fill">payments</span>
+<h3 class="font-title-sm text-title-sm">Pago de Consulta</h3>
+</div>
+<div class="bg-surface-container-low p-4 rounded-xl mb-6 flex flex-col items-center justify-center text-center">
+<p class="text-on-surface-variant font-label-caps text-label-caps mb-1 uppercase">Monto Total a Cobrar</p>
+<p class="text-4xl font-bold text-primary">$45.000</p>
+</div>
+<div class="space-y-4 mb-6">
+<div class="flex justify-between items-center py-2 border-b border-outline-variant">
+<span class="text-on-surface-variant font-body-md text-body-md">Método:</span>
+<span class="font-semibold text-on-surface">Tarjeta Débito</span>
+</div>
+<div class="flex justify-between items-center py-2 border-b border-outline-variant">
+<span class="text-on-surface-variant font-body-md text-body-md">Estado:</span>
+<span class="bg-error/10 text-error px-3 py-1 rounded-full font-label-caps text-[11px] font-bold">PENDIENTE</span>
+</div>
+</div>
+<button class="w-full flex items-center justify-center gap-2 bg-secondary text-on-secondary px-4 py-4 rounded-xl font-title-sm text-title-sm hover:brightness-105 transition-all shadow-md active:scale-[0.98]">
+<span class="material-symbols-outlined">check_circle</span>
+                        Marcar como pagado
+                    </button>
+</section>
+</div>
+<!-- Attachments: List of Cards instead of Table -->
+<section class="bg-surface border border-outline-variant rounded-xl shadow-sm overflow-hidden mb-8">
+<div class="p-6 border-b border-outline-variant flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-weight="fill">folder_open</span>
+<h3 class="font-title-sm text-title-sm">Adjuntos</h3>
+</div>
+<button class="flex items-center gap-2 bg-surface-container-highest text-on-surface px-3 py-2 rounded-lg hover:bg-surface-container-high transition-colors font-label-caps text-[11px]">
+<span class="material-symbols-outlined text-sm">upload_file</span> SUBIR
+                    </button>
+</div>
+<!-- Cards container -->
+<div class="divide-y divide-outline-variant">
+<!-- File Card 1 -->
+<div class="p-4 flex flex-col gap-3 hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-error mt-1">picture_as_pdf</span>
+<div class="flex-1 min-w-0">
+<p class="font-body-md text-body-md font-medium truncate">Examen_Sangre_Marzo.pdf</p>
+<div class="flex gap-2 mt-1">
+<span class="font-body-sm text-xs text-on-surface-variant">12/03/2024</span>
+<span class="text-outline-variant">•</span>
+<span class="font-body-sm text-xs text-on-surface-variant">2.4 MB</span>
+</div>
+</div>
+</div>
+<div class="flex border-t border-outline-variant pt-2 gap-2">
+<button class="flex-1 py-2 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary font-label-caps text-xs">
+<span class="material-symbols-outlined text-sm">visibility</span> VER
+                            </button>
+<div class="w-px bg-outline-variant my-1"></div>
+<button class="flex-1 py-2 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary font-label-caps text-xs">
+<span class="material-symbols-outlined text-sm">download</span> BAJAR
+                            </button>
+</div>
+</div>
+<!-- File Card 2 -->
+<div class="p-4 flex flex-col gap-3 hover:bg-surface-container-low transition-colors">
+<div class="flex items-start gap-3">
+<span class="material-symbols-outlined text-primary mt-1">image</span>
+<div class="flex-1 min-w-0">
+<p class="font-body-md text-body-md font-medium truncate">Radiografia_Torax_Lateral.jpg</p>
+<div class="flex gap-2 mt-1">
+<span class="font-body-sm text-xs text-on-surface-variant">15/05/2024</span>
+<span class="text-outline-variant">•</span>
+<span class="font-body-sm text-xs text-on-surface-variant">5.1 MB</span>
+</div>
+</div>
+</div>
+<div class="flex border-t border-outline-variant pt-2 gap-2">
+<button class="flex-1 py-2 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary font-label-caps text-xs">
+<span class="material-symbols-outlined text-sm">visibility</span> VER
+                            </button>
+<div class="w-px bg-outline-variant my-1"></div>
+<button class="flex-1 py-2 flex items-center justify-center gap-2 text-on-surface-variant hover:text-primary font-label-caps text-xs">
+<span class="material-symbols-outlined text-sm">download</span> BAJAR
+                            </button>
+</div>
+</div>
+</div>
+<div class="px-6 py-4 bg-surface flex items-center justify-between">
+<span class="font-body-sm text-xs text-on-surface-variant">2 archivos</span>
+<div class="flex gap-2">
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low disabled:opacity-50" disabled="">
+<span class="material-symbols-outlined text-sm">chevron_left</span>
+</button>
+<button class="p-2 border border-outline-variant rounded hover:bg-surface-container-low">
+<span class="material-symbols-outlined text-sm">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>
