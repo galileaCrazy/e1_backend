@@ -53,6 +53,7 @@ services:
       GROQ_API_KEY: ${GROQ_API_KEY}
       SPRING_BOOT_URL: http://mi-app:8080
       JWT_SECRET: ${JWT_SECRET}
+      TZ: America/Mexico_City
     depends_on:
       - mi-app
     networks:

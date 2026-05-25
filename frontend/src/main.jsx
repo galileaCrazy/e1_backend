@@ -375,13 +375,19 @@ function normalizeApiUrl(value) {
 function App() {
   const [session, setSession] = React.useState(() => readJson(STORAGE_KEY));
   const [apiUrl, setApiUrlState] = React.useState(() => localStorage.getItem(API_KEY) || DEFAULT_API_URL);
-  const [route, setRoute] = React.useState(() => location.hash.replace(/^#\/?/, "") || (session ? "dashboard" : "login"));
+  const [route, setRoute] = React.useState(() => {
+    const path = location.pathname.replace(/^\//, "");
+    return path || (session ? "dashboard" : "login");
+  });
   const [toast, setToast] = React.useState(null);
 
   React.useEffect(() => {
-    const onHash = () => setRoute(location.hash.replace(/^#\/?/, "") || (session ? "dashboard" : "login"));
-    window.addEventListener("hashchange", onHash);
-    return () => window.removeEventListener("hashchange", onHash);
+    const onPop = () => {
+      const path = location.pathname.replace(/^\//, "");
+      setRoute(path || (session ? "dashboard" : "login"));
+    };
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
   }, [session]);
 
   const role = session?.rol || session?.claims?.rol || "PACIENTE";
@@ -435,7 +441,8 @@ function App() {
   );
 
   const go = React.useCallback((nextRoute) => {
-    location.hash = `#/${nextRoute}`;
+    history.pushState(null, "", `/${nextRoute}`);
+    setRoute(nextRoute);
   }, []);
 
   const onLogin = async (payload, mode) => {
@@ -917,8 +924,15 @@ function FormControl({ field, defaultValue, support }) {
 }
 
 function Chat({ context }) {
-  const [messages, setMessages] = React.useState([{ role: "ai", text: "Hola. Puedo ayudarte a consultar disponibilidad, preparar una cita o redactar un resumen clinico breve." }]);
+  const [messages, setMessages] = React.useState([
+    { role: "assistant", text: "Hola, soy el asistente de MedInFlow.\n\n¿Con qué especialidad médica te puedo ayudar hoy?" },
+  ]);
   const [loading, setLoading] = React.useState(false);
+  const bottomRef = React.useRef(null);
+
+  React.useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, loading]);
 
   async function submit(event) {
     event.preventDefault();
@@ -929,13 +943,26 @@ function Chat({ context }) {
     setMessages((items) => [...items, { role: "user", text }]);
     setLoading(true);
     try {
+      const historial = messages.map((m) => ({
+        role: m.role === "ai" ? "assistant" : m.role,
+        content: m.text,
+      }));
       const result = await context.api("/api/ia/chat", {
         method: "POST",
-        body: JSON.stringify({ mensaje: text, historial: messages, organizacion_id: context.orgId }),
+        body: JSON.stringify({ mensaje: text, historial, organizacion_id: context.orgId }),
       });
-      setMessages((items) => [...items, { role: "ai", text: String(result?.respuesta || result || "Sin respuesta") }]);
+      const respuesta = typeof result === "string" ? result : (result?.respuesta ?? "Sin respuesta");
+      setMessages((items) => [...items, { role: "assistant", text: respuesta }]);
     } catch (err) {
-      setMessages((items) => [...items, { role: "ai", text: `No pude consultar la IA: ${err.message}` }]);
+      console.error("[MedInFlow IA]", err);
+      const fallbacks = [
+        "Hola, disculpa la interrupción. En este momento estoy atendiendo varias solicitudes a la vez.\n\nPor favor intenta nuevamente en unos segundos, con gusto te ayudo.",
+        "Hola, disculpa. En este momento tengo un pequeño problema de conexión.\n\nPor favor intenta nuevamente en un momento, estaré disponible para ayudarte.",
+        "Hola, perdona el inconveniente. Parece que estoy experimentando una falla temporal.\n\nIntenta de nuevo en unos instantes, no tardará.",
+        "Hola, disculpa la demora. Estoy procesando varias solicitudes al mismo tiempo.\n\nGracias por tu paciencia, en un momento estaré contigo.",
+      ];
+      const msg = fallbacks[Math.floor(Math.random() * fallbacks.length)];
+      setMessages((items) => [...items, { role: "assistant", text: msg }]);
     } finally {
       setLoading(false);
     }
@@ -943,21 +970,30 @@ function Chat({ context }) {
 
   return (
     <>
-      <ViewHeader title="Chat con IA" subtitle="Asistente conectado al endpoint /api/ia/chat del backend." />
+      <ViewHeader title="Asistente de Citas" subtitle="Recepcionista virtual de MedInFlow." />
       <section className="chat-shell">
         <aside className="chat-list">
           <span className="badge info">MedInFlow IA</span>
-          <h3>Conversacion activa</h3>
-          <p className="muted">Las respuestas dependen de que FastAPI este disponible para Spring Boot.</p>
+          <h3>Conversación activa</h3>
+          <p className="muted">Puedo ayudarte a agendar tu cita médica.</p>
         </aside>
         <div className="chat-thread">
           <div className="messages">
             {messages.map((message, index) => (
-              <div key={index} className={`message ${message.role}`}>
+              <div
+                key={index}
+                className={`message ${message.role === "assistant" ? "ai" : "user"}`}
+                style={{ whiteSpace: "pre-wrap" }}
+              >
                 {message.text}
               </div>
             ))}
-            {loading && <div className="message ai">Pensando...</div>}
+            {loading && (
+              <div className="message ai" style={{ whiteSpace: "pre-wrap" }}>
+                Pensando...
+              </div>
+            )}
+            <div ref={bottomRef} />
           </div>
           <form className="chat-form" onSubmit={submit}>
             <input name="mensaje" placeholder="Escribe tu mensaje..." autoComplete="off" required />
