@@ -14,7 +14,7 @@ __pycache__/
 
 # ── Compilados / artefactos Java ──────────────────────────────
 target/
-!**/src/main/**/target/
+!**/src/main/**/target/ss
 !**/src/test/**/target/
 *.class
 *.jar
@@ -50,3 +50,5 @@ tmp/
 # ─────────────────── Docker ───────────────────
 docker-compose.override.yml
 docker.md
+
+stich_medinflow_clinic_management_system

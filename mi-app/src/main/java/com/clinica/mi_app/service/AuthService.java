@@ -46,7 +46,7 @@ public class AuthService {
             .orElseThrow(() -> new ResourceNotFoundException("Usuario", req.getEmail()));
         String token = jwtUtil.generateToken(usuario);
         return new AuthResponse(token, usuario.getId(), usuario.getEmail(),
-            usuario.getRol(), usuario.getOrganizacion().getId());
+            usuario.getRol(), usuario.getOrganizacion().getId(), getMedicoId(usuario));
     }
 
     @Transactional
@@ -67,6 +67,10 @@ public class AuthService {
 
         String token = jwtUtil.generateToken(saved);
         return new AuthResponse(token, saved.getId(), saved.getEmail(),
-            saved.getRol(), saved.getOrganizacion().getId());
+            saved.getRol(), saved.getOrganizacion().getId(), getMedicoId(saved));
+    }
+
+    private java.util.UUID getMedicoId(Usuario usuario) {
+        return usuario.getMedico() != null ? usuario.getMedico().getId() : null;
     }
 }

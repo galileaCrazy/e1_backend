@@ -22,6 +22,9 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "./components/ui";
+import MedicoDashboard from "./features/medico/dashboard/MedicoDashboard";
+import { displayName, formatCell, initials, shortId } from "./lib/display";
 import "./styles.css";
 
 const STORAGE_KEY = "medinflow.session";
@@ -50,10 +53,11 @@ const modules = {
     label: "Citas",
     roles: ["ADMIN", "MEDICO", "PACIENTE"],
     description: "Agenda medica por organizacion, medico, paciente y estado.",
-    list: ({ orgId, filters, role }) => {
+    list: ({ orgId, filters, role, medicoId }) => {
       if (filters.pacienteId) return `/api/citas/paciente/${filters.pacienteId}`;
       if (filters.medicoId) return `/api/citas/medico/${filters.medicoId}`;
       if (filters.estado) return `/api/citas/organizacion/${orgId}/estado/${filters.estado}`;
+      if (role === "MEDICO" && medicoId) return `/api/citas/medico/${medicoId}`;
       return role === "PACIENTE" ? null : `/api/citas/organizacion/${orgId}`;
     },
     endpoint: "/api/citas",
@@ -166,7 +170,10 @@ const modules = {
     label: "Horarios",
     roles: ["ADMIN", "MEDICO"],
     description: "Disponibilidad semanal por medico.",
-    list: ({ filters }) => (filters.medicoId ? `/api/horarios/medico/${filters.medicoId}` : null),
+    list: ({ filters, role, medicoId }) => {
+      const selectedMedicoId = filters.medicoId || (role === "MEDICO" ? medicoId : "");
+      return selectedMedicoId ? `/api/horarios/medico/${selectedMedicoId}` : null;
+    },
     endpoint: "/api/horarios",
     columns: [
       ["medicoId", "Medico", "doctor"],
@@ -393,6 +400,7 @@ function App() {
   const role = session?.rol || session?.claims?.rol || "PACIENTE";
   const orgId = session?.organizacionId || session?.claims?.organizacionId || "";
   const userId = session?.userId || session?.claims?.userId || session?.claims?.usuarioId || "";
+  const medicoId = session?.medicoId || session?.claims?.medicoId || "";
 
   const notify = React.useCallback((message, kind = "ok") => {
     setToast({ message, kind });
@@ -464,8 +472,8 @@ function App() {
   };
 
   const context = React.useMemo(
-    () => ({ api, list, notify, go, role, orgId, userId, session, apiUrl, setApiUrl }),
-    [api, list, notify, go, role, orgId, userId, session, apiUrl, setApiUrl]
+    () => ({ api, list, notify, go, role, orgId, userId, medicoId, session, apiUrl, setApiUrl }),
+    [api, list, notify, go, role, orgId, userId, medicoId, session, apiUrl, setApiUrl]
   );
 
   if (!session) {
@@ -634,6 +642,10 @@ function CurrentView({ route, context }) {
 }
 
 function Dashboard({ context }) {
+  return context.role === "MEDICO" ? <MedicoDashboard context={context} /> : <OperationalDashboard context={context} />;
+}
+
+function OperationalDashboard({ context }) {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");
 
@@ -644,7 +656,9 @@ function Dashboard({ context }) {
         const [pacientes, medicos, citas, pagos] = await Promise.all([
           context.role === "PACIENTE" ? [] : context.list(`/api/pacientes/organizacion/${context.orgId}`, true),
           context.role === "PACIENTE" ? [] : context.list(`/api/medicos/organizacion/${context.orgId}`, true),
-          context.role === "PACIENTE" ? [] : context.list(`/api/citas/organizacion/${context.orgId}`, true),
+          context.role === "PACIENTE"
+            ? []
+            : context.list(context.role === "MEDICO" && context.medicoId ? `/api/citas/medico/${context.medicoId}` : `/api/citas/organizacion/${context.orgId}`, true),
           context.role === "PACIENTE" ? [] : context.list(`/api/pagos/organizacion/${context.orgId}`, true),
         ]);
         if (active) setData({ pacientes, medicos, citas, pagos });
@@ -697,7 +711,7 @@ function ModuleView({ moduleKey, config, context }) {
   const loadSupport = React.useCallback(async () => {
     const entries = await Promise.all(
       supportNames.map(async (name) => {
-        const endpoint = supportEndpoint(name, context.orgId);
+        const endpoint = supportEndpoint(name, context);
         return [name, endpoint ? await context.list(endpoint, true) : []];
       })
     );
@@ -709,7 +723,7 @@ function ModuleView({ moduleKey, config, context }) {
       setLoading(true);
       setError("");
       try {
-        const path = config.list({ orgId: context.orgId, filters: nextFilters, role: context.role });
+        const path = config.list({ orgId: context.orgId, filters: nextFilters, role: context.role, medicoId: context.medicoId });
         setRows(path ? await context.list(path) : []);
         setSupport(nextSupport);
       } catch (err) {
@@ -1044,41 +1058,6 @@ function SettingsView({ context }) {
   );
 }
 
-function ViewHeader({ title, subtitle, children }) {
-  return (
-    <header className="view-header">
-      <div>
-        <h2>{title}</h2>
-        {subtitle && <p>{subtitle}</p>}
-      </div>
-      {children && <div className="actions">{children}</div>}
-    </header>
-  );
-}
-
-function Section({ title, badge, children }) {
-  return (
-    <section className="section">
-      {(title || badge) && (
-        <div className="section-head">
-          {title ? <h3>{title}</h3> : <span />}
-          {badge && <span className="badge info">{badge}</span>}
-        </div>
-      )}
-      <div className="section-body">{children}</div>
-    </section>
-  );
-}
-
-function Metric({ label, value, variant = "" }) {
-  return (
-    <article className={`metric ${variant}`}>
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </article>
-  );
-}
-
 function DataTable({ rows, columns, support = {}, onEdit, onDelete }) {
   if (!rows?.length) return <Empty label="No hay registros para mostrar." />;
   return (
@@ -1131,30 +1110,18 @@ function Field({ label, name, ...props }) {
   );
 }
 
-function Loading({ label }) {
-  return <div className="loading">{label}</div>;
-}
-
-function Empty({ label }) {
-  return <div className="empty">{label}</div>;
-}
-
-function ErrorBox({ message }) {
-  return <div className="error-box">{message}</div>;
-}
-
 function Toast({ toast }) {
   if (!toast) return null;
   return <div className={`toast ${toast.kind === "error" ? "error" : ""}`}>{toast.message}</div>;
 }
 
-function supportEndpoint(name, orgId) {
+function supportEndpoint(name, context) {
   const map = {
-    pacientes: `/api/pacientes/organizacion/${orgId}`,
-    medicos: `/api/medicos/organizacion/${orgId}`,
-    consultorios: `/api/consultorios/organizacion/${orgId}`,
-    citas: `/api/citas/organizacion/${orgId}`,
-    usuarios: `/api/usuarios/organizacion/${orgId}`,
+    pacientes: `/api/pacientes/organizacion/${context.orgId}`,
+    medicos: `/api/medicos/organizacion/${context.orgId}`,
+    consultorios: `/api/consultorios/organizacion/${context.orgId}`,
+    citas: context.role === "MEDICO" && context.medicoId ? `/api/citas/medico/${context.medicoId}` : `/api/citas/organizacion/${context.orgId}`,
+    usuarios: `/api/usuarios/organizacion/${context.orgId}`,
   };
   return map[name];
 }
@@ -1188,61 +1155,6 @@ function fieldValue(field, item, context) {
   if (field.type === "hiddenUser") return context.userId;
   if (field.type === "datetime-local") return toDatetimeInput(item[field.key]);
   return item[field.key] ?? "";
-}
-
-function formatCell(value, type, support) {
-  if (value == null || value === "") return <span className="muted">-</span>;
-  if (type === "datetime") return formatDate(value);
-  if (type === "money") return `$${Number(value).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
-  if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "SI" : "NO"}</span>;
-  if (type === "status") return <span className={`badge ${statusVariant(value)}`}>{String(value)}</span>;
-  if (type === "patient") return nameById("pacientes", value, support);
-  if (type === "doctor") return nameById("medicos", value, support);
-  if (type === "office") return nameById("consultorios", value, support);
-  if (type === "appointment") return nameById("citas", value, support);
-  if (type === "day") return ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"][Number(value)] || value;
-  return String(value).length > 42 ? <span className="mono">{shortId(value)}</span> : String(value);
-}
-
-function statusVariant(value) {
-  const text = String(value);
-  if (["CONFIRMADA", "PAGADO", "PRINCIPAL", "ADMIN"].includes(text)) return "ok";
-  if (["SIN_CONFIRMAR", "PENDIENTE", "REAGENDADA", "SECUNDARIO", "MEDICO"].includes(text)) return "warn";
-  if (["CANCELADA", "NO_ASISTIO", "FALLIDO"].includes(text)) return "danger";
-  return "info";
-}
-
-function displayName(row, source, support) {
-  if (source === "citas") return `${formatDate(row.fechaHora)} / ${nameById("pacientes", row.pacienteId, support)}`;
-  if (source === "usuarios") return row.email || row.id;
-  if (source === "adjuntos") return row.nombreArchivo || row.id;
-  return row.nombre || row.email || shortId(row.id);
-}
-
-function nameById(source, id, support) {
-  const row = (support[source] || []).find((item) => String(item.id) === String(id));
-  return row ? displayName(row, source, support) : shortId(id);
-}
-
-function initials(value) {
-  return String(value || "MI")
-    .split(/[ @._-]+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0])
-    .join("")
-    .toUpperCase();
-}
-
-function shortId(value) {
-  const text = String(value || "");
-  return text.length > 12 ? `${text.slice(0, 8)}...` : text || "-";
-}
-
-function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
 }
 
 function toDatetimeInput(value) {
