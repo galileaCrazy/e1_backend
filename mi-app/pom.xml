@@ -51,8 +51,8 @@
 		</dependency>
 
 		<dependency>
-			<groupId>org.flywaydb</groupId>
-			<artifactId>flyway-core</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-flyway</artifactId>
 		</dependency>
 
 		<dependency>
@@ -134,19 +134,6 @@
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
-			</plugin>
-			<plugin>
-				<groupId>org.flywaydb</groupId>
-				<artifactId>flyway-maven-plugin</artifactId>
-				<configuration>
-					<url>jdbc:postgresql://localhost:5432/MVPClinica</url>
-					<user>postgres</user>
-					<password>200518</password>
-					<locations>
-						<location>classpath:db/migration</location>
-					</locations>
-					<baselineOnMigrate>true</baselineOnMigrate>
-				</configuration>
 			</plugin>
 		</plugins>
 	</build>

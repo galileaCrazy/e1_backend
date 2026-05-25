@@ -1,6 +1,7 @@
 package com.clinica.mi_app.service;
 
 import com.clinica.mi_app.dto.request.MedicoRequest;
+import com.clinica.mi_app.dto.response.MedicoPublicoResponse;
 import com.clinica.mi_app.dto.response.MedicoResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
 import com.clinica.mi_app.mapper.MedicoMapper;
@@ -35,6 +36,10 @@ public class MedicoService {
 
     public List<MedicoResponse> listarActivosPorOrganizacion(UUID organizacionId) {
         return repo.findByOrganizacionIdAndActivoTrue(organizacionId).stream().map(MedicoMapper::toResponse).collect(Collectors.toList());
+    }
+
+    public List<MedicoPublicoResponse> listarPublicosPorOrganizacion(UUID organizacionId) {
+        return repo.findByOrganizacionIdAndActivoTrue(organizacionId).stream().map(MedicoMapper::toPublicoResponse).collect(Collectors.toList());
     }
 
     public List<MedicoResponse> listarPorConsultorio(UUID consultorioId) {
