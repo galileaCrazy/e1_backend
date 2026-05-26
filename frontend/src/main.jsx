@@ -23,6 +23,7 @@ import {
   X,
 } from "lucide-react";
 import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "./components/ui";
+import MedicoAgenda from "./features/medico/agenda/MedicoAgenda";
 import MedicoDashboard from "./features/medico/dashboard/MedicoDashboard";
 import { displayName, formatCell, initials, shortId } from "./lib/display";
 import "./styles.css";
@@ -630,6 +631,9 @@ function NavButton({ id, label, active, onClick }) {
 
 function CurrentView({ route, context }) {
   if (route === "dashboard") return <Dashboard context={context} />;
+  if (route === "medico/agenda") {
+    return context.role === "MEDICO" ? <MedicoAgenda context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
   if (route.startsWith("modulo/")) {

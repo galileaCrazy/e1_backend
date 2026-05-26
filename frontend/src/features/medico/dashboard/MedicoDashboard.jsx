@@ -75,7 +75,7 @@ export default function MedicoDashboard({ context }) {
         <button className="btn" onClick={() => context.go("modulo/pacientes")}>
           <Users size={16} /> Pacientes
         </button>
-        <button className="btn primary" onClick={() => context.go("modulo/citas")}>
+        <button className="btn primary" onClick={() => context.go("medico/agenda")}>
           <CalendarDays size={16} /> Mi agenda
         </button>
       </ViewHeader>
