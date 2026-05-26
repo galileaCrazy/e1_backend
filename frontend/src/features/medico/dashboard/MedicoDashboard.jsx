@@ -52,7 +52,7 @@ export default function MedicoDashboard({ context }) {
   if (error) {
     return (
       <>
-        <ViewHeader title="Dashboard" />
+        <ViewHeader title="Dashboard" subtitle={`Bienvenido, ${context.userName}.`} />
         <ErrorBox message={error} />
       </>
     );
@@ -71,7 +71,7 @@ export default function MedicoDashboard({ context }) {
 
   return (
     <>
-      <ViewHeader title="Dashboard">
+      <ViewHeader title="Dashboard" subtitle={`Bienvenido, ${context.userName}.`}>
         <button className="btn" onClick={() => context.go("modulo/pacientes")}>
           <Users size={16} /> Pacientes
         </button>

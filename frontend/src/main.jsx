@@ -26,8 +26,9 @@ import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "./compone
 import MedicoAgenda from "./features/medico/agenda/MedicoAgenda";
 import MedicoConsultaDetalle from "./features/medico/consulta/MedicoConsultaDetalle";
 import MedicoDashboard from "./features/medico/dashboard/MedicoDashboard";
+import MedicoDiagnosticosAdjuntos from "./features/medico/diagnosticos-adjuntos/MedicoDiagnosticosAdjuntos";
 import MedicoExpedientePaciente from "./features/medico/expediente/MedicoExpedientePaciente";
-import { displayName, formatCell, initials, shortId } from "./lib/display";
+import { displayName, formatCell, initials, sessionDisplayName, shortId } from "./lib/display";
 import "./styles.css";
 
 const STORAGE_KEY = "medinflow.session";
@@ -47,6 +48,7 @@ const iconMap = {
   notificaciones: Activity,
   usuarios: UserCog,
   organizaciones: Building2,
+  medicoClinico: FileText,
   ia: Bot,
   settings: Settings,
 };
@@ -55,13 +57,21 @@ const modules = {
   citas: {
     label: "Citas",
     roles: ["ADMIN", "MEDICO", "PACIENTE"],
-    description: "Agenda medica por organizacion, medico, paciente y estado.",
+    description: "Historial de citas por paciente y estado.",
     list: ({ orgId, filters, role, medicoId }) => {
+      if (role === "MEDICO") return medicoId ? `/api/citas/medico/${medicoId}` : null;
       if (filters.pacienteId) return `/api/citas/paciente/${filters.pacienteId}`;
       if (filters.medicoId) return `/api/citas/medico/${filters.medicoId}`;
       if (filters.estado) return `/api/citas/organizacion/${orgId}/estado/${filters.estado}`;
-      if (role === "MEDICO" && medicoId) return `/api/citas/medico/${medicoId}`;
       return role === "PACIENTE" ? null : `/api/citas/organizacion/${orgId}`;
+    },
+    clientFilter: (rows, filters, role) => {
+      if (role !== "MEDICO") return rows;
+      return rows.filter((row) => {
+        if (filters.pacienteId && row.pacienteId !== filters.pacienteId) return false;
+        if (filters.estado && row.estado !== filters.estado) return false;
+        return true;
+      });
     },
     endpoint: "/api/citas",
     columns: [
@@ -73,13 +83,14 @@ const modules = {
     ],
     filters: [
       { key: "pacienteId", label: "Paciente", source: "pacientes" },
-      { key: "medicoId", label: "Medico", source: "medicos" },
+      { key: "medicoId", label: "Medico", source: "medicos", roles: ["ADMIN", "PACIENTE"] },
       { key: "estado", label: "Estado", options: ["", "SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"] },
     ],
     fields: [
       { key: "organizacionId", type: "hiddenOrg", required: true },
       { key: "pacienteId", label: "Paciente", source: "pacientes", required: true },
-      { key: "medicoId", label: "Medico", source: "medicos", required: true },
+      { key: "medicoId", type: "hiddenMedico", required: true, roles: ["MEDICO"] },
+      { key: "medicoId", label: "Medico", source: "medicos", required: true, roles: ["ADMIN", "PACIENTE"] },
       { key: "consultorioId", label: "Consultorio", source: "consultorios", required: true },
       { key: "fechaHora", label: "Fecha y hora", type: "datetime-local", required: true },
       { key: "duracionMin", label: "Duracion", type: "select", options: ["20", "30", "45", "60"], required: true },
@@ -238,7 +249,7 @@ const modules = {
   },
   diagnosticos: {
     label: "Diagnosticos",
-    roles: ["ADMIN", "MEDICO", "PACIENTE"],
+    roles: ["ADMIN", "PACIENTE"],
     description: "Diagnosticos clinicos asociados a citas.",
     list: ({ filters }) => {
       if (!filters.citaId) return null;
@@ -265,7 +276,7 @@ const modules = {
   },
   adjuntos: {
     label: "Adjuntos",
-    roles: ["ADMIN", "MEDICO", "PACIENTE"],
+    roles: ["ADMIN", "PACIENTE"],
     description: "Metadatos de archivos clinicos y documentos.",
     list: ({ filters }) => {
       if (filters.citaId) return `/api/adjuntos/cita/${filters.citaId}`;
@@ -416,6 +427,7 @@ function App() {
   const orgId = session?.organizacionId || session?.claims?.organizacionId || "";
   const userId = session?.userId || session?.claims?.userId || session?.claims?.usuarioId || "";
   const medicoId = session?.medicoId || session?.claims?.medicoId || "";
+  const userName = sessionDisplayName(session);
 
   const notify = React.useCallback((message, kind = "ok") => {
     setToast({ message, kind });
@@ -487,8 +499,8 @@ function App() {
   };
 
   const context = React.useMemo(
-    () => ({ api, list, notify, go, role, orgId, userId, medicoId, session, apiUrl, setApiUrl }),
-    [api, list, notify, go, role, orgId, userId, medicoId, session, apiUrl, setApiUrl]
+    () => ({ api, list, notify, go, role, orgId, userId, medicoId, userName, session, apiUrl, setApiUrl }),
+    [api, list, notify, go, role, orgId, userId, medicoId, userName, session, apiUrl, setApiUrl]
   );
 
   if (!session) {
@@ -591,15 +603,21 @@ function Shell({ context, route, logout, children }) {
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="sidebar-header">
           <div className="brand-mark">MedInFlow</div>
-          <p>
-            {context.role} / {shortId(context.orgId)}
-          </p>
+          <p>{context.userName}</p>
         </div>
         <nav className="nav-list">
           <NavButton id="dashboard" label="Dashboard" active={active === "dashboard"} onClick={() => context.go("dashboard")} />
           {allowed.map(([key, config]) => (
             <NavButton key={key} id={key} label={config.label} active={active === key} onClick={() => context.go(`modulo/${key}`)} />
           ))}
+          {context.role === "MEDICO" && (
+            <NavButton
+              id="medicoClinico"
+              label="Diagnosticos y Adjuntos"
+              active={route === "medico/diagnosticos-adjuntos"}
+              onClick={() => context.go("medico/diagnosticos-adjuntos")}
+            />
+          )}
           <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => context.go("ia")} />
         </nav>
         <div className="nav-footer">
@@ -620,10 +638,10 @@ function Shell({ context, route, logout, children }) {
         </label>
         <div className="user-chip">
           <div className="user-meta">
-            <strong>{context.session.email || context.session.claims?.sub || "Usuario"}</strong>
+            <strong>{context.userName}</strong>
             <span>{context.role}</span>
           </div>
-          <div className="avatar">{initials(context.session.email)}</div>
+          <div className="avatar">{initials(context.userName)}</div>
         </div>
       </header>
       <main className="content">
@@ -655,6 +673,9 @@ function CurrentView({ route, context }) {
   if (route.startsWith("medico/expediente/")) {
     const pacienteId = route.split("/")[2];
     return context.role === "MEDICO" ? <MedicoExpedientePaciente context={context} pacienteId={pacienteId} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
+  if (route === "medico/diagnosticos-adjuntos") {
+    return context.role === "MEDICO" ? <MedicoDiagnosticosAdjuntos context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
   }
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
@@ -732,7 +753,7 @@ function ModuleView({ moduleKey, config, context }) {
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState("");
 
-  const supportNames = React.useMemo(() => requiredSupport(config), [config]);
+  const supportNames = React.useMemo(() => requiredSupport(config, context.role), [config, context.role]);
 
   const loadSupport = React.useCallback(async () => {
     const entries = await Promise.all(
@@ -750,7 +771,8 @@ function ModuleView({ moduleKey, config, context }) {
       setError("");
       try {
         const path = config.list({ orgId: context.orgId, filters: nextFilters, role: context.role, medicoId: context.medicoId });
-        setRows(path ? await context.list(path) : []);
+        const loadedRows = path ? await context.list(path) : [];
+        setRows(config.clientFilter ? config.clientFilter(loadedRows, nextFilters, context.role) : loadedRows);
         setSupport(nextSupport);
       } catch (err) {
         setError(err.message);
@@ -819,7 +841,7 @@ function ModuleView({ moduleKey, config, context }) {
           Nuevo
         </button>
       </ViewHeader>
-      <FilterBar config={config} filters={filters} support={support} onApply={(next) => { setFilters(next); loadRows(next); }} />
+      <FilterBar config={config} filters={filters} support={support} role={context.role} onApply={(next) => { setFilters(next); loadRows(next); }} />
       <div className="split">
         <Section title={loading ? "Cargando..." : `${rows.length} registros`} badge={context.role}>
           {error ? (
@@ -847,8 +869,9 @@ function ModuleView({ moduleKey, config, context }) {
   );
 }
 
-function FilterBar({ config, filters, support, onApply }) {
-  if (!config.filters?.length) return null;
+function FilterBar({ config, filters, support, role, onApply }) {
+  const fields = visibleFields(config.filters, role);
+  if (!fields.length) return null;
   return (
     <section className="section filter-section">
       <form
@@ -856,10 +879,10 @@ function FilterBar({ config, filters, support, onApply }) {
         className="filters"
         onSubmit={(event) => {
           event.preventDefault();
-          onApply(formPayload(event.currentTarget, config.filters, {}, support, true));
+          onApply(formPayload(event.currentTarget, fields, {}, support, true));
         }}
       >
-        {config.filters.map((field) => (
+        {fields.map((field) => (
           <FormControl key={field.key} field={field} defaultValue={filters[field.key]} support={support} />
         ))}
         <div className="actions">
@@ -874,16 +897,17 @@ function FilterBar({ config, filters, support, onApply }) {
 }
 
 function EntityForm({ config, item, context, support, onCancel, onSubmit }) {
+  const fields = visibleFields(config.fields, context.role);
   return (
     <form
       className="form-grid"
       onSubmit={(event) => {
         event.preventDefault();
-        const payload = formPayload(event.currentTarget, config.fields, context, support);
+        const payload = formPayload(event.currentTarget, fields, context, support);
         onSubmit(config.transformPayload ? config.transformPayload(payload) : payload);
       }}
     >
-      {config.fields.map((field) => (
+      {fields.map((field) => (
         <FormControl key={field.key} field={field} defaultValue={fieldValue(field, item, context)} support={support} />
       ))}
       <div className="actions full">
@@ -899,7 +923,7 @@ function EntityForm({ config, item, context, support, onCancel, onSubmit }) {
 }
 
 function FormControl({ field, defaultValue, support }) {
-  if (field.type === "hiddenOrg" || field.type === "hiddenUser") {
+  if (field.type === "hiddenOrg" || field.type === "hiddenUser" || field.type === "hiddenMedico") {
     return <input type="hidden" name={field.key} defaultValue={defaultValue || ""} />;
   }
 
@@ -1167,10 +1191,18 @@ function supportEndpoint(name, context) {
   return map[name];
 }
 
-function requiredSupport(config) {
+function visibleFields(fields = [], role) {
+  return fields.filter((field) => !field.roles || field.roles.includes(role));
+}
+
+function requiredSupport(config, role) {
   const names = new Set();
-  [...(config.fields || []), ...(config.filters || [])].forEach((field) => {
+  [...visibleFields(config.fields, role), ...visibleFields(config.filters, role)].forEach((field) => {
     if (field.source && field.source !== "adjuntos") names.add(field.source);
+  });
+  (config.columns || []).forEach(([, , type]) => {
+    if (type === "patient") names.add("pacientes");
+    if (type === "doctor") names.add("medicos");
   });
   return [...names];
 }
@@ -1182,6 +1214,7 @@ function formPayload(form, fields, context = {}, support = {}, keepEmpty = false
     let value = data.get(field.key);
     if (field.type === "hiddenOrg") value = context.orgId;
     if (field.type === "hiddenUser") value = context.userId;
+    if (field.type === "hiddenMedico") value = context.medicoId;
     if (field.type === "checkbox") value = value === "true";
     if (field.type === "number" && value !== "") value = Number(value);
     if (field.type === "datetime-local" && value) value = new Date(value).toISOString();
@@ -1195,6 +1228,7 @@ function fieldValue(field, item, context) {
   if (field.value) return field.value(item || {});
   if (field.type === "hiddenOrg") return context.orgId;
   if (field.type === "hiddenUser") return context.userId;
+  if (field.type === "hiddenMedico") return context.medicoId;
   if (field.type === "datetime-local") return toDatetimeInput(item[field.key]);
   return item[field.key] ?? "";
 }

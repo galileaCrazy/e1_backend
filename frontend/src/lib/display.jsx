@@ -42,6 +42,24 @@ export function initials(value) {
     .toUpperCase();
 }
 
+export function sessionDisplayName(session) {
+  const value =
+    session?.nombre ||
+    session?.displayName ||
+    session?.nombreUsuario ||
+    session?.claims?.nombre ||
+    session?.claims?.name ||
+    session?.email ||
+    session?.claims?.sub ||
+    "Usuario";
+
+  if (String(value).includes("@")) {
+    return String(value).split("@")[0].replace(/[._-]+/g, " ");
+  }
+
+  return String(value);
+}
+
 export function shortId(value) {
   const text = String(value || "");
   return text.length > 12 ? `${text.slice(0, 8)}...` : text || "-";

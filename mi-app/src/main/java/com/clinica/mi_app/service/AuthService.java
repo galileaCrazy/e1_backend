@@ -45,7 +45,7 @@ public class AuthService {
         Usuario usuario = usuarioRepository.findByEmail(req.getEmail())
             .orElseThrow(() -> new ResourceNotFoundException("Usuario", req.getEmail()));
         String token = jwtUtil.generateToken(usuario);
-        return new AuthResponse(token, usuario.getId(), usuario.getEmail(),
+        return new AuthResponse(token, usuario.getId(), usuario.getEmail(), getNombre(usuario),
             usuario.getRol(), usuario.getOrganizacion().getId(), getMedicoId(usuario));
     }
 
@@ -66,11 +66,18 @@ public class AuthService {
         Usuario saved = usuarioRepository.save(usuario);
 
         String token = jwtUtil.generateToken(saved);
-        return new AuthResponse(token, saved.getId(), saved.getEmail(),
+        return new AuthResponse(token, saved.getId(), saved.getEmail(), getNombre(saved),
             saved.getRol(), saved.getOrganizacion().getId(), getMedicoId(saved));
     }
 
     private java.util.UUID getMedicoId(Usuario usuario) {
         return usuario.getMedico() != null ? usuario.getMedico().getId() : null;
+    }
+
+    private String getNombre(Usuario usuario) {
+        if (usuario.getMedico() != null) {
+            return usuario.getMedico().getNombre();
+        }
+        return usuario.getEmail();
     }
 }
