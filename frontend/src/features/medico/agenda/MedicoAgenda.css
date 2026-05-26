@@ -84,6 +84,13 @@
   overflow-wrap: anywhere;
 }
 
+.agenda-actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
 @media (max-width: 980px) {
   .agenda-grid,
   .agenda-controls {

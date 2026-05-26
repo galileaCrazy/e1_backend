@@ -24,7 +24,9 @@ import {
 } from "lucide-react";
 import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "./components/ui";
 import MedicoAgenda from "./features/medico/agenda/MedicoAgenda";
+import MedicoConsultaDetalle from "./features/medico/consulta/MedicoConsultaDetalle";
 import MedicoDashboard from "./features/medico/dashboard/MedicoDashboard";
+import MedicoExpedientePaciente from "./features/medico/expediente/MedicoExpedientePaciente";
 import { displayName, formatCell, initials, shortId } from "./lib/display";
 import "./styles.css";
 
@@ -81,6 +83,7 @@ const modules = {
       { key: "consultorioId", label: "Consultorio", source: "consultorios", required: true },
       { key: "fechaHora", label: "Fecha y hora", type: "datetime-local", required: true },
       { key: "duracionMin", label: "Duracion", type: "select", options: ["20", "30", "45", "60"], required: true },
+      { key: "estado", label: "Estado", type: "select", options: ["SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"] },
       { key: "motivo", label: "Motivo", type: "textarea", full: true },
     ],
   },
@@ -107,17 +110,28 @@ const modules = {
     ],
     fields: [
       { key: "organizacionId", type: "hiddenOrg", required: true },
-      { key: "nombre", label: "Nombre", required: true },
+      { key: "nombre", label: "Nombre", required: true, value: (item) => patientNamePart(item.nombre, 0) },
+      { key: "apellidoPaterno", label: "Apellido paterno", value: (item) => patientNamePart(item.nombre, 1) },
+      { key: "apellidoMaterno", label: "Apellido materno", value: (item) => patientNamePart(item.nombre, 2) },
       { key: "telefono", label: "Telefono" },
       { key: "fechaNacimiento", label: "Nacimiento", type: "date" },
       { key: "sexo", label: "Sexo", type: "select", options: ["", "M", "F", "O"] },
       { key: "email", label: "Correo", type: "email" },
       { key: "notas", label: "Notas", type: "textarea", full: true },
     ],
+    transformPayload: (payload) => {
+      payload.nombre = [payload.nombre, payload.apellidoPaterno, payload.apellidoMaterno]
+        .map((value) => String(value || "").trim())
+        .filter(Boolean)
+        .join(" ");
+      delete payload.apellidoPaterno;
+      delete payload.apellidoMaterno;
+      return payload;
+    },
   },
   medicos: {
     label: "Medicos",
-    roles: ["ADMIN", "MEDICO"],
+    roles: ["ADMIN"],
     description: "Directorio medico y tarifas base.",
     list: ({ orgId, filters }) => {
       if (filters.consultorioId) return `/api/medicos/consultorio/${filters.consultorioId}`;
@@ -148,7 +162,7 @@ const modules = {
   },
   consultorios: {
     label: "Consultorios",
-    roles: ["ADMIN", "MEDICO"],
+    roles: ["ADMIN"],
     description: "Sedes, consultorios y telefonos de contacto.",
     list: ({ orgId, filters }) =>
       filters.activos ? `/api/consultorios/organizacion/${orgId}/activos` : `/api/consultorios/organizacion/${orgId}`,
@@ -634,6 +648,14 @@ function CurrentView({ route, context }) {
   if (route === "medico/agenda") {
     return context.role === "MEDICO" ? <MedicoAgenda context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
   }
+  if (route.startsWith("medico/consulta/")) {
+    const citaId = route.split("/")[2];
+    return context.role === "MEDICO" ? <MedicoConsultaDetalle context={context} citaId={citaId} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
+  if (route.startsWith("medico/expediente/")) {
+    const pacienteId = route.split("/")[2];
+    return context.role === "MEDICO" ? <MedicoExpedientePaciente context={context} pacienteId={pacienteId} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
   if (route.startsWith("modulo/")) {
@@ -800,7 +822,18 @@ function ModuleView({ moduleKey, config, context }) {
       <FilterBar config={config} filters={filters} support={support} onApply={(next) => { setFilters(next); loadRows(next); }} />
       <div className="split">
         <Section title={loading ? "Cargando..." : `${rows.length} registros`} badge={context.role}>
-          {error ? <ErrorBox message={error} /> : <DataTable rows={rows} columns={config.columns} support={support} onEdit={(item) => setFormState({ mode: "edit", item })} onDelete={deleteEntity} />}
+          {error ? (
+            <ErrorBox message={error} />
+          ) : (
+            <DataTable
+              rows={rows}
+              columns={config.columns}
+              support={support}
+              onOpen={moduleKey === "pacientes" && context.role === "MEDICO" ? (item) => context.go(`medico/expediente/${item.id}`) : null}
+              onEdit={(item) => setFormState({ mode: "edit", item })}
+              onDelete={deleteEntity}
+            />
+          )}
         </Section>
         <Section title={formState?.mode === "edit" ? "Editar" : "Captura"}>
           {formState ? (
@@ -819,6 +852,7 @@ function FilterBar({ config, filters, support, onApply }) {
   return (
     <section className="section filter-section">
       <form
+        key={JSON.stringify(filters)}
         className="filters"
         onSubmit={(event) => {
           event.preventDefault();
@@ -845,7 +879,8 @@ function EntityForm({ config, item, context, support, onCancel, onSubmit }) {
       className="form-grid"
       onSubmit={(event) => {
         event.preventDefault();
-        onSubmit(formPayload(event.currentTarget, config.fields, context, support));
+        const payload = formPayload(event.currentTarget, config.fields, context, support);
+        onSubmit(config.transformPayload ? config.transformPayload(payload) : payload);
       }}
     >
       {config.fields.map((field) => (
@@ -882,12 +917,9 @@ function FormControl({ field, defaultValue, support }) {
 
   if (field.type === "checkbox") {
     return (
-      <label className={className}>
+      <label className={`${className} checkbox-field`}>
+        <input name={field.key} type="checkbox" value="true" defaultChecked={defaultValue === true || defaultValue === "true"} />
         <span>{label}</span>
-        <select name={field.key} defaultValue={String(defaultValue === true)}>
-          <option value="">No</option>
-          <option value="true">Si</option>
-        </select>
       </label>
     );
   }
@@ -1062,7 +1094,7 @@ function SettingsView({ context }) {
   );
 }
 
-function DataTable({ rows, columns, support = {}, onEdit, onDelete }) {
+function DataTable({ rows, columns, support = {}, onOpen, onEdit, onDelete }) {
   if (!rows?.length) return <Empty label="No hay registros para mostrar." />;
   return (
     <div className="table-wrap">
@@ -1072,7 +1104,7 @@ function DataTable({ rows, columns, support = {}, onEdit, onDelete }) {
             {columns.map(([, label]) => (
               <th key={label}>{label}</th>
             ))}
-            {(onEdit || onDelete) && <th className="right">Acciones</th>}
+            {(onOpen || onEdit || onDelete) && <th className="right">Acciones</th>}
           </tr>
         </thead>
         <tbody>
@@ -1081,9 +1113,14 @@ function DataTable({ rows, columns, support = {}, onEdit, onDelete }) {
               {columns.map(([key, , type]) => (
                 <td key={key}>{formatCell(row[key], type, support)}</td>
               ))}
-              {(onEdit || onDelete) && (
+              {(onOpen || onEdit || onDelete) && (
                 <td>
                   <div className="row-actions">
+                    {onOpen && (
+                      <button className="btn icon" onClick={() => onOpen(row)} title="Abrir expediente">
+                        <FileText size={15} />
+                      </button>
+                    )}
                     {onEdit && (
                       <button className="btn icon" onClick={() => onEdit(row)} title="Editar">
                         <Save size={15} />
@@ -1155,10 +1192,18 @@ function formPayload(form, fields, context = {}, support = {}, keepEmpty = false
 }
 
 function fieldValue(field, item, context) {
+  if (field.value) return field.value(item || {});
   if (field.type === "hiddenOrg") return context.orgId;
   if (field.type === "hiddenUser") return context.userId;
   if (field.type === "datetime-local") return toDatetimeInput(item[field.key]);
   return item[field.key] ?? "";
+}
+
+function patientNamePart(value, index) {
+  const parts = String(value || "").trim().split(/\s+/).filter(Boolean);
+  if (index === 0) return parts[0] || "";
+  if (index === 1) return parts[1] || "";
+  return parts.slice(2).join(" ");
 }
 
 function toDatetimeInput(value) {

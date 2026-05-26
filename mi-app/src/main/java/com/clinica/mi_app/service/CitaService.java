@@ -12,11 +12,14 @@ import org.springframework.stereotype.Service;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
 public class CitaService {
+
+    private static final Set<String> ESTADOS_VALIDOS = Set.of("SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO");
 
     private final CitaRepository repo;
     private final OrganizacionRepository orgRepo;
@@ -88,6 +91,7 @@ public class CitaService {
         c.setConsultorio(consultorio);
         c.setFechaHora(req.getFechaHora());
         c.setDuracionMin(req.getDuracionMin());
+        aplicarEstado(c, req.getEstado());
         c.setMotivo(req.getMotivo());
         return CitaMapper.toResponse(repo.save(c));
     }
@@ -97,11 +101,22 @@ public class CitaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Cita", id.toString()));
         c.setFechaHora(req.getFechaHora());
         c.setDuracionMin(req.getDuracionMin());
+        aplicarEstado(c, req.getEstado());
         c.setMotivo(req.getMotivo());
         return CitaMapper.toResponse(repo.save(c));
     }
 
     public void eliminar(UUID id) {
         repo.deleteById(id);
+    }
+
+    private void aplicarEstado(Cita cita, String estado) {
+        if (estado == null || estado.isBlank()) {
+            return;
+        }
+        if (!ESTADOS_VALIDOS.contains(estado)) {
+            throw new IllegalArgumentException("Estado de cita invalido: " + estado);
+        }
+        cita.setEstado(estado);
     }
 }

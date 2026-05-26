@@ -350,8 +350,10 @@ button {
 }
 
 .filters {
-  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
   align-items: end;
+  gap: 18px;
+  grid-template-columns: minmax(260px, 1.2fr) minmax(180px, 0.6fr) auto;
+  padding: 20px;
 }
 
 .form-grid {
@@ -365,6 +367,7 @@ button {
 
 .filter-section {
   margin-bottom: 18px;
+  overflow: visible;
 }
 
 .section-head {
@@ -490,6 +493,11 @@ tr:hover td {
   gap: 7px;
 }
 
+.filters .actions {
+  align-self: end;
+  min-height: 42px;
+}
+
 .field.full,
 .full {
   grid-column: 1 / -1;
@@ -513,6 +521,25 @@ tr:hover td {
   color: var(--text);
   padding: 11px 12px;
   outline: none;
+}
+
+.checkbox-field {
+  align-items: center;
+  align-self: end;
+  display: inline-flex;
+  gap: 10px;
+  min-height: 42px;
+}
+
+.checkbox-field input {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary);
+  padding: 0;
+}
+
+.checkbox-field span {
+  color: var(--text);
 }
 
 .field textarea {

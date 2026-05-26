@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarPlus, ChevronLeft, ChevronRight, RefreshCw, Save, X } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Edit3, FileText, RefreshCw, Save, X } from "lucide-react";
 import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
 import { formatDate, formatTime, nameById, statusVariant } from "../../../lib/display";
 import "./MedicoAgenda.css";
@@ -12,6 +12,7 @@ export default function MedicoAgenda({ context }) {
   const [selectedDate, setSelectedDate] = React.useState(todayInput());
   const [statusFilter, setStatusFilter] = React.useState("");
   const [creating, setCreating] = React.useState(false);
+  const [editing, setEditing] = React.useState(null);
 
   const loadAgenda = React.useCallback(async () => {
     if (!context.medicoId) {
@@ -45,6 +46,22 @@ export default function MedicoAgenda({ context }) {
       });
       context.notify("Cita creada");
       setCreating(false);
+      setEditing(null);
+      await loadAgenda();
+    } catch (err) {
+      context.notify(err.message, "error");
+    }
+  }
+
+  async function updateAppointment(id, payload) {
+    try {
+      await context.api(`/api/citas/${id}`, {
+        method: "PUT",
+        body: JSON.stringify(payload),
+      });
+      context.notify("Cita actualizada");
+      setCreating(false);
+      setEditing(null);
       await loadAgenda();
     } catch (err) {
       context.notify(err.message, "error");
@@ -75,7 +92,7 @@ export default function MedicoAgenda({ context }) {
         <button className="btn" onClick={loadAgenda}>
           <RefreshCw size={16} /> Actualizar
         </button>
-        <button className="btn primary" onClick={() => setCreating(true)}>
+        <button className="btn primary" onClick={() => { setCreating(true); setEditing(null); }}>
           <CalendarPlus size={16} /> Nueva cita
         </button>
       </ViewHeader>
@@ -112,25 +129,36 @@ export default function MedicoAgenda({ context }) {
       <div className="agenda-grid">
         <section>
           <Section title="Dia seleccionado" badge={formatAgendaDate(selectedDate)}>
-            <AgendaTimeline citas={visibles} support={support} />
+            <AgendaTimeline
+              citas={visibles}
+              support={support}
+              onOpen={(citaId) => context.go(`medico/consulta/${citaId}`)}
+              onEdit={(cita) => { setEditing(cita); setCreating(false); }}
+            />
           </Section>
         </section>
 
         <aside>
-          {creating && (
-            <Section title="Nueva cita">
+          {(creating || editing) && (
+            <Section title={editing ? "Editar cita" : "Nueva cita"}>
               <AgendaForm
                 context={context}
                 pacientes={data.pacientes}
                 consultorios={data.consultorios}
                 selectedDate={selectedDate}
-                onCancel={() => setCreating(false)}
-                onSubmit={createAppointment}
+                cita={editing}
+                onCancel={() => { setCreating(false); setEditing(null); }}
+                onSubmit={(payload) => editing ? updateAppointment(editing.id, payload) : createAppointment(payload)}
               />
             </Section>
           )}
           <Section title="Proximas citas">
-            <UpcomingList citas={proximas} support={support} />
+            <UpcomingList
+              citas={proximas}
+              support={support}
+              onOpen={(citaId) => context.go(`medico/consulta/${citaId}`)}
+              onEdit={(cita) => { setEditing(cita); setCreating(false); }}
+            />
           </Section>
         </aside>
       </div>
@@ -138,7 +166,7 @@ export default function MedicoAgenda({ context }) {
   );
 }
 
-function AgendaTimeline({ citas, support }) {
+function AgendaTimeline({ citas, support, onOpen, onEdit }) {
   if (!citas.length) return <Empty label="No hay citas para este dia." />;
   return (
     <div className="agenda-timeline">
@@ -153,14 +181,22 @@ function AgendaTimeline({ citas, support }) {
             <span>{cita.motivo || "Consulta medica"}</span>
             <small>{nameById("consultorios", cita.consultorioId, support)}</small>
           </div>
-          <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+          <div className="agenda-actions">
+            <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+            <button className="btn icon" onClick={() => onEdit(cita)} title="Editar cita">
+              <Edit3 size={16} />
+            </button>
+            <button className="btn icon" onClick={() => onOpen(cita.id)} title="Abrir consulta">
+              <FileText size={16} />
+            </button>
+          </div>
         </article>
       ))}
     </div>
   );
 }
 
-function UpcomingList({ citas, support }) {
+function UpcomingList({ citas, support, onOpen, onEdit }) {
   if (!citas.length) return <Empty label="No hay citas proximas." />;
   return (
     <div className="agenda-upcoming">
@@ -170,15 +206,26 @@ function UpcomingList({ citas, support }) {
             <strong>{nameById("pacientes", cita.pacienteId, support)}</strong>
             <span>{formatDate(cita.fechaHora)}</span>
           </div>
-          <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+          <div className="agenda-actions">
+            <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+            <button className="btn icon" onClick={() => onEdit(cita)} title="Editar cita">
+              <Edit3 size={16} />
+            </button>
+            <button className="btn icon" onClick={() => onOpen(cita.id)} title="Abrir consulta">
+              <FileText size={16} />
+            </button>
+          </div>
         </article>
       ))}
     </div>
   );
 }
 
-function AgendaForm({ context, pacientes, consultorios, selectedDate, onCancel, onSubmit }) {
+function AgendaForm({ context, pacientes, consultorios, selectedDate, cita, onCancel, onSubmit }) {
   const canCreate = pacientes.length > 0 && consultorios.length > 0;
+  const fecha = cita ? toDateInput(cita.fechaHora) : selectedDate;
+  const hora = cita ? toTimeInput(cita.fechaHora) : "09:00";
+  const isEditing = Boolean(cita);
 
   return (
     <form
@@ -193,6 +240,7 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, onCancel, 
           consultorioId: data.get("consultorioId"),
           fechaHora: new Date(`${data.get("fecha")}T${data.get("hora")}`).toISOString(),
           duracionMin: Number(data.get("duracionMin")),
+          estado: data.get("estado") || "SIN_CONFIRMAR",
           motivo: data.get("motivo") || null,
         });
       }}
@@ -200,7 +248,7 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, onCancel, 
       {!canCreate && <ErrorBox message="Necesitas al menos un paciente y un consultorio para crear una cita." />}
       <label className="field full">
         <span>Paciente</span>
-        <select name="pacienteId" required disabled={!pacientes.length}>
+        <select name="pacienteId" required disabled={!pacientes.length} defaultValue={cita?.pacienteId || ""}>
           {pacientes.map((paciente) => (
             <option key={paciente.id} value={paciente.id}>{paciente.nombre}</option>
           ))}
@@ -208,7 +256,7 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, onCancel, 
       </label>
       <label className="field full">
         <span>Consultorio</span>
-        <select name="consultorioId" required disabled={!consultorios.length}>
+        <select name="consultorioId" required disabled={!consultorios.length} defaultValue={cita?.consultorioId || ""}>
           {consultorios.map((consultorio) => (
             <option key={consultorio.id} value={consultorio.id}>{consultorio.nombre}</option>
           ))}
@@ -216,31 +264,39 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, onCancel, 
       </label>
       <label className="field">
         <span>Fecha</span>
-        <input name="fecha" type="date" defaultValue={selectedDate} required />
+        <input name="fecha" type="date" defaultValue={fecha} required />
       </label>
       <label className="field">
         <span>Hora</span>
-        <input name="hora" type="time" defaultValue="09:00" required />
+        <input name="hora" type="time" defaultValue={hora} required />
       </label>
       <label className="field">
         <span>Duracion</span>
-        <select name="duracionMin" defaultValue="30" required>
+        <select name="duracionMin" defaultValue={String(cita?.duracionMin || 30)} required>
           <option value="20">20 min</option>
           <option value="30">30 min</option>
           <option value="45">45 min</option>
           <option value="60">60 min</option>
         </select>
       </label>
+      <label className="field">
+        <span>Estado</span>
+        <select name="estado" defaultValue={cita?.estado || "SIN_CONFIRMAR"} required>
+          {STATUS_OPTIONS.filter(Boolean).map((estado) => (
+            <option key={estado} value={estado}>{estado}</option>
+          ))}
+        </select>
+      </label>
       <label className="field full">
         <span>Motivo</span>
-        <textarea name="motivo" rows="4" />
+        <textarea name="motivo" rows="4" defaultValue={cita?.motivo || ""} />
       </label>
       <div className="actions full">
         <button className="btn" type="button" onClick={onCancel}>
           <X size={16} /> Cancelar
         </button>
         <button className="btn primary" disabled={!canCreate}>
-          <Save size={16} /> Guardar
+          <Save size={16} /> {isEditing ? "Actualizar" : "Guardar"}
         </button>
       </div>
     </form>
@@ -260,6 +316,12 @@ function toDateInput(value) {
   if (Number.isNaN(date.getTime())) return "";
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return local.toISOString().slice(0, 10);
+}
+
+function toTimeInput(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "09:00";
+  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
 function sameDate(value, selectedDate) {
