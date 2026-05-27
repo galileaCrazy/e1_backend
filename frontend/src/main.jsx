@@ -592,7 +592,6 @@ function AuthPage({ mode, onSubmit, go, notify }) {
           </div>
         </div>
         <h2>Precision clinica para operar el dia.</h2>
-        <p>El diseno de Stitch queda como base visual; esta version ya vive en React y habla con los endpoints reales.</p>
       </section>
     </main>
   );
