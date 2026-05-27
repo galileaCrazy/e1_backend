@@ -1,5 +1,5 @@
 import React from "react";
-import { CalendarDays, CreditCard, FileText, Upload } from "lucide-react";
+import { CalendarDays, CalendarPlus, CreditCard, FileText, Upload } from "lucide-react";
 import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
 import { formatDate, formatMoney, formatTime, isFuture, sessionDisplayName, shortId, statusVariant } from "../../../lib/display";
 import "./PacienteDashboard.css";
@@ -12,21 +12,22 @@ export default function PacienteDashboard({ context }) {
     let active = true;
     async function load() {
       if (!context.pacienteId) {
-        setError("Tu usuario paciente no tiene un expediente vinculado. Pide al equipo de la clinica que registre tu paciente con este correo.");
+        setError("Tu usuario paciente no tiene un expediente vinculado. Pide al equipo de la clínica que registre tu paciente con este correo.");
         setData(null);
         return;
       }
 
       try {
         setError("");
-        const [paciente, citas, adjuntos] = await Promise.all([
+        const [paciente, citas, adjuntos, medicos] = await Promise.all([
           context.api(`/api/pacientes/${context.pacienteId}`),
           context.list(`/api/citas/paciente/${context.pacienteId}`, true),
           context.list(`/api/adjuntos/paciente/${context.pacienteId}`, true),
+          context.list(`/api/medicos/organizacion/${context.orgId}/activos`, true),
         ]);
         const pagos = await loadPagos(context, citas);
         const diagnosticos = await loadDiagnosticos(context, citas);
-        if (active) setData({ paciente, citas, adjuntos, pagos, diagnosticos });
+        if (active) setData({ paciente, citas, adjuntos, pagos, diagnosticos, medicos });
       } catch (err) {
         if (active) setError(err.message);
       }
@@ -56,24 +57,27 @@ export default function PacienteDashboard({ context }) {
   return (
     <>
       <ViewHeader title="Mi portal" subtitle={`Bienvenido, ${displayPatientName(data.paciente, context)}.`}>
-        <button className="btn primary" onClick={() => context.go("paciente/citas")}>
+        <button className="btn" onClick={() => context.go("paciente/citas")}>
           <CalendarDays size={16} /> Mis citas
+        </button>
+        <button className="btn primary" onClick={() => context.go("paciente/agendar")}>
+          <CalendarPlus size={16} /> Agendar cita
         </button>
       </ViewHeader>
 
       <section className="metrics">
-        <Metric label="Proxima cita" value={nextCita ? formatDate(nextCita.fechaHora) : "Sin cita"} />
+        <Metric label="Próxima cita" value={nextCita ? formatDate(nextCita.fechaHora) : "Sin cita"} />
         <Metric label="Pagos pendientes" value={formatMoney(totalPending)} variant="warning" />
-        <Metric label="Diagnosticos" value={data.diagnosticos.length} variant="secondary" />
+        <Metric label="Diagnósticos" value={data.diagnosticos.length} variant="secondary" />
         <Metric label="Adjuntos" value={data.adjuntos.length} variant="danger" />
       </section>
 
       <div className="patient-grid">
         <section>
-          <Section title="Proxima atencion">
-            {nextCita ? <PatientAppointmentCard cita={nextCita} /> : <Empty label="No tienes citas proximas registradas." />}
+          <Section title="Próxima atención">
+            {nextCita ? <PatientAppointmentCard cita={nextCita} medicos={data.medicos} /> : <Empty label="No tienes citas próximas registradas." />}
           </Section>
-          <Section title="Actividad clinica reciente">
+          <Section title="Actividad clínica reciente">
             <PatientDiagnosisList rows={data.diagnosticos.slice(0, 5)} />
           </Section>
         </section>
@@ -91,7 +95,7 @@ export default function PacienteDashboard({ context }) {
   );
 }
 
-function PatientAppointmentCard({ cita }) {
+function PatientAppointmentCard({ cita, medicos }) {
   return (
     <article className="patient-next-card">
       <div>
@@ -105,12 +109,12 @@ function PatientAppointmentCard({ cita }) {
           <dd>{formatTime(cita.fechaHora)}</dd>
         </div>
         <div>
-          <dt>Duracion</dt>
+          <dt>Duración</dt>
           <dd>{cita.duracionMin || 0} min</dd>
         </div>
         <div>
-          <dt>Medico</dt>
-          <dd>{shortId(cita.medicoId)}</dd>
+          <dt>Médico</dt>
+          <dd>{doctorName(cita.medicoId, medicos)}</dd>
         </div>
       </dl>
       <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
@@ -189,4 +193,8 @@ async function loadDiagnosticos(context, citas) {
 
 function displayPatientName(paciente, context) {
   return paciente?.nombre || sessionDisplayName(context.session);
+}
+
+function doctorName(medicoId, medicos = []) {
+  return medicos.find((medico) => String(medico.id) === String(medicoId))?.nombre || shortId(medicoId);
 }

@@ -12,8 +12,10 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import com.clinica.mi_app.security.Roles;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -75,6 +77,21 @@ public class CitaController {
     @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
     public List<CitaResponse> listarPorEstado(@PathVariable UUID orgId, @PathVariable String estado) {
         return service.listarPorEstado(orgId, estado);
+    }
+
+    @GetMapping("/disponibilidad")
+    @Operation(summary = "Listar horas disponibles de un medico para una fecha")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Lista de horas disponibles"),
+        @ApiResponse(responseCode = "401", description = "Token requerido"),
+        @ApiResponse(responseCode = "403", description = "Sin permisos")
+    })
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "', '" + Roles.PACIENTE + "')")
+    public List<String> listarDisponibilidad(
+            @RequestParam UUID medicoId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(required = false) Short duracionMin) {
+        return service.listarHorasDisponibles(medicoId, fecha, duracionMin);
     }
 
     @GetMapping("/{id}")

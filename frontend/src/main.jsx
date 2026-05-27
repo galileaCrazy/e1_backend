@@ -5,6 +5,7 @@ import {
   Bot,
   Building2,
   CalendarDays,
+  CalendarPlus,
   Clock3,
   CreditCard,
   FileText,
@@ -28,6 +29,7 @@ import MedicoConsultaDetalle from "./features/medico/consulta/MedicoConsultaDeta
 import MedicoDashboard from "./features/medico/dashboard/MedicoDashboard";
 import MedicoDiagnosticosAdjuntos from "./features/medico/diagnosticos-adjuntos/MedicoDiagnosticosAdjuntos";
 import MedicoExpedientePaciente from "./features/medico/expediente/MedicoExpedientePaciente";
+import PacienteAgendarCita from "./features/paciente/agendar/PacienteAgendarCita";
 import PacienteCitas from "./features/paciente/citas/PacienteCitas";
 import PacienteDashboard from "./features/paciente/dashboard/PacienteDashboard";
 import { displayName, formatCell, initials, sessionDisplayName, shortId } from "./lib/display";
@@ -51,6 +53,7 @@ const iconMap = {
   usuarios: UserCog,
   organizaciones: Building2,
   medicoClinico: FileText,
+  pacienteAgendar: CalendarPlus,
   pacienteCitas: CalendarDays,
   ia: Bot,
   settings: Settings,
@@ -658,12 +661,20 @@ function Shell({ context, route, logout, children }) {
             />
           )}
           {context.role === "PACIENTE" && (
-            <NavButton
-              id="pacienteCitas"
-              label="Mis citas"
-              active={route === "paciente/citas"}
-              onClick={() => navigate("paciente/citas")}
-            />
+            <>
+              <NavButton
+                id="pacienteAgendar"
+                label="Agendar cita"
+                active={route === "paciente/agendar"}
+                onClick={() => navigate("paciente/agendar")}
+              />
+              <NavButton
+                id="pacienteCitas"
+                label="Mis citas"
+                active={route === "paciente/citas"}
+                onClick={() => navigate("paciente/citas")}
+              />
+            </>
           )}
           <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => navigate("ia")} />
         </nav>
@@ -726,6 +737,9 @@ function CurrentView({ route, context }) {
   }
   if (route === "paciente/citas") {
     return context.role === "PACIENTE" ? <PacienteCitas context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
+  if (route === "paciente/agendar") {
+    return context.role === "PACIENTE" ? <PacienteAgendarCita context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
   }
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
