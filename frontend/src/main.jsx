@@ -284,7 +284,7 @@ const modules = {
   },
   adjuntos: {
     label: "Adjuntos",
-    roles: ["ADMIN"],
+    roles: ["ADMIN", "MEDICO", "PACIENTE"],
     description: "Metadatos de archivos clínicos y documentos.",
     list: ({ filters }) => {
       if (filters.citaId) return `/api/adjuntos/cita/${filters.citaId}`;
