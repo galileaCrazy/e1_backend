@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>MedInFlow Patient Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-secondary-container": "#00714d",
+                    "primary-fixed-dim": "#b4c5ff",
+                    "outline-variant": "#c3c6d7",
+                    "on-surface-variant": "#434655",
+                    "surface-container-low": "#eff4ff",
+                    "on-primary-container": "#eeefff",
+                    "on-primary-fixed-variant": "#003ea8",
+                    "on-primary": "#ffffff",
+                    "on-secondary": "#ffffff",
+                    "error": "#ba1a1a",
+                    "on-error-container": "#93000a",
+                    "surface-container": "#e5eeff",
+                    "outline": "#737686",
+                    "surface-tint": "#0053db",
+                    "on-error": "#ffffff",
+                    "surface-dim": "#cbdbf5",
+                    "inverse-on-surface": "#eaf1ff",
+                    "surface-variant": "#d3e4fe",
+                    "on-tertiary-fixed-variant": "#7d2d00",
+                    "tertiary-container": "#bc4800",
+                    "primary-container": "#2563eb",
+                    "surface-container-highest": "#d3e4fe",
+                    "secondary-container": "#6cf8bb",
+                    "surface": "#f8f9ff",
+                    "primary": "#004ac6",
+                    "surface-container-lowest": "#ffffff",
+                    "background": "#f8f9ff",
+                    "inverse-primary": "#b4c5ff",
+                    "secondary-fixed-dim": "#4edea3",
+                    "on-background": "#0b1c30",
+                    "tertiary-fixed": "#ffdbcd",
+                    "on-tertiary-fixed": "#360f00",
+                    "on-tertiary-container": "#ffede6",
+                    "secondary": "#006c49",
+                    "surface-bright": "#f8f9ff",
+                    "on-secondary-fixed-variant": "#005236",
+                    "error-container": "#ffdad6",
+                    "secondary-fixed": "#6ffbbe",
+                    "on-surface": "#0b1c30",
+                    "tertiary": "#943700",
+                    "inverse-surface": "#213145",
+                    "tertiary-fixed-dim": "#ffb596",
+                    "on-tertiary": "#ffffff",
+                    "on-primary-fixed": "#00174b",
+                    "primary-fixed": "#dbe1ff",
+                    "surface-container-high": "#dce9ff",
+                    "on-secondary-fixed": "#002113"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "container-max": "1280px",
+                    "sidebar-width": "260px",
+                    "gutter": "24px",
+                    "base": "4px",
+                    "lg": "1.5rem",
+                    "xs": "0.25rem",
+                    "md": "1rem",
+                    "xl": "2rem",
+                    "sm": "0.5rem"
+            },
+            "fontFamily": {
+                    "label-caps": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "title-sm": ["Inter"],
+                    "body-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "body-sm": ["Inter"]
+            },
+            "fontSize": {
+                    "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "title-sm": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- TopNavBar (Shared Component Identity) -->
+<header class="flex items-center justify-between px-gutter w-full h-20 z-40 bg-primary shadow-md docked full-width top-0">
+<div class="flex items-center gap-4">
+<span class="font-headline-md text-headline-md font-black text-on-primary">MedInFlow Patient</span>
+</div>
+<div class="flex items-center gap-6">
+<div class="hidden md:flex items-center gap-8">
+<a class="text-on-primary font-bold border-b-2 border-on-primary pb-1 font-body-md text-body-md" href="#">My Health</a>
+<a class="text-on-primary/80 font-medium pb-1 hover:text-on-primary transition-all font-body-md text-body-md" href="#">Appointments</a>
+<a class="text-on-primary/80 font-medium pb-1 hover:text-on-primary transition-all font-body-md text-body-md" href="#">IA Assistant</a>
+<a class="text-on-primary/80 font-medium pb-1 hover:text-on-primary transition-all font-body-md text-body-md" href="#">Payments</a>
+</div>
+<div class="flex items-center gap-3 pl-6 border-l border-on-primary/20">
+<div class="text-right hidden sm:block">
+<p class="text-on-primary font-title-sm text-title-sm leading-none">Carlos Rodríguez</p>
+<p class="text-on-primary/70 text-label-caps font-label-caps">ID: 28449-01</p>
+</div>
+<img alt="Patient Profile" class="w-10 h-10 rounded-full border-2 border-on-primary/30 object-cover" data-alt="A professional headshot of a middle-aged Hispanic man with a friendly and trustworthy expression. He is wearing a clean, modern white shirt in a brightly lit, professional indoor setting with soft, high-key lighting. The background is a blurred office interior with clean lines and cool blue and white tones consistent with a medical corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCni5q6hAvS8Box4jmPuuVooTHtRlddpOL0_DfDtDyyEG89cRiqdyUfRBtdq-ufKvczHyMGyHzgTLE8Q2OrJoiCBRZTE3MaQ7LKESnvZe9_D-qEE86rsHJ_7lfeBKBeeYjqTs88zdFL-1dvyB3S6IqzMP7xQwUHt7cVsNPir4kWcmRXSoEZYBUud6zyGdbPlC6g4vbXcWSUB1cUe5AejoeaVM5nHJKXnxtPvMhH8Mz6N6ePRMNNK8LT0mO0rXiR5WlvmkA0k7vWxpLc"/>
+<button class="flex items-center justify-center p-2 rounded-full hover:bg-on-primary/10 transition-colors text-on-primary">
+<span class="material-symbols-outlined">logout</span>
+</button>
+</div>
+</div>
+</header>
+<main class="max-w-[1280px] mx-auto px-gutter py-xl">
+<!-- Welcome Section -->
+<div class="mb-xl">
+<h1 class="font-display-lg text-display-lg text-primary mb-xs">Hola de nuevo, Carlos.</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Tu salud está en buenas manos. Revisa tus recordatorios hoy.</p>
+</div>
+<div class="grid grid-cols-12 gap-gutter">
+<!-- Quick Access Bento Grid -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-gutter">
+<button class="group flex items-center justify-between p-lg bg-surface-container-low border border-outline-variant rounded-xl hover:bg-primary-container hover:text-on-primary-container transition-all shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-primary rounded-full flex items-center justify-center text-on-primary group-hover:bg-on-primary group-hover:text-primary transition-colors">
+<span class="material-symbols-outlined">event_available</span>
+</div>
+<span class="font-title-sm text-title-sm">Agendar cita</span>
+</div>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+<button class="group flex items-center justify-between p-lg bg-surface-container-low border border-outline-variant rounded-xl hover:bg-secondary-container hover:text-on-secondary-container transition-all shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-secondary rounded-full flex items-center justify-center text-on-secondary group-hover:bg-on-secondary group-hover:text-secondary transition-colors">
+<span class="material-symbols-outlined">smart_toy</span>
+</div>
+<span class="font-title-sm text-title-sm">Chat con IA</span>
+</div>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+<button class="group flex items-center justify-between p-lg bg-surface-container-low border border-outline-variant rounded-xl hover:bg-tertiary-fixed hover:text-on-tertiary-fixed transition-all shadow-sm">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 bg-tertiary rounded-full flex items-center justify-center text-on-tertiary group-hover:bg-on-tertiary group-hover:text-tertiary transition-colors">
+<span class="material-symbols-outlined">description</span>
+</div>
+<span class="font-title-sm text-title-sm">Mis diagnósticos</span>
+</div>
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+<!-- Main Status Cards -->
+<div class="col-span-12 lg:col-span-8 flex flex-col gap-gutter">
+<!-- Next Appointment Card -->
+<div class="bg-surface border-t-4 border-primary border-outline-variant border rounded-xl shadow-sm overflow-hidden">
+<div class="p-lg flex flex-col md:flex-row md:items-center justify-between gap-md">
+<div class="flex items-start gap-lg">
+<div class="hidden sm:flex flex-col items-center bg-surface-container-highest px-4 py-3 rounded-lg border border-outline-variant">
+<span class="text-label-caps font-label-caps text-on-surface-variant uppercase">OCT</span>
+<span class="text-headline-md font-headline-md text-primary">24</span>
+</div>
+<div>
+<span class="text-label-caps font-label-caps bg-primary/10 text-primary px-2 py-1 rounded-full mb-xs inline-block">PRÓXIMA CITA</span>
+<h3 class="font-headline-md text-headline-md mb-xs">Dr. Alejandro Mendieta</h3>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">location_on</span>
+                                    Cardiología • Consultorio 402 - Ala Norte
+                                </p>
+<p class="font-body-md text-body-md text-on-surface-variant flex items-center gap-2 mt-xs">
+<span class="material-symbols-outlined text-[18px]">schedule</span>
+                                    10:30 AM - Jueves 24 de Octubre
+                                </p>
+</div>
+</div>
+<button class="bg-primary text-on-primary px-6 py-3 rounded-full font-label-caps text-label-caps hover:bg-primary-container hover:scale-95 transition-all shadow-md self-start md:self-center">
+                            VER DETALLES
+                        </button>
+</div>
+</div>
+<!-- Last Consultation Card -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-lg">
+<div class="flex items-center justify-between mb-md">
+<h4 class="font-title-sm text-title-sm text-on-surface">Última consulta</h4>
+<span class="text-label-caps font-label-caps text-on-surface-variant">12 Sept, 2023</span>
+</div>
+<div class="bg-surface-container-lowest p-md rounded-lg border border-outline-variant border-dashed">
+<div class="flex items-start gap-4">
+<div class="w-10 h-10 bg-secondary/10 text-secondary rounded-full flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined">health_and_safety</span>
+</div>
+<div>
+<p class="font-body-md text-body-md font-semibold text-on-surface">Diagnóstico: Hipertensión arterial controlada</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant mt-1">
+                                    El paciente muestra una evolución favorable. Se recomienda continuar con el tratamiento actual y mantener el registro diario de presión.
+                                </p>
+</div>
+</div>
+</div>
+<div class="mt-md flex justify-end">
+<a class="text-primary font-label-caps text-label-caps flex items-center gap-1 hover:underline" href="#">
+                            DESCARGAR REPORTE COMPLETO
+                            <span class="material-symbols-outlined text-[16px]">download</span>
+</a>
+</div>
+</div>
+</div>
+</div>
+<!-- Secondary Insights Area -->
+<div class="mt-xl grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<div class="bg-surface-container-high p-lg rounded-xl flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-[40px]">pill</span>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant">MEDICACIÓN ACTIVA</p>
+<p class="font-title-sm text-title-sm">Enalapril 10mg</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Próxima toma: 08:00 PM</p>
+</div>
+</div>
+<div class="bg-surface-container-high p-lg rounded-xl flex items-center gap-4">
+<span class="material-symbols-outlined text-secondary text-[40px]">ecg</span>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant">PRESIÓN ARTERIAL</p>
+<p class="font-title-sm text-title-sm">118 / 76 mmHg</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Registrado hoy 09:15 AM</p>
+</div>
+</div>
+<div class="bg-surface-container-high p-lg rounded-xl flex items-center gap-4">
+<span class="material-symbols-outlined text-tertiary text-[40px]">lab_research</span>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant">PRÓXIMO ESTUDIO</p>
+<p class="font-title-sm text-title-sm">Perfil Lipídico</p>
+<p class="font-body-sm text-body-sm text-on-surface-variant">Pendiente de agendar</p>
+</div>
+</div>
+</div>
+</main>
+<!-- Contextual FAB - Restricted to Home/Dashboard actions -->
+<button class="fixed bottom-8 right-8 w-14 h-14 bg-primary text-on-primary rounded-full shadow-lg flex items-center justify-center hover:scale-110 transition-transform active:scale-95 z-50">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">add</span>
+</button>
+</body></html>
