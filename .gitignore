@@ -14,15 +14,21 @@ __pycache__/
 
 # ── Compilados / artefactos Java ──────────────────────────────
 target/
-!**/src/main/**/target/
+!**/src/main/**/target/ss
 !**/src/test/**/target/
 *.class
 *.jar
 *.war
 mi-app/.mvn/wrapper/maven-wrapper.jar
 
+# Frontend / Node
+.tools/
+frontend/node_modules/
+frontend/dist/
+
 # ── application.properties real (usar application-example) ────
 mi-app/src/main/resources/application.properties
+mi-app/src/main/resources/application-local.properties
 
 # ── Logs y temporales ─────────────────────────────────────────
 *.log
@@ -44,3 +50,5 @@ tmp/
 # ─────────────────── Docker ───────────────────
 docker-compose.override.yml
 docker.md
+
+stich_medinflow_clinic_management_system

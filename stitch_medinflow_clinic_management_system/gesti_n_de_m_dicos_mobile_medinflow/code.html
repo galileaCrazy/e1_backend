@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#00714d",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "outline-variant": "#c3c6d7",
+                        "on-surface-variant": "#434655",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-container": "#eeefff",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#e5eeff",
+                        "outline": "#737686",
+                        "surface-tint": "#0053db",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-variant": "#d3e4fe",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "tertiary-container": "#bc4800",
+                        "primary-container": "#2563eb",
+                        "surface-container-highest": "#d3e4fe",
+                        "secondary-container": "#6cf8bb",
+                        "surface": "#f8f9ff",
+                        "primary": "#004ac6",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f8f9ff",
+                        "inverse-primary": "#b4c5ff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-background": "#0b1c30",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-tertiary-container": "#ffede6",
+                        "secondary": "#006c49",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#005236",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-surface": "#0b1c30",
+                        "tertiary": "#943700",
+                        "inverse-surface": "#213145",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#002113"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "sidebar-width": "260px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "lg": "1.5rem",
+                        "xs": "0.25rem",
+                        "md": "1rem",
+                        "xl": "2rem",
+                        "sm": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "title-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "title-sm": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Mobile Specific Utilities */
+        @media (max-width: 768px) {
+            .mobile-hidden { display: none; }
+            .mobile-menu-active aside { transform: translateX(0); }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface min-h-screen flex flex-col md:flex-row overflow-x-hidden">
+<!-- SideNavBar (Mobile Adaptive) -->
+<aside class="fixed left-0 top-0 h-full w-sidebar-width bg-surface border-r border-outline-variant flex flex-col py-6 px-4 z-50 -translate-x-full md:translate-x-0 transition-transform duration-300" id="sidebar">
+<div class="flex items-center justify-between mb-10 md:block">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-on-primary shrink-0">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary leading-tight">MedInFlow</h1>
+<p class="font-label-caps text-label-caps text-on-surface-variant">Clinical Admin</p>
+</div>
+</div>
+<button class="md:hidden text-on-surface-variant" onclick="document.body.classList.remove('mobile-menu-active')">
+<span class="material-symbols-outlined">close</span>
+</button>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-caps text-label-caps">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+<span class="font-label-caps text-label-caps">Appointments</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-caps text-label-caps">Patients</span>
+</a>
+<a class="flex items-center gap-3 bg-secondary-container text-on-secondary-container rounded-full px-4 py-3 border-l-4 border-primary" href="#">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+<span class="font-label-caps text-label-caps">Doctors</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-caps text-label-caps">Reports</span>
+</a>
+</nav>
+<div class="pt-6 border-t border-outline-variant space-y-1">
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-caps text-label-caps">Help</span>
+</a>
+<a class="flex items-center gap-3 text-on-surface-variant px-4 py-3 hover:bg-surface-container-high transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-caps text-label-caps">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Mobile Header Bar -->
+<header class="md:hidden bg-surface border-b border-outline-variant px-md py-3 sticky top-0 z-40 flex items-center justify-between">
+<button class="p-2 -ml-2 text-on-surface-variant" onclick="document.body.classList.add('mobile-menu-active')">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="font-title-sm text-title-sm text-primary font-bold">MedInFlow</span>
+<div class="w-10"></div> <!-- Spacer -->
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 md:ml-[260px] p-4 md:p-xl pb-24 md:pb-xl">
+<!-- Page Title Section -->
+<header class="flex flex-col md:flex-row md:items-center justify-between mb-lg md:mb-xl gap-4">
+<div>
+<h2 class="font-display-lg text-display-lg text-on-surface">Médicos</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Gestión de personal médico y especialistas</p>
+</div>
+<button class="mobile-hidden md:flex bg-primary-container text-on-primary-container px-lg py-3 rounded-full font-label-caps text-label-caps items-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined" data-icon="person_add">person_add</span>
+            + NUEVO MÉDICO
+        </button>
+</header>
+<!-- Search and Filter Bar -->
+<div class="bg-surface border border-outline-variant p-2 md:p-md rounded-xl mb-lg flex items-center gap-2 md:gap-md shadow-sm">
+<div class="relative flex-1">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-sm md:text-base" data-icon="search">search</span>
+<input class="w-full pl-9 pr-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-sm text-body-sm" placeholder="Buscar médico..." type="text"/>
+</div>
+<button class="flex items-center justify-center p-2.5 border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-container-high transition-all md:px-4">
+<span class="material-symbols-outlined" data-icon="filter_list">filter_list</span>
+<span class="mobile-hidden font-label-caps text-label-caps ml-2">Filtros</span>
+</button>
+</div>
+<!-- Card List (Mobile) & Table (Desktop) -->
+<section class="space-y-4">
+<!-- Card 1 -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-4 block">
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden shrink-0">
+<img alt="Dr. Ricardo Alarcón" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFd219uvPGI5bfwOqSEVUOU8yXaGLJ_i-0prGM9-mYDX9YXY5QNWAshOexrwcpeB9M-JW0WHz2_zfBAR6FX1YMRC89rpx5WLEurNz3mMeUVvviw-vGWLKJfJ2-Ze4hr1lrm70GG64IkwUFIox79UMnuH8ICZw4TnHpW3iZ9EEPPH5aaZx_XCjhdxJD9UZgksYOXCvkSHsX4SeW_hjf6N64c0mgXGP83PaUtSy-qFzW9uJ6Kts6DjdhxwBjO9Mftosl8mR8vp_mKjhZ"/>
+</div>
+<div>
+<h4 class="font-body-md font-bold text-on-surface">Dr. Ricardo Alarcón</h4>
+<p class="font-body-sm text-on-surface-variant">Cardiología</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-secondary-container/20 text-on-secondary-container rounded-full text-[10px] font-bold uppercase tracking-tight">Activo</span>
+</div>
+<div class="grid grid-cols-2 gap-y-3 mb-4 py-3 border-y border-outline-variant/30">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Cédula</p>
+<p class="text-body-sm font-mono text-on-surface-variant">7482931-A</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Consultorio</p>
+<p class="text-body-sm text-on-surface-variant">402-B</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Tarifa</p>
+<p class="text-body-sm font-medium text-on-surface">$1,200</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 bg-surface-container-high text-on-surface rounded-lg font-label-caps text-label-caps flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-sm">edit</span> Editar
+                </button>
+<button class="p-2 border border-error/20 text-error rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+<!-- Card 2 -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-4 block">
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden shrink-0">
+<img alt="Dra. Elena Vargas" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVagRO1DkaNcTWGBJKpQdNG8kjgdS-VGouzSOo4tWjfJjU3HAPF9d-_Icbl05pDUewRTIryoMtThNzWAx1s5gDvff6qaDdDvJ_hdnGjRPvnCmoP1azruJIHmxoBdzMGkgpppssv2sKJs2QhSP2esJK3PQg2Unsn6c0FVfQSMkV8Afwt3w8lteenvX7LrxbkY8DyJu-beITKyvcZyL5yFcntSdzjbL2-0Zaw4vRkjklx_0eT9iHAkvN7MctY5ZUVa0HCdDjgcjYaeGh"/>
+</div>
+<div>
+<h4 class="font-body-md font-bold text-on-surface">Dra. Elena Vargas</h4>
+<p class="font-body-sm text-on-surface-variant">Pediatría</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-secondary-container/20 text-on-secondary-container rounded-full text-[10px] font-bold uppercase tracking-tight">Activo</span>
+</div>
+<div class="grid grid-cols-2 gap-y-3 mb-4 py-3 border-y border-outline-variant/30">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Cédula</p>
+<p class="text-body-sm font-mono text-on-surface-variant">9203845-C</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Consultorio</p>
+<p class="text-body-sm text-on-surface-variant">105-A</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Tarifa</p>
+<p class="text-body-sm font-medium text-on-surface">$850</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 bg-surface-container-high text-on-surface rounded-lg font-label-caps text-label-caps flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-sm">edit</span> Editar
+                </button>
+<button class="p-2 border border-error/20 text-error rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+<!-- Card 3 -->
+<div class="bg-surface border border-outline-variant rounded-xl shadow-sm p-4 block">
+<div class="flex items-start justify-between mb-3">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest overflow-hidden shrink-0">
+<img alt="Dr. Sergio Mendoza" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD2LpnswwZSIrepPclrL8fai3ET0NO6U1PnEZjr-A30rtvvWVSe01XfT7z5oGH7R_7qdnkqkCS2aGiLc-BPf8dKKK591ZSCo-Qtwfa7JXAgF6orwMMC3rKZc6wuW6KiB8eliyMCQgp4NcjRTteZurtPEvZ_3Aknn7JBXhg3LaUKsEV_WJLVYZDWTy3incJSn6IvN4KcnuJGVle2coiRjQKOuogB-5DB2gmSQoLUVuTIiwt2OkD-TkCgNvao3dDSXN4oI6TjK8BKheaI"/>
+</div>
+<div>
+<h4 class="font-body-md font-bold text-on-surface">Dr. Sergio Mendoza</h4>
+<p class="font-body-sm text-on-surface-variant">Neurología</p>
+</div>
+</div>
+<span class="px-3 py-1 bg-error-container/20 text-error rounded-full text-[10px] font-bold uppercase tracking-tight">Inactivo</span>
+</div>
+<div class="grid grid-cols-2 gap-y-3 mb-4 py-3 border-y border-outline-variant/30">
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Cédula</p>
+<p class="text-body-sm font-mono text-on-surface-variant">5521098-F</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Consultorio</p>
+<p class="text-body-sm text-on-surface-variant">312-C</p>
+</div>
+<div>
+<p class="text-[10px] font-bold text-outline uppercase tracking-wider">Tarifa</p>
+<p class="text-body-sm font-medium text-on-surface">$1,500</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="flex-1 py-2 bg-surface-container-high text-on-surface rounded-lg font-label-caps text-label-caps flex items-center justify-center gap-1">
+<span class="material-symbols-outlined text-sm">edit</span> Editar
+                </button>
+<button class="p-2 border border-error/20 text-error rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-sm">delete</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Pagination -->
+<footer class="mt-8 flex flex-col md:flex-row items-center justify-between gap-4">
+<span class="font-body-sm text-body-sm text-on-surface-variant order-2 md:order-1">Mostrando 1-3 de 24 médicos</span>
+<div class="flex items-center gap-2 order-1 md:order-2">
+<button class="p-2 border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-container-high">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<div class="flex gap-1">
+<button class="w-9 h-9 bg-primary text-on-primary rounded-lg text-sm font-bold">1</button>
+<button class="w-9 h-9 hover:bg-surface-container-high rounded-lg text-sm text-on-surface-variant">2</button>
+<button class="w-9 h-9 hover:bg-surface-container-high rounded-lg text-sm text-on-surface-variant">3</button>
+</div>
+<button class="p-2 border border-outline-variant rounded-lg text-on-surface-variant hover:bg-surface-container-high">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</footer>
+</main>
+<!-- Floating Action Button (FAB) -->
+<button class="md:hidden fixed bottom-6 right-6 w-14 h-14 bg-primary text-on-primary rounded-full shadow-xl flex items-center justify-center z-40 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" style="font-size: 32px;">person_add</span>
+</button>
+<!-- Modal Overlay & Floating Modal (Hidden by default, shown for editing) -->
+<div class="fixed inset-0 z-[60] flex items-end md:items-center justify-center p-0 md:p-md pointer-events-auto overflow-hidden">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-[#0F172A] opacity-70"></div>
+<!-- Modal Content (Mobile Full Height Slide Up) -->
+<div class="relative bg-surface w-full h-[90vh] md:h-auto md:max-w-[560px] rounded-t-2xl md:rounded-xl shadow-2xl overflow-hidden border border-outline-variant flex flex-col transform transition-transform duration-300 translate-y-0">
+<!-- Modal Header -->
+<header class="px-gutter py-5 border-b border-outline-variant flex items-center justify-between bg-surface-container-low shrink-0">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary" data-icon="person_add">person_add</span>
+<h3 class="font-title-sm text-title-sm text-on-surface">Registrar Médico</h3>
+</div>
+<button class="text-on-surface-variant hover:bg-surface-container-highest p-2 rounded-full transition-all">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</header>
+<!-- Modal Body (Form) -->
+<div class="p-gutter space-y-6 overflow-y-auto flex-1">
+<div class="space-y-4">
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">Nombre completo</label>
+<input class="w-full p-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-md text-body-md" placeholder="Ej. Dr. Juan Pérez" type="text"/>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">Especialidad</label>
+<input class="w-full p-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-md text-body-md" placeholder="Ej. Cardiología" type="text"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">Cédula profesional</label>
+<input class="w-full p-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-md text-body-md" placeholder="12345678-X" type="text"/>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">Teléfono</label>
+<input class="w-full p-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-md text-body-md" placeholder="+52 55 1234 5678" type="tel"/>
+</div>
+<div class="space-y-2">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">Tarifa base ($)</label>
+<input class="w-full p-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-md text-body-md" placeholder="0.00" type="number"/>
+</div>
+</div>
+<div class="space-y-2 pb-4">
+<label class="font-label-caps text-label-caps text-on-surface-variant uppercase text-[11px]">Consultorio</label>
+<div class="relative">
+<select class="w-full p-4 bg-surface-container-lowest border border-outline-variant rounded-xl focus:ring-2 focus:ring-primary focus:border-transparent outline-none font-body-md text-body-md appearance-none">
+<option value="">Seleccionar consultorio...</option>
+<option value="101-A">Piso 1 - 101-A</option>
+<option value="102-A">Piso 1 - 102-A</option>
+<option value="201-B">Piso 2 - 201-B</option>
+<option value="305-C">Piso 3 - 305-C</option>
+</select>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-outline" data-icon="expand_more">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Modal Footer -->
+<footer class="px-gutter py-6 border-t border-outline-variant flex flex-col md:flex-row gap-3 bg-surface-container-low shrink-0 pb-10 md:pb-6">
+<button class="w-full md:w-auto px-6 py-4 border border-outline text-on-surface-variant rounded-xl font-label-caps text-label-caps hover:bg-surface-container-high transition-all order-2 md:order-1">
+                CANCELAR
+            </button>
+<button class="w-full md:flex-1 px-8 py-4 bg-primary text-on-primary rounded-xl font-label-caps text-label-caps hover:brightness-110 shadow-md transition-all active:scale-[0.98] order-1 md:order-2">
+                GUARDAR MÉDICO
+            </button>
+</footer>
+</div>
+</div>
+</body></html>

@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-secondary-container": "#00714d",
+                        "primary-fixed-dim": "#b4c5ff",
+                        "outline-variant": "#c3c6d7",
+                        "on-surface-variant": "#434655",
+                        "surface-container-low": "#eff4ff",
+                        "on-primary-container": "#eeefff",
+                        "on-primary-fixed-variant": "#003ea8",
+                        "on-primary": "#ffffff",
+                        "on-secondary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-error-container": "#93000a",
+                        "surface-container": "#e5eeff",
+                        "outline": "#737686",
+                        "surface-tint": "#0053db",
+                        "on-error": "#ffffff",
+                        "surface-dim": "#cbdbf5",
+                        "inverse-on-surface": "#eaf1ff",
+                        "surface-variant": "#d3e4fe",
+                        "on-tertiary-fixed-variant": "#7d2d00",
+                        "tertiary-container": "#bc4800",
+                        "primary-container": "#2563eb",
+                        "surface-container-highest": "#d3e4fe",
+                        "secondary-container": "#6cf8bb",
+                        "surface": "#f8f9ff",
+                        "primary": "#004ac6",
+                        "surface-container-lowest": "#ffffff",
+                        "background": "#f8f9ff",
+                        "inverse-primary": "#b4c5ff",
+                        "secondary-fixed-dim": "#4edea3",
+                        "on-background": "#0b1c30",
+                        "tertiary-fixed": "#ffdbcd",
+                        "on-tertiary-fixed": "#360f00",
+                        "on-tertiary-container": "#ffede6",
+                        "secondary": "#006c49",
+                        "surface-bright": "#f8f9ff",
+                        "on-secondary-fixed-variant": "#005236",
+                        "error-container": "#ffdad6",
+                        "secondary-fixed": "#6ffbbe",
+                        "on-surface": "#0b1c30",
+                        "tertiary": "#943700",
+                        "inverse-surface": "#213145",
+                        "tertiary-fixed-dim": "#ffb596",
+                        "on-tertiary": "#ffffff",
+                        "on-primary-fixed": "#00174b",
+                        "primary-fixed": "#dbe1ff",
+                        "surface-container-high": "#dce9ff",
+                        "on-secondary-fixed": "#002113"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "container-max": "1280px",
+                        "sidebar-width": "260px",
+                        "gutter": "24px",
+                        "base": "4px",
+                        "lg": "1.5rem",
+                        "xs": "0.25rem",
+                        "md": "1rem",
+                        "xl": "2rem",
+                        "sm": "0.5rem"
+                    },
+                    "fontFamily": {
+                        "label-caps": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "title-sm": ["Inter"],
+                        "body-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-sm": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-caps": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                        "title-sm": ["18px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "body-sm": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .status-confirmada { background-color: rgba(0, 108, 73, 0.1); color: #006c49; }
+        .status-sin-confirmar { background-color: rgba(148, 55, 0, 0.1); color: #943700; }
+        .status-cancelada { background-color: rgba(186, 26, 26, 0.1); color: #ba1a1a; }
+        .status-no-asistio { background-color: rgba(115, 118, 134, 0.1); color: #434655; }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background">
+<!-- TopNavBar (Shared Component) -->
+<header class="flex items-center justify-between px-gutter w-full h-20 z-40 bg-primary shadow-md sticky top-0">
+<div class="flex items-center gap-8">
+<span class="font-headline-md text-headline-md font-black text-on-primary">MedInFlow Patient</span>
+<nav class="hidden md:flex items-center gap-6">
+<a class="text-on-primary/80 font-medium pb-1 hover:text-on-primary transition-all" href="#">My Health</a>
+<a class="text-on-primary font-bold border-b-2 border-on-primary pb-1" href="#">Appointments</a>
+<a class="text-on-primary/80 font-medium pb-1 hover:text-on-primary transition-all" href="#">IA Assistant</a>
+<a class="text-on-primary/80 font-medium pb-1 hover:text-on-primary transition-all" href="#">Payments</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-surface-container-lowest text-primary font-bold px-6 py-2 rounded-full hover:bg-surface-container-low transition-all">Book Now</button>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-on-primary/20 bg-surface-variant">
+<img alt="Patient Profile" class="w-full h-full object-cover" data-alt="Close-up portrait of a professional woman in her 30s with a warm and approachable expression. She is wearing a simple blue medical scrub top in a high-key clinical environment. The lighting is soft and natural, emphasizing a trustworthy and caring healthcare atmosphere consistent with a premium medical application. The color palette features clean whites and professional blues." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCo7nEZmR4CU9OlDOmzB6IA_a5ZkR7onSe0lB2bp89WNPHGGJp5qUJUDvTkvoLBwUhn6ls2mIOjKy7Sox1g3yIv1OJtQIzd9LEshv_ZhuAu4lRRJxh2rjoPkMKr8HANKrLY0-dNnbwjC1W_K3GQTt4bkRj1bKEkDkac9kqa9HAYpWOkmnHGy7VN0yF4L5VPXajk1zog-FU1qzEa_CkEltv_kVIkcVkx2QliTZbCsWY0umeAcRCx1IUrNXN5IyLSDIIneNSLOjTBAulw"/>
+</div>
+</div>
+</header>
+<main class="max-w-[1280px] mx-auto py-10 px-gutter min-h-screen">
+<!-- Header & Tabs -->
+<div class="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6">
+<div>
+<h1 class="font-display-lg text-display-lg text-primary mb-2">Mis Citas</h1>
+<p class="text-on-surface-variant font-body-md">Gestiona tus consultas médicas y revisa tu historial clínico.</p>
+</div>
+<div class="flex bg-surface-container-low p-1 rounded-xl shadow-sm">
+<button class="px-6 py-2 rounded-lg font-bold text-primary bg-white shadow-sm transition-all">Próximas</button>
+<button class="px-6 py-2 rounded-lg font-medium text-on-surface-variant hover:bg-surface-container transition-all">Pasadas</button>
+</div>
+</div>
+<!-- Appointments List -->
+<div class="grid grid-cols-1 gap-6">
+<!-- Appointment Card 1 -->
+<div class="bg-white border border-outline-variant rounded-xl p-6 shadow-sm flex flex-col md:flex-row gap-8 items-start md:items-center hover:shadow-md transition-shadow">
+<!-- Date Block -->
+<div class="flex flex-col items-center justify-center min-w-[100px] border-r border-outline-variant pr-8 text-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">OCTUBRE</span>
+<span class="font-display-lg text-display-lg text-primary leading-none">24</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Jueves • 10:30 AM</span>
+</div>
+<!-- Info Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="medical_services">medical_services</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">DOCTOR</p>
+<p class="font-title-sm text-title-sm">Dr. Alejandro Méndez</p>
+<p class="text-body-sm text-on-surface-variant">Cardiología Clínica</p>
+</div>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">MOTIVO</p>
+<p class="text-body-md">Chequeo anual preventivo y seguimiento de presión arterial.</p>
+</div>
+<div class="flex flex-col justify-center items-start md:items-end">
+<span class="px-3 py-1 rounded-full text-xs font-bold status-confirmada mb-3">CONFIRMADA</span>
+<div class="flex gap-2">
+<button class="text-error font-bold text-label-caps flex items-center gap-1 hover:bg-error/5 px-2 py-1 rounded">
+<span class="material-symbols-outlined text-sm" data-icon="cancel">cancel</span> CANCELAR
+                            </button>
+<button class="text-primary font-bold text-label-caps flex items-center gap-1 hover:bg-primary/5 px-2 py-1 rounded">
+<span class="material-symbols-outlined text-sm" data-icon="edit_calendar">edit_calendar</span> REAGENDAR
+                            </button>
+</div>
+</div>
+</div>
+</div>
+<!-- Appointment Card 2 -->
+<div class="bg-white border border-outline-variant rounded-xl p-6 shadow-sm flex flex-col md:flex-row gap-8 items-start md:items-center hover:shadow-md transition-shadow border-t-4 border-t-primary">
+<div class="flex flex-col items-center justify-center min-w-[100px] border-r border-outline-variant pr-8 text-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">NOVIEMBRE</span>
+<span class="font-display-lg text-display-lg text-primary leading-none">05</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Martes • 04:00 PM</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-primary">
+<span class="material-symbols-outlined" data-icon="person_search">person_search</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">DOCTORA</p>
+<p class="font-title-sm text-title-sm">Dra. Lucía Torres</p>
+<p class="text-body-sm text-on-surface-variant">Dermatología</p>
+</div>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">MOTIVO</p>
+<p class="text-body-md">Revisión de lunares y tratamiento de rutina para dermatitis.</p>
+</div>
+<div class="flex flex-col justify-center items-start md:items-end">
+<span class="px-3 py-1 rounded-full text-xs font-bold status-sin-confirmar mb-3">SIN_CONFIRMAR</span>
+<div class="flex gap-2">
+<button class="bg-primary text-on-primary font-bold px-4 py-1 rounded-full text-label-caps hover:bg-surface-tint transition-all">CONFIRMAR ASISTENCIA</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Past Appointment Example (Mockup for reference) -->
+<div class="bg-surface-container-lowest opacity-75 border border-outline-variant rounded-xl p-6 flex flex-col md:flex-row gap-8 items-start md:items-center grayscale">
+<div class="flex flex-col items-center justify-center min-w-[100px] border-r border-outline-variant pr-8 text-center">
+<span class="font-label-caps text-label-caps text-on-surface-variant uppercase">SEPTIEMBRE</span>
+<span class="font-display-lg text-display-lg text-outline leading-none">12</span>
+<span class="font-label-caps text-label-caps text-on-surface-variant">Jueves • 09:15 AM</span>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 flex-grow">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high flex items-center justify-center text-outline">
+<span class="material-symbols-outlined" data-icon="stethoscope">stethoscope</span>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">DOCTOR</p>
+<p class="font-title-sm text-title-sm">Dr. Roberto Kock</p>
+<p class="text-body-sm text-on-surface-variant">Medicina General</p>
+</div>
+</div>
+<div>
+<p class="font-label-caps text-label-caps text-on-surface-variant mb-1">MOTIVO</p>
+<p class="text-body-md">Consulta por síntomas gripales y fatiga persistente.</p>
+</div>
+<div class="flex flex-col justify-center items-start md:items-end">
+<span class="px-3 py-1 rounded-full text-xs font-bold status-no-asistio mb-3">NO_ASISTIO</span>
+<button class="border border-primary text-primary font-bold px-4 py-1 rounded-full text-label-caps hover:bg-primary/5 transition-all">Ver diagnóstico</button>
+</div>
+</div>
+</div>
+</div>
+<!-- Pagination -->
+<div class="mt-12 flex items-center justify-between border-t border-outline-variant pt-6">
+<span class="text-body-sm text-on-surface-variant">Mostrando 1-3 de 12 citas</span>
+<div class="flex gap-2">
+<button class="p-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-all flex items-center">
+<span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span>
+<span class="font-label-caps text-label-caps ml-1">ANTERIOR</span>
+</button>
+<div class="flex gap-1">
+<button class="w-10 h-10 rounded-lg bg-primary text-on-primary font-bold">1</button>
+<button class="w-10 h-10 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all font-medium">2</button>
+<button class="w-10 h-10 rounded-lg text-on-surface-variant hover:bg-surface-container transition-all font-medium">3</button>
+</div>
+<button class="p-2 rounded-lg border border-outline-variant text-on-surface-variant hover:bg-surface-container transition-all flex items-center">
+<span class="font-label-caps text-label-caps mr-1">SIGUIENTE</span>
+<span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span>
+</button>
+</div>
+</div>
+</main>
+<!-- Bottom Action for Mobile -->
+<div class="fixed bottom-6 right-6 md:hidden">
+<button class="w-14 h-14 bg-secondary text-on-secondary rounded-full shadow-lg flex items-center justify-center active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-2xl" data-icon="add" data-weight="fill">add</span>
+</button>
+</div>
+<footer class="bg-white border-t border-outline-variant py-8 mt-12">
+<div class="max-w-[1280px] mx-auto px-gutter flex flex-col md:flex-row justify-between items-center gap-4">
+<p class="text-body-sm text-on-surface-variant">© 2024 MedInFlow Clinical Systems. Todos los derechos reservados.</p>
+<div class="flex gap-6">
+<a class="text-body-sm text-primary hover:underline" href="#">Términos y Condiciones</a>
+<a class="text-body-sm text-primary hover:underline" href="#">Privacidad</a>
+<a class="text-body-sm text-primary hover:underline" href="#">Ayuda</a>
+</div>
+</div>
+</footer>
+</body></html>

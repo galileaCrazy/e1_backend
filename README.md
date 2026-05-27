@@ -1,3 +1,17 @@
+# MediFlow — Sistema de Gestión de Clínicas (Multi-tenant)
+
+**Equipo 1**
+
+### Integrantes:
+* **Alonso Cruz Yahir Jibsam**
+* **Martinez Lopez Fatima**
+* **Santiago Jimenez Galilea**
+
+**Stack:** Spring Boot, FastAPI (IA), React + Vite, PostgreSQL.
+
+---
+## Resumen del Proyecto
+MediFlow es una solución integral diseñada para gestionar múltiples clínicas de forma independiente dentro de una misma plataforma. El sistema permite la gestión de citas médicas, procesamiento de pagos, diagnósticos especializados y cuenta con un microservicio dedicado de Inteligencia Artificial para asistencia en el dominio médico.
 # MedInFlow ClinicaMVP
 Sistema de administración para clínicas y consultorios privados · DSD-2303
 
@@ -484,3 +498,4 @@ POST /chat                              → Responde el asistente IA        ✅
 ```
 
 ⚠️ Flyway ejecuta las migraciones automáticamente al arrancar — no hay comando separado. Si cambia el esquema, crear un nuevo archivo `V3__descripcion.sql` (nunca modificar migraciones ya aplicadas).
+
