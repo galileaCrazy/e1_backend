@@ -82,8 +82,19 @@ public class CitaService {
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", req.getPacienteId().toString()));
         Medico medico = medicoRepo.findById(req.getMedicoId())
                 .orElseThrow(() -> new ResourceNotFoundException("Medico", req.getMedicoId().toString()));
-        Consultorio consultorio = consultorioRepo.findById(req.getConsultorioId())
-                .orElseThrow(() -> new ResourceNotFoundException("Consultorio", req.getConsultorioId().toString()));
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol()) && !AuthenticatedUser.getEmail().equals(paciente.getEmail())) {
+            throw new ResourceNotFoundException("Paciente", req.getPacienteId().toString());
+        }
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            org = paciente.getOrganizacion();
+        }
+        if (!medico.getOrganizacion().getId().equals(org.getId())) {
+            throw new ResourceNotFoundException("Medico", req.getMedicoId().toString());
+        }
+        Consultorio consultorio = Roles.PACIENTE.equals(AuthenticatedUser.getRol())
+                ? medico.getConsultorio()
+                : consultorioRepo.findById(req.getConsultorioId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Consultorio", req.getConsultorioId().toString()));
         Cita c = new Cita();
         c.setOrganizacion(org);
         c.setPaciente(paciente);
@@ -91,7 +102,11 @@ public class CitaService {
         c.setConsultorio(consultorio);
         c.setFechaHora(req.getFechaHora());
         c.setDuracionMin(req.getDuracionMin());
-        aplicarEstado(c, req.getEstado());
+        if (Roles.PACIENTE.equals(AuthenticatedUser.getRol())) {
+            c.setEstado("SIN_CONFIRMAR");
+        } else {
+            aplicarEstado(c, req.getEstado());
+        }
         c.setMotivo(req.getMotivo());
         return CitaMapper.toResponse(repo.save(c));
     }

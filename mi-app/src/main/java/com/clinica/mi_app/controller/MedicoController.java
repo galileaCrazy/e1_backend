@@ -48,7 +48,7 @@ public class MedicoController {
         @ApiResponse(responseCode = "401", description = "Token requerido"),
         @ApiResponse(responseCode = "403", description = "Sin permisos")
     })
-    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "')")
+    @PreAuthorize("hasAnyRole('" + Roles.ADMIN + "', '" + Roles.MEDICO + "', '" + Roles.PACIENTE + "')")
     public List<MedicoResponse> listarActivos(@PathVariable UUID orgId) {
         return service.listarActivosPorOrganizacion(orgId);
     }

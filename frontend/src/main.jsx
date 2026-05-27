@@ -28,6 +28,8 @@ import MedicoConsultaDetalle from "./features/medico/consulta/MedicoConsultaDeta
 import MedicoDashboard from "./features/medico/dashboard/MedicoDashboard";
 import MedicoDiagnosticosAdjuntos from "./features/medico/diagnosticos-adjuntos/MedicoDiagnosticosAdjuntos";
 import MedicoExpedientePaciente from "./features/medico/expediente/MedicoExpedientePaciente";
+import PacienteCitas from "./features/paciente/citas/PacienteCitas";
+import PacienteDashboard from "./features/paciente/dashboard/PacienteDashboard";
 import { displayName, formatCell, initials, sessionDisplayName, shortId } from "./lib/display";
 import "./styles.css";
 
@@ -49,6 +51,7 @@ const iconMap = {
   usuarios: UserCog,
   organizaciones: Building2,
   medicoClinico: FileText,
+  pacienteCitas: CalendarDays,
   ia: Bot,
   settings: Settings,
 };
@@ -56,7 +59,7 @@ const iconMap = {
 const modules = {
   citas: {
     label: "Citas",
-    roles: ["ADMIN", "MEDICO", "PACIENTE"],
+    roles: ["ADMIN", "MEDICO"],
     description: "Historial de citas por paciente y estado.",
     list: ({ orgId, filters, role, medicoId }) => {
       if (role === "MEDICO") return medicoId ? `/api/citas/medico/${medicoId}` : null;
@@ -236,7 +239,7 @@ const modules = {
   },
   pagos: {
     label: "Pagos",
-    roles: ["ADMIN", "MEDICO", "PACIENTE"],
+    roles: ["ADMIN", "MEDICO"],
     description: "Cobros, metodos de pago y referencias.",
     list: ({ orgId, filters, role }) => {
       if (filters.citaId) return `/api/pagos/cita/${filters.citaId}`;
@@ -271,7 +274,7 @@ const modules = {
   },
   diagnosticos: {
     label: "Diagnosticos",
-    roles: ["ADMIN", "PACIENTE"],
+    roles: ["ADMIN"],
     description: "Diagnosticos clinicos asociados a citas.",
     list: ({ filters }) => {
       if (!filters.citaId) return null;
@@ -298,7 +301,7 @@ const modules = {
   },
   adjuntos: {
     label: "Adjuntos",
-    roles: ["ADMIN", "PACIENTE"],
+    roles: ["ADMIN"],
     description: "Metadatos de archivos clinicos y documentos.",
     list: ({ filters }) => {
       if (filters.citaId) return `/api/adjuntos/cita/${filters.citaId}`;
@@ -449,6 +452,7 @@ function App() {
   const orgId = session?.organizacionId || session?.claims?.organizacionId || "";
   const userId = session?.userId || session?.claims?.userId || session?.claims?.usuarioId || "";
   const medicoId = session?.medicoId || session?.claims?.medicoId || "";
+  const pacienteId = session?.pacienteId || session?.claims?.pacienteId || "";
   const userName = sessionDisplayName(session);
 
   const notify = React.useCallback((message, kind = "ok") => {
@@ -521,8 +525,8 @@ function App() {
   };
 
   const context = React.useMemo(
-    () => ({ api, list, notify, go, role, orgId, userId, medicoId, userName, session, apiUrl, setApiUrl }),
-    [api, list, notify, go, role, orgId, userId, medicoId, userName, session, apiUrl, setApiUrl]
+    () => ({ api, list, notify, go, role, orgId, userId, medicoId, pacienteId, userName, session, apiUrl, setApiUrl }),
+    [api, list, notify, go, role, orgId, userId, medicoId, pacienteId, userName, session, apiUrl, setApiUrl]
   );
 
   if (!session) {
@@ -613,6 +617,13 @@ function Shell({ context, route, logout, children }) {
   const [search, setSearch] = React.useState("");
   const allowed = Object.entries(modules).filter(([, config]) => config.roles.includes(context.role));
   const active = route.startsWith("modulo/") ? route.split("/")[1] : route;
+  const navigate = React.useCallback(
+    (nextRoute) => {
+      context.go(nextRoute);
+      setOpen(false);
+    },
+    [context]
+  );
 
   React.useEffect(() => {
     document.querySelectorAll("tbody tr").forEach((row) => {
@@ -622,28 +633,42 @@ function Shell({ context, route, logout, children }) {
 
   return (
     <div className="app-shell">
+      {open && <button className="sidebar-backdrop" aria-label="Cerrar menu" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="sidebar-header">
-          <div className="brand-mark">MedInFlow</div>
-          <p>{context.userName}</p>
+          <div>
+            <div className="brand-mark">MedInFlow</div>
+            <p>{context.userName}</p>
+          </div>
+          <button className="btn icon sidebar-close" onClick={() => setOpen(false)} aria-label="Cerrar menu">
+            <X size={18} />
+          </button>
         </div>
         <nav className="nav-list">
-          <NavButton id="dashboard" label="Dashboard" active={active === "dashboard"} onClick={() => context.go("dashboard")} />
+          <NavButton id="dashboard" label="Dashboard" active={active === "dashboard"} onClick={() => navigate("dashboard")} />
           {allowed.map(([key, config]) => (
-            <NavButton key={key} id={key} label={config.label} active={active === key} onClick={() => context.go(`modulo/${key}`)} />
+            <NavButton key={key} id={key} label={config.label} active={active === key} onClick={() => navigate(`modulo/${key}`)} />
           ))}
           {context.role === "MEDICO" && (
             <NavButton
               id="medicoClinico"
               label="Diagnosticos y Adjuntos"
               active={route === "medico/diagnosticos-adjuntos"}
-              onClick={() => context.go("medico/diagnosticos-adjuntos")}
+              onClick={() => navigate("medico/diagnosticos-adjuntos")}
             />
           )}
-          <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => context.go("ia")} />
+          {context.role === "PACIENTE" && (
+            <NavButton
+              id="pacienteCitas"
+              label="Mis citas"
+              active={route === "paciente/citas"}
+              onClick={() => navigate("paciente/citas")}
+            />
+          )}
+          <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => navigate("ia")} />
         </nav>
         <div className="nav-footer">
-          <NavButton id="settings" label="Ajustes" active={active === "settings"} onClick={() => context.go("settings")} />
+          <NavButton id="settings" label="Ajustes" active={active === "settings"} onClick={() => navigate("settings")} />
           <button className="nav-item" onClick={logout}>
             <LogOut size={18} />
             <span>Salir</span>
@@ -699,6 +724,9 @@ function CurrentView({ route, context }) {
   if (route === "medico/diagnosticos-adjuntos") {
     return context.role === "MEDICO" ? <MedicoDiagnosticosAdjuntos context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
   }
+  if (route === "paciente/citas") {
+    return context.role === "PACIENTE" ? <PacienteCitas context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
   if (route.startsWith("modulo/")) {
@@ -711,7 +739,9 @@ function CurrentView({ route, context }) {
 }
 
 function Dashboard({ context }) {
-  return context.role === "MEDICO" ? <MedicoDashboard context={context} /> : <OperationalDashboard context={context} />;
+  if (context.role === "MEDICO") return <MedicoDashboard context={context} />;
+  if (context.role === "PACIENTE") return <PacienteDashboard context={context} />;
+  return <OperationalDashboard context={context} />;
 }
 
 function OperationalDashboard({ context }) {
