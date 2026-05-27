@@ -106,6 +106,19 @@ public class MedicoController {
         return service.actualizar(id, req);
     }
 
+    @PatchMapping("/{id}/activo")
+    @Operation(summary = "Alternar estado activo/inactivo de un médico")
+    @ApiResponses({
+        @ApiResponse(responseCode = "200", description = "Estado actualizado"),
+        @ApiResponse(responseCode = "401", description = "Token requerido"),
+        @ApiResponse(responseCode = "403", description = "Sin permisos"),
+        @ApiResponse(responseCode = "404", description = "Médico no encontrado")
+    })
+    @PreAuthorize("hasRole('" + Roles.ADMIN + "')")
+    public MedicoResponse toggleActivo(@PathVariable UUID id) {
+        return service.toggleActivo(id);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     @Operation(summary = "Eliminar un médico")

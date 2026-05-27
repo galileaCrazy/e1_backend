@@ -84,7 +84,7 @@ export default function PacienteAgendarCita({ context }) {
           pacienteId: context.pacienteId,
           medicoId,
           consultorioId: medico.consultorioId,
-          fechaHora: new Date(`${fecha}T${hora}`).toISOString(),
+          fechaHora: new Date(`${fecha}T${hora}:00Z`).toISOString(),
           duracionMin: Number(duracionMin),
           motivo: form.get("motivo"),
         }),

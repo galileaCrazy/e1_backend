@@ -5,7 +5,7 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.util.UUID;
 
-public class AdjuntoRequest {
+public class SolicitudEstudioRequest {
 
     @NotNull
     private UUID organizacionId;
@@ -13,6 +13,7 @@ public class AdjuntoRequest {
     @NotNull
     private UUID pacienteId;
 
+    @NotNull
     private UUID citaId;
 
     @NotNull
@@ -21,16 +22,6 @@ public class AdjuntoRequest {
     @NotBlank
     @Size(max = 30)
     private String tipo;
-
-    @Size(max = 200)
-    private String nombreArchivo;
-
-    private String urlArchivo;
-
-    @Size(max = 80)
-    private String mimeType;
-
-    private Boolean notificar = false;
 
     public UUID getOrganizacionId() { return organizacionId; }
     public void setOrganizacionId(UUID organizacionId) { this.organizacionId = organizacionId; }
@@ -46,16 +37,4 @@ public class AdjuntoRequest {
 
     public String getTipo() { return tipo; }
     public void setTipo(String tipo) { this.tipo = tipo; }
-
-    public String getNombreArchivo() { return nombreArchivo; }
-    public void setNombreArchivo(String nombreArchivo) { this.nombreArchivo = nombreArchivo; }
-
-    public String getUrlArchivo() { return urlArchivo; }
-    public void setUrlArchivo(String urlArchivo) { this.urlArchivo = urlArchivo; }
-
-    public String getMimeType() { return mimeType; }
-    public void setMimeType(String mimeType) { this.mimeType = mimeType; }
-
-    public Boolean getNotificar() { return notificar; }
-    public void setNotificar(Boolean notificar) { this.notificar = notificar; }
 }
