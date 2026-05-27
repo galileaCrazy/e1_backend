@@ -4,10 +4,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "..\\.tools\\node-v24.15.0-win-x64\\node.exe node_modules\\vite\\bin\\vite.js --host 127.0.0.1 --port 5173",
-    "build": "..\\.tools\\node-v24.15.0-win-x64\\node.exe node_modules\\vite\\bin\\vite.js build",
-    "preview": "..\\.tools\\node-v24.15.0-win-x64\\node.exe node_modules\\vite\\bin\\vite.js preview --host 127.0.0.1 --port 4173"
-  },
+  "dev": "vite --host 0.0.0.0 --port 5173",
+  "build": "vite build",
+  "preview": "vite preview --host 0.0.0.0 --port $PORT"
+},
   "dependencies": {
     "lucide-react": "^1.16.0",
     "react": "^19.2.6",
