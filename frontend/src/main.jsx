@@ -91,7 +91,18 @@ const modules = {
       { key: "pacienteId", label: "Paciente", source: "pacientes", required: true },
       { key: "medicoId", type: "hiddenMedico", required: true, roles: ["MEDICO"] },
       { key: "medicoId", label: "Medico", source: "medicos", required: true, roles: ["ADMIN", "PACIENTE"] },
-      { key: "consultorioId", label: "Consultorio", source: "consultorios", required: true },
+      {
+        key: "consultorioId",
+        type: "hidden",
+        source: "medicos",
+        required: true,
+        roles: ["MEDICO"],
+        value: (item, context, support) =>
+          item.consultorioId ||
+          (support.medicos || []).find((medico) => String(medico.id) === String(context.medicoId))?.consultorioId ||
+          "",
+      },
+      { key: "consultorioId", label: "Consultorio", source: "consultorios", required: true, roles: ["ADMIN", "PACIENTE"] },
       { key: "fechaHora", label: "Fecha y hora", type: "datetime-local", required: true },
       { key: "duracionMin", label: "Duracion", type: "select", options: ["20", "30", "45", "60"], required: true },
       { key: "estado", label: "Estado", type: "select", options: ["SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"] },
@@ -106,6 +117,12 @@ const modules = {
       if (filters.nombre) return `/api/pacientes/organizacion/${orgId}/buscar?nombre=${encodeURIComponent(filters.nombre)}`;
       if (filters.activos) return `/api/pacientes/organizacion/${orgId}/activos`;
       return `/api/pacientes/organizacion/${orgId}`;
+    },
+    support: ["citas"],
+    clientFilter: (rows, filters, role, support) => {
+      if (role !== "MEDICO") return rows;
+      const patientIds = new Set((support.citas || []).map((cita) => String(cita.pacienteId)));
+      return rows.filter((row) => patientIds.has(String(row.id)));
     },
     endpoint: "/api/pacientes",
     columns: [
@@ -194,7 +211,7 @@ const modules = {
   },
   horarios: {
     label: "Horarios",
-    roles: ["ADMIN", "MEDICO"],
+    roles: ["ADMIN"],
     description: "Disponibilidad semanal por medico.",
     list: ({ filters, role, medicoId }) => {
       const selectedMedicoId = filters.medicoId || (role === "MEDICO" ? medicoId : "");
@@ -225,6 +242,11 @@ const modules = {
       if (filters.citaId) return `/api/pagos/cita/${filters.citaId}`;
       if (filters.estado) return `/api/pagos/organizacion/${orgId}/estado/${filters.estado}`;
       return role === "PACIENTE" ? null : `/api/pagos/organizacion/${orgId}`;
+    },
+    clientFilter: (rows, filters, role, support) => {
+      if (role !== "MEDICO") return rows;
+      const citaIds = new Set((support.citas || []).map((cita) => String(cita.id)));
+      return rows.filter((row) => citaIds.has(String(row.citaId)));
     },
     endpoint: "/api/pagos",
     columns: [
@@ -772,7 +794,7 @@ function ModuleView({ moduleKey, config, context }) {
       try {
         const path = config.list({ orgId: context.orgId, filters: nextFilters, role: context.role, medicoId: context.medicoId });
         const loadedRows = path ? await context.list(path) : [];
-        setRows(config.clientFilter ? config.clientFilter(loadedRows, nextFilters, context.role) : loadedRows);
+        setRows(config.clientFilter ? config.clientFilter(loadedRows, nextFilters, context.role, nextSupport, context) : loadedRows);
         setSupport(nextSupport);
       } catch (err) {
         setError(err.message);
@@ -908,7 +930,7 @@ function EntityForm({ config, item, context, support, onCancel, onSubmit }) {
       }}
     >
       {fields.map((field) => (
-        <FormControl key={field.key} field={field} defaultValue={fieldValue(field, item, context)} support={support} />
+        <FormControl key={field.key} field={field} defaultValue={fieldValue(field, item, context, support)} support={support} />
       ))}
       <div className="actions full">
         <button className="btn" type="button" onClick={onCancel}>
@@ -923,7 +945,7 @@ function EntityForm({ config, item, context, support, onCancel, onSubmit }) {
 }
 
 function FormControl({ field, defaultValue, support }) {
-  if (field.type === "hiddenOrg" || field.type === "hiddenUser" || field.type === "hiddenMedico") {
+  if (field.type === "hidden" || field.type === "hiddenOrg" || field.type === "hiddenUser" || field.type === "hiddenMedico") {
     return <input type="hidden" name={field.key} defaultValue={defaultValue || ""} />;
   }
 
@@ -1185,7 +1207,7 @@ function supportEndpoint(name, context) {
     pacientes: `/api/pacientes/organizacion/${context.orgId}`,
     medicos: `/api/medicos/organizacion/${context.orgId}`,
     consultorios: `/api/consultorios/organizacion/${context.orgId}`,
-    citas: context.role === "MEDICO" && context.medicoId ? `/api/citas/medico/${context.medicoId}` : `/api/citas/organizacion/${context.orgId}`,
+    citas: context.role === "MEDICO" ? (context.medicoId ? `/api/citas/medico/${context.medicoId}` : null) : `/api/citas/organizacion/${context.orgId}`,
     usuarios: `/api/usuarios/organizacion/${context.orgId}`,
   };
   return map[name];
@@ -1200,6 +1222,7 @@ function requiredSupport(config, role) {
   [...visibleFields(config.fields, role), ...visibleFields(config.filters, role)].forEach((field) => {
     if (field.source && field.source !== "adjuntos") names.add(field.source);
   });
+  (config.support || []).forEach((name) => names.add(name));
   (config.columns || []).forEach(([, , type]) => {
     if (type === "patient") names.add("pacientes");
     if (type === "doctor") names.add("medicos");
@@ -1224,8 +1247,8 @@ function formPayload(form, fields, context = {}, support = {}, keepEmpty = false
   return payload;
 }
 
-function fieldValue(field, item, context) {
-  if (field.value) return field.value(item || {});
+function fieldValue(field, item, context, support = {}) {
+  if (field.value) return field.value(item || {}, context, support);
   if (field.type === "hiddenOrg") return context.orgId;
   if (field.type === "hiddenUser") return context.userId;
   if (field.type === "hiddenMedico") return context.medicoId;
