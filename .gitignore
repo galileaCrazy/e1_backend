@@ -25,6 +25,7 @@ mi-app/.mvn/wrapper/maven-wrapper.jar
 .tools/
 frontend/node_modules/
 frontend/dist/
+frontend/.vite/
 
 # ── application.properties real (usar application-example) ────
 mi-app/src/main/resources/application.properties
