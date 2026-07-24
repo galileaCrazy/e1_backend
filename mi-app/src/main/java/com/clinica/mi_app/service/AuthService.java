@@ -1,5 +1,6 @@
 package com.clinica.mi_app.service;
 
+import com.clinica.mi_app.dto.request.RegistroTenantRequest;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -37,6 +38,19 @@ public class AuthService {
         body.put("systemId", systemId);
 
         return proxy("/auth/registro", body);
+    }
+
+    // Endpoint asumido: /tenants/registro (distinto de /auth/registro que registra usuarios individuales).
+    // El contrato real del AuthService de InToGlobe no estaba disponible en el roadmap al momento
+    // de escribir esto — ajustar la URI cuando Equipo 2 confirme el contrato.
+    public ResponseEntity<String> registroTenant(RegistroTenantRequest req) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("nombre", req.getNombre());
+        body.put("plan", req.getPlan());
+        body.put("email", req.getEmail());
+        body.put("password", req.getPassword());
+        body.put("tenantSlug", req.getTenantSlug());
+        return proxy("/tenants/registro", body);
     }
 
     private ResponseEntity<String> proxy(String uri, Map<String, Object> body) {
