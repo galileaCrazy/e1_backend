@@ -13,6 +13,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import static org.mockito.Mockito.never;
@@ -28,6 +29,7 @@ import com.clinica.mi_app.dto.response.CitaResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
 import com.clinica.mi_app.model.Cita;
 import com.clinica.mi_app.model.Consultorio;
+import com.clinica.mi_app.model.HorarioMedico;
 import com.clinica.mi_app.model.Medico;
 import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.model.Paciente;
@@ -35,6 +37,7 @@ import com.clinica.mi_app.repository.CitaRepository;
 import com.clinica.mi_app.repository.ConsultorioRepository;
 import com.clinica.mi_app.repository.MedicoRepository;
 import com.clinica.mi_app.repository.OrganizacionRepository;
+import com.clinica.mi_app.repository.HorarioMedicoRepository;
 import com.clinica.mi_app.repository.PacienteRepository;
 
 public class CitaServiceTest {
@@ -53,6 +56,9 @@ public class CitaServiceTest {
 
     @Mock
     private ConsultorioRepository consultorioRepository;
+
+    @Mock
+    private HorarioMedicoRepository horarioMedicoRepository;
 
     @InjectMocks
     private CitaService citaService;
@@ -87,12 +93,15 @@ public class CitaServiceTest {
     @Test
     public void testCrearCita_Success() {
         // Arrange
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+
+        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(1);
         CitaRequest request = new CitaRequest();
         request.setOrganizacionId(organizacionId);
         request.setPacienteId(pacienteId);
         request.setMedicoId(medicoId);
         request.setConsultorioId(consultorioId);
-        request.setFechaHora(OffsetDateTime.now().plusHours(1));
+        request.setFechaHora(fechaCita);
         request.setDuracionMin((short) 30);
         request.setMotivo("Consulta general");
 
@@ -102,6 +111,7 @@ public class CitaServiceTest {
         paciente.setId(pacienteId);
         Medico medico = new Medico();
         medico.setId(medicoId);
+        medico.setOrganizacion(org);
         Consultorio consultorio = new Consultorio();
         consultorio.setId(consultorioId);
 
@@ -120,6 +130,17 @@ public class CitaServiceTest {
         when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(medico));
         when(consultorioRepository.findById(consultorioId)).thenReturn(Optional.of(consultorio));
         when(citaRepository.save(any(Cita.class))).thenReturn(citaGuardada);
+
+        java.time.LocalTime horaUtc = fechaCita.withOffsetSameInstant(java.time.ZoneOffset.UTC).toLocalTime();
+        int jsDay = fechaCita.withOffsetSameInstant(java.time.ZoneOffset.UTC).getDayOfWeek().getValue() % 7;
+        HorarioMedico horario = new HorarioMedico();
+        horario.setHoraInicio(horaUtc.minusMinutes(30));
+        horario.setHoraFin(horaUtc.plusMinutes(60));
+        horario.setDuracionConsulta((short) 30);
+        when(horarioMedicoRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq((short) jsDay)))
+                .thenReturn(List.of(horario));
+        when(citaRepository.findByMedicoIdAndFechaHoraBetween(eq(medicoId), any(), any()))
+                .thenReturn(List.of());
 
         // Act
         CitaResponse response = citaService.crear(request);
@@ -250,8 +271,9 @@ public class CitaServiceTest {
     @Test
     public void testActualizarCita_Success() {
         // Arrange
+        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(2);
         CitaRequest request = new CitaRequest();
-        request.setFechaHora(OffsetDateTime.now().plusHours(2));
+        request.setFechaHora(fechaCita);
         request.setDuracionMin((short) 45);
         request.setMotivo("Consulta actualizada");
 
@@ -270,6 +292,17 @@ public class CitaServiceTest {
         citaExistente.setPaciente(paciente);
         citaExistente.setMedico(medico);
         citaExistente.setConsultorio(consultorio);
+
+        java.time.LocalTime horaUtc = fechaCita.withOffsetSameInstant(java.time.ZoneOffset.UTC).toLocalTime();
+        int jsDay = fechaCita.withOffsetSameInstant(java.time.ZoneOffset.UTC).getDayOfWeek().getValue() % 7;
+        HorarioMedico horario = new HorarioMedico();
+        horario.setHoraInicio(horaUtc.minusMinutes(30));
+        horario.setHoraFin(horaUtc.plusMinutes(60));
+        horario.setDuracionConsulta((short) 30);
+        when(horarioMedicoRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq((short) jsDay)))
+                .thenReturn(List.of(horario));
+        when(citaRepository.findByMedicoIdAndFechaHoraBetween(eq(medicoId), any(), any()))
+                .thenReturn(List.of());
 
         when(citaRepository.findById(citaId)).thenReturn(Optional.of(citaExistente));
         when(citaRepository.save(any(Cita.class))).thenReturn(citaExistente);

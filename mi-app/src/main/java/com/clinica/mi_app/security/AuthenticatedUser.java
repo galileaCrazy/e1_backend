@@ -27,7 +27,11 @@ public class AuthenticatedUser {
     }
 
     public static String getEmail() {
-        return SecurityContextHolder.getContext().getAuthentication().getName();
+        return (String) claims().get("email");
+    }
+
+    public static String getTenantId() {
+        return (String) claims().get("tenantId");
     }
 
     @SuppressWarnings("unchecked")
