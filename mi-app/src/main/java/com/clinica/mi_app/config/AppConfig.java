@@ -16,6 +16,9 @@ public class AppConfig {
     @Value("${auth.service.url}")
     private String authServiceUrl;
 
+    @Value("${notif.service.url}")
+    private String notifServiceUrl;
+
     @Bean
     public WebClient fastapiWebClient() {
         return WebClient.builder()
@@ -28,6 +31,14 @@ public class AppConfig {
     public WebClient authServiceWebClient() {
         return WebClient.builder()
                 .baseUrl(authServiceUrl)
+                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .build();
+    }
+
+    @Bean
+    public WebClient notifWebClient() {
+        return WebClient.builder()
+                .baseUrl(notifServiceUrl)
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .build();
     }
