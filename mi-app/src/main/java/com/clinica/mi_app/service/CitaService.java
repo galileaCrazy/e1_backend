@@ -1,5 +1,6 @@
 package com.clinica.mi_app.service;
 
+import com.clinica.mi_app.client.AuditClient;
 import com.clinica.mi_app.dto.request.CitaRequest;
 import com.clinica.mi_app.dto.response.CitaResponse;
 import com.clinica.mi_app.dto.response.DisponibilidadSlot;
@@ -19,6 +20,8 @@ import com.clinica.mi_app.repository.OrganizacionRepository;
 import com.clinica.mi_app.repository.PacienteRepository;
 import com.clinica.mi_app.security.AuthenticatedUser;
 import com.clinica.mi_app.security.Roles;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,7 +32,9 @@ import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
@@ -37,6 +42,7 @@ import java.util.stream.Collectors;
 @Service
 public class CitaService {
 
+    private static final Logger log = LoggerFactory.getLogger(CitaService.class);
     private static final DateTimeFormatter HM = DateTimeFormatter.ofPattern("HH:mm");
     private static final Set<String> ESTADOS_VALIDOS = Set.of(
             "SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"
@@ -48,16 +54,19 @@ public class CitaService {
     private final MedicoRepository medicoRepo;
     private final ConsultorioRepository consultorioRepo;
     private final HorarioMedicoRepository horarioRepo;
+    private final AuditClient auditClient;
 
     public CitaService(CitaRepository repo, OrganizacionRepository orgRepo,
                        PacienteRepository pacienteRepo, MedicoRepository medicoRepo,
-                       ConsultorioRepository consultorioRepo, HorarioMedicoRepository horarioRepo) {
+                       ConsultorioRepository consultorioRepo, HorarioMedicoRepository horarioRepo,
+                       AuditClient auditClient) {
         this.repo = repo;
         this.orgRepo = orgRepo;
         this.pacienteRepo = pacienteRepo;
         this.medicoRepo = medicoRepo;
         this.consultorioRepo = consultorioRepo;
         this.horarioRepo = horarioRepo;
+        this.auditClient = auditClient;
     }
 
     public List<CitaResponse> listarPorOrganizacion(UUID organizacionId) {
@@ -214,7 +223,13 @@ public class CitaService {
             aplicarEstado(c, req.getEstado());
         }
         c.setMotivo(req.getMotivo());
-        return CitaMapper.toResponse(repo.save(c));
+        Cita saved = repo.save(c);
+        try {
+            auditClient.audit("CITA_CREAR", "CITA", saved.getId(), org.getId(), null, baseMeta());
+        } catch (Exception ex) {
+            log.warn("audit CITA_CREAR: {}", ex.getMessage());
+        }
+        return CitaMapper.toResponse(saved);
     }
 
     @Transactional
@@ -228,11 +243,26 @@ public class CitaService {
         c.setDuracionMin(req.getDuracionMin());
         aplicarEstado(c, req.getEstado());
         c.setMotivo(req.getMotivo());
-        return CitaMapper.toResponse(repo.save(c));
+        Cita saved = repo.save(c);
+        try {
+            auditClient.audit("CITA_ACTUALIZAR", "CITA", saved.getId(), saved.getOrganizacion().getId(), null, baseMeta());
+        } catch (Exception ex) {
+            log.warn("audit CITA_ACTUALIZAR: {}", ex.getMessage());
+        }
+        return CitaMapper.toResponse(saved);
     }
 
+    @Transactional
     public void eliminar(UUID id) {
+        Cita c = repo.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Cita", id.toString()));
+        UUID orgId = c.getOrganizacion().getId();
         repo.deleteById(id);
+        try {
+            auditClient.audit("CITA_ELIMINAR", "CITA", id, orgId, null, baseMeta());
+        } catch (Exception ex) {
+            log.warn("audit CITA_ELIMINAR: {}", ex.getMessage());
+        }
     }
 
     @Transactional
@@ -242,8 +272,26 @@ public class CitaService {
         }
         Cita c = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cita", id.toString()));
+        String estadoAnterior = c.getEstado();
         c.setEstado(nuevoEstado);
-        return CitaMapper.toResponse(repo.save(c));
+        Cita saved = repo.save(c);
+        try {
+            Map<String, Object> meta = baseMeta();
+            meta.put("estadoAnterior", estadoAnterior);
+            meta.put("estadoNuevo", nuevoEstado);
+            auditClient.audit("CITA_CAMBIAR_ESTADO", "CITA", saved.getId(), saved.getOrganizacion().getId(), null, meta);
+        } catch (Exception ex) {
+            log.warn("audit CITA_CAMBIAR_ESTADO: {}", ex.getMessage());
+        }
+        return CitaMapper.toResponse(saved);
+    }
+
+    private Map<String, Object> baseMeta() {
+        Map<String, Object> m = new HashMap<>();
+        m.put("userId", AuthenticatedUser.getUserId());
+        m.put("rol", AuthenticatedUser.getRol());
+        m.put("email", AuthenticatedUser.getEmail());
+        return m;
     }
 
     private void validarDisponibilidad(UUID medicoId, OffsetDateTime fechaHora, UUID excludeId) {

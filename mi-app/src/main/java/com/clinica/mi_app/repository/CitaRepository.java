@@ -15,4 +15,5 @@ public interface CitaRepository extends JpaRepository<Cita, UUID> {
     List<Cita> findByOrganizacionIdAndEstado(UUID organizacionId, String estado);
     List<Cita> findByPacienteIdAndEstado(UUID pacienteId, String estado);
     List<Cita> findByMedicoIdAndFechaHoraBetween(UUID medicoId, OffsetDateTime inicio, OffsetDateTime fin);
+    List<Cita> findByFechaHoraBetweenAndEstadoNot(OffsetDateTime desde, OffsetDateTime hasta, String estadoExcluido);
 }

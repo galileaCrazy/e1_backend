@@ -83,4 +83,13 @@ public class AuditClientTest {
 
         Mockito.verify(webClient).post();
     }
+
+    @Test
+    public void auditFallback_loguea_sinLanzarExcepcion() {
+        AuditClient client = new AuditClient(configuracionTenantService, "http://localhost:4003", webClient);
+
+        assertDoesNotThrow(() -> client.auditFallback(
+                "CITA_CREAR", "CITA", UUID.randomUUID(), UUID.randomUUID(), null, Map.of(),
+                new RuntimeException("connection timeout")));
+    }
 }

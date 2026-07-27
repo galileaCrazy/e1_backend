@@ -1,6 +1,7 @@
 package com.clinica.mi_app.client;
 
 import com.clinica.mi_app.service.ConfiguracionTenantService;
+import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -41,6 +42,7 @@ public class AuditClient {
         this.webClient = webClient;
     }
 
+    @CircuitBreaker(name = "audit-service", fallbackMethod = "auditFallback")
     public void audit(String action, String resource, UUID resourceId, UUID organizacionId,
                       String userToken, Map<String, Object> metadata) {
         if (auditServiceUrl.isBlank()) return;
@@ -63,5 +65,10 @@ public class AuditClient {
         } catch (Exception ex) {
             log.warn("AuditClient: falló audit action={} org={}: {}", action, organizacionId, ex.getMessage());
         }
+    }
+
+    public void auditFallback(String action, String resource, UUID resourceId, UUID organizacionId,
+                               String userToken, Map<String, Object> metadata, Exception ex) {
+        log.warn("AuditClient: CB abierto — audit action={} org={}: {}", action, organizacionId, ex.getMessage());
     }
 }

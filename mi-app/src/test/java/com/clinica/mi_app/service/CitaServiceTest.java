@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -16,14 +17,20 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import static org.mockito.ArgumentMatchers.anyMap;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockitoAnnotations;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 
+import com.clinica.mi_app.client.AuditClient;
 import com.clinica.mi_app.dto.request.CitaRequest;
 import com.clinica.mi_app.dto.response.CitaResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
@@ -59,6 +66,9 @@ public class CitaServiceTest {
 
     @Mock
     private HorarioMedicoRepository horarioMedicoRepository;
+
+    @Mock
+    private AuditClient auditClient;
 
     @InjectMocks
     private CitaService citaService;
@@ -266,6 +276,182 @@ public class CitaServiceTest {
         assertNotNull(responses);
         assertEquals(2, responses.size());
         verify(citaRepository, times(1)).findByOrganizacionId(organizacionId);
+    }
+
+    // ── Tests de wiring de AuditClient ──
+
+    @Test
+    public void testCrear_auditaConAccionCorrecta() {
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(1);
+        CitaRequest request = citaRequestBase(fechaCita);
+
+        Organizacion org = org();
+        Paciente paciente = paciente();
+        Medico medico = medico(org);
+        Consultorio consultorio = consultorio();
+        Cita saved = citaGuardada(org, paciente, medico, consultorio, fechaCita);
+
+        when(organizacionRepository.findById(organizacionId)).thenReturn(Optional.of(org));
+        when(pacienteRepository.findById(pacienteId)).thenReturn(Optional.of(paciente));
+        when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(medico));
+        when(consultorioRepository.findById(consultorioId)).thenReturn(Optional.of(consultorio));
+        when(citaRepository.save(any(Cita.class))).thenReturn(saved);
+        configurarHorario(medicoId, fechaCita);
+
+        citaService.crear(request);
+
+        verify(auditClient).audit(eq("CITA_CREAR"), eq("CITA"), eq(citaId), eq(organizacionId), isNull(), anyMap());
+    }
+
+    @Test
+    public void testActualizar_auditaConAccionCorrecta() {
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(2);
+        CitaRequest request = new CitaRequest();
+        request.setFechaHora(fechaCita);
+        request.setDuracionMin((short) 30);
+
+        Organizacion org = org();
+        Cita existente = new Cita();
+        existente.setId(citaId);
+        existente.setOrganizacion(org);
+        existente.setMedico(medico(org));
+        existente.setEstado("SIN_CONFIRMAR");
+
+        when(citaRepository.findById(citaId)).thenReturn(Optional.of(existente));
+        when(citaRepository.save(any())).thenReturn(existente);
+        configurarHorario(existente.getMedico().getId(), fechaCita);
+
+        citaService.actualizar(citaId, request);
+
+        verify(auditClient).audit(eq("CITA_ACTUALIZAR"), eq("CITA"), any(), eq(organizacionId), isNull(), anyMap());
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testCambiarEstado_auditaConMetadataEstados() {
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+        Organizacion org = org();
+        Cita existente = new Cita();
+        existente.setId(citaId);
+        existente.setOrganizacion(org);
+        existente.setEstado("SIN_CONFIRMAR");
+
+        when(citaRepository.findById(citaId)).thenReturn(Optional.of(existente));
+        when(citaRepository.save(any())).thenReturn(existente);
+
+        citaService.cambiarEstado(citaId, "CONFIRMADA");
+
+        ArgumentCaptor<Map<String, Object>> metaCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(auditClient).audit(eq("CITA_CAMBIAR_ESTADO"), eq("CITA"), any(), eq(organizacionId), isNull(), metaCaptor.capture());
+        Map<String, Object> meta = metaCaptor.getValue();
+        assertEquals("SIN_CONFIRMAR", meta.get("estadoAnterior"));
+        assertEquals("CONFIRMADA", meta.get("estadoNuevo"));
+    }
+
+    @Test
+    public void testEliminar_auditaConAccionCorrecta() {
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+        Organizacion org = org();
+        Cita existente = new Cita();
+        existente.setId(citaId);
+        existente.setOrganizacion(org);
+
+        when(citaRepository.findById(citaId)).thenReturn(Optional.of(existente));
+
+        citaService.eliminar(citaId);
+
+        verify(citaRepository).deleteById(citaId);
+        verify(auditClient).audit(eq("CITA_ELIMINAR"), eq("CITA"), eq(citaId), eq(organizacionId), isNull(), anyMap());
+    }
+
+    @Test
+    public void testCrear_auditLanzaExcepcion_operacionNoFalla() {
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(1);
+        CitaRequest request = citaRequestBase(fechaCita);
+
+        Organizacion org = org();
+        Paciente paciente = paciente();
+        Medico medico = medico(org);
+        Consultorio consultorio = consultorio();
+        Cita saved = citaGuardada(org, paciente, medico, consultorio, fechaCita);
+
+        when(organizacionRepository.findById(organizacionId)).thenReturn(Optional.of(org));
+        when(pacienteRepository.findById(pacienteId)).thenReturn(Optional.of(paciente));
+        when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(medico));
+        when(consultorioRepository.findById(consultorioId)).thenReturn(Optional.of(consultorio));
+        when(citaRepository.save(any(Cita.class))).thenReturn(saved);
+        configurarHorario(medicoId, fechaCita);
+        doThrow(new RuntimeException("audit timeout")).when(auditClient)
+                .audit(anyString(), anyString(), any(), any(), any(), anyMap());
+
+        assertDoesNotThrow(() -> citaService.crear(request));
+        verify(citaRepository).save(any(Cita.class));
+    }
+
+    // ── Helpers para los tests de auditoría ──
+
+    private Organizacion org() {
+        Organizacion o = new Organizacion();
+        o.setId(organizacionId);
+        return o;
+    }
+
+    private Paciente paciente() {
+        Paciente p = new Paciente();
+        p.setId(pacienteId);
+        return p;
+    }
+
+    private Medico medico(Organizacion org) {
+        Medico m = new Medico();
+        m.setId(medicoId);
+        m.setOrganizacion(org);
+        return m;
+    }
+
+    private Consultorio consultorio() {
+        Consultorio c = new Consultorio();
+        c.setId(consultorioId);
+        return c;
+    }
+
+    private Cita citaGuardada(Organizacion org, Paciente paciente, Medico medico, Consultorio consultorio, OffsetDateTime fecha) {
+        Cita c = new Cita();
+        c.setId(citaId);
+        c.setOrganizacion(org);
+        c.setPaciente(paciente);
+        c.setMedico(medico);
+        c.setConsultorio(consultorio);
+        c.setFechaHora(fecha);
+        c.setDuracionMin((short) 30);
+        return c;
+    }
+
+    private CitaRequest citaRequestBase(OffsetDateTime fecha) {
+        CitaRequest req = new CitaRequest();
+        req.setOrganizacionId(organizacionId);
+        req.setPacienteId(pacienteId);
+        req.setMedicoId(medicoId);
+        req.setConsultorioId(consultorioId);
+        req.setFechaHora(fecha);
+        req.setDuracionMin((short) 30);
+        return req;
+    }
+
+    private void configurarHorario(UUID mId, OffsetDateTime fecha) {
+        java.time.LocalTime horaUtc = fecha.withOffsetSameInstant(java.time.ZoneOffset.UTC).toLocalTime();
+        int jsDay = fecha.withOffsetSameInstant(java.time.ZoneOffset.UTC).getDayOfWeek().getValue() % 7;
+        HorarioMedico horario = new HorarioMedico();
+        horario.setHoraInicio(horaUtc.minusMinutes(30));
+        horario.setHoraFin(horaUtc.plusMinutes(60));
+        horario.setDuracionConsulta((short) 30);
+        when(horarioMedicoRepository.findByMedicoIdAndDiaSemana(eq(mId), eq((short) jsDay)))
+                .thenReturn(List.of(horario));
+        when(citaRepository.findByMedicoIdAndFechaHoraBetween(eq(mId), any(), any()))
+                .thenReturn(List.of());
     }
 
     @Test
