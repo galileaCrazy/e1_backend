@@ -316,7 +316,9 @@ public class CitaServiceTest {
         Cita existente = new Cita();
         existente.setId(citaId);
         existente.setOrganizacion(org);
+        existente.setPaciente(paciente());
         existente.setMedico(medico(org));
+        existente.setConsultorio(consultorio());
         existente.setEstado("SIN_CONFIRMAR");
 
         when(citaRepository.findById(citaId)).thenReturn(Optional.of(existente));
@@ -336,6 +338,9 @@ public class CitaServiceTest {
         Cita existente = new Cita();
         existente.setId(citaId);
         existente.setOrganizacion(org);
+        existente.setPaciente(paciente());
+        existente.setMedico(medico(org));
+        existente.setConsultorio(consultorio());
         existente.setEstado("SIN_CONFIRMAR");
 
         when(citaRepository.findById(citaId)).thenReturn(Optional.of(existente));
