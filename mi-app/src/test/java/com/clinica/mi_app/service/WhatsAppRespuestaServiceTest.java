@@ -1,160 +1,131 @@
 package com.clinica.mi_app.service;
 
 import com.clinica.mi_app.client.AuditClient;
-import com.clinica.mi_app.client.NotifClient;
+import com.clinica.mi_app.config.ClinicaReloj;
 import com.clinica.mi_app.model.Cita;
 import com.clinica.mi_app.model.Notificacion;
 import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.model.Paciente;
 import com.clinica.mi_app.repository.CitaRepository;
 import com.clinica.mi_app.repository.NotificacionRepository;
+import com.clinica.mi_app.whatsapp.WhatsAppMensajeria;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.Optional;
+import java.time.ZoneOffset;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 public class WhatsAppRespuestaServiceTest {
 
     @Mock private CitaRepository citaRepo;
     @Mock private NotificacionRepository notificacionRepo;
-    @Mock private NotifClient notifClient;
+    @Mock private WhatsAppMensajeria mensajeria;
     @Mock private AuditClient auditClient;
 
+    private final ClinicaReloj reloj = new ClinicaReloj(Clock.fixed(Instant.parse("2026-11-10T16:00:00Z"), ZoneOffset.UTC));
     private WhatsAppRespuestaService service;
-
     private UUID orgId;
     private UUID citaId;
-    private static final String TELEFONO = "+5211234567890";
+    private static final String TEL = "9511234567";
 
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        service = new WhatsAppRespuestaService(citaRepo, notificacionRepo, notifClient, auditClient);
+        service = new WhatsAppRespuestaService(citaRepo, notificacionRepo, mensajeria, auditClient, reloj);
         orgId = UUID.randomUUID();
         citaId = UUID.randomUUID();
+        when(mensajeria.proveedor()).thenReturn("simulado");
     }
 
-    // ── Test 1: "1" confirma ──
-
     @Test
-    public void testProcesarRespuesta_uno_confirmaCita() {
+    public void uno_confirmaYRespondeAlPaciente() {
         Cita cita = cita();
-        mockBusqueda(Optional.of(cita));
-        when(citaRepo.save(any())).thenReturn(cita);
 
-        service.procesarRespuesta(TELEFONO, "1");
+        service.procesarRespuesta(cita, TEL, " 1 ");
 
         assertEquals("CONFIRMADA", cita.getEstado());
         verify(citaRepo).save(cita);
+        verify(mensajeria).enviarTexto(eq(cita.getOrganizacion()), eq(cita), eq(TEL), contains("quedó confirmada"));
+        verify(notificacionRepo, never()).save(any());
         verify(auditClient).audit(eq("appointment.updated"), eq("CITA"), eq(citaId), eq(orgId), eq(null), anyMap());
     }
 
-    // ── Test 2: "2" cancela y crea Notificacion ──
-
     @Test
-    public void testProcesarRespuesta_dos_cancelaCitaYCreaNotificacion() {
+    public void dos_cancelaCreaNotificacionYResponde() {
         Cita cita = cita();
-        mockBusqueda(Optional.of(cita));
-        when(citaRepo.save(any())).thenReturn(cita);
 
-        service.procesarRespuesta(TELEFONO, "2");
+        service.procesarRespuesta(cita, TEL, "2");
 
         assertEquals("CANCELADA", cita.getEstado());
         assertEquals("PACIENTE", cita.getCanceladaPor());
-        assertNotNull(cita.getCanceladaEn());
-        verify(citaRepo).save(cita);
+        assertEquals(OffsetDateTime.parse("2026-11-10T10:00:00Z"), cita.getCanceladaEn(), "hora de reloj de la clínica");
 
         ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
         verify(notificacionRepo).save(captor.capture());
-        Notificacion notif = captor.getValue();
-        assertEquals("CANCELACION_PACIENTE", notif.getTipo());
-        assertEquals("WHATSAPP", notif.getCanal());
-        assertEquals("ENVIADO", notif.getEstado());
-        assertEquals("2", notif.getRespuesta());
-        assertEquals(cita, notif.getCita());
-        assertEquals(cita.getOrganizacion(), notif.getOrganizacion());
+        Notificacion n = captor.getValue();
+        assertEquals("CANCELACION_PACIENTE", n.getTipo());
+        assertEquals("WHATSAPP", n.getCanal());
+        assertEquals("2", n.getRespuesta());
+        assertFalse(n.getLeida());
+        assertNotNull(n.getEnviadaEn());
+        assertEquals(cita.getOrganizacion(), n.getOrganizacion());
+
+        verify(mensajeria).enviarTexto(eq(cita.getOrganizacion()), eq(cita), eq(TEL), contains("fue cancelada"));
     }
 
-    // ── Test 3: texto no reconocido ──
+    @Test
+    public void textoDeBoton_confirmar_tambienConfirma() {
+        Cita cita = cita();
+        service.procesarRespuesta(cita, TEL, "Confirmar");
+        assertEquals("CONFIRMADA", cita.getEstado());
+    }
 
     @Test
-    public void testProcesarRespuesta_textoNoReconocido_enviaAyudaYNoModificaCita() {
+    public void textoNoReconocido_enviaAyudaSinTocarLaCita() {
         Cita cita = cita();
-        mockBusqueda(Optional.of(cita));
 
-        service.procesarRespuesta(TELEFONO, "hola");
+        service.procesarRespuesta(cita, TEL, "hola");
 
-        verify(notifClient).sendNotification(eq("WHATSAPP"), eq(TELEFONO), anyString(), eq(orgId));
-        verify(citaRepo, never()).save(any());
         assertEquals("SIN_CONFIRMAR", cita.getEstado());
-    }
-
-    // ── Test 4: sin cita encontrada ──
-
-    @Test
-    public void testProcesarRespuesta_sinCitaEncontrada_noHaceNada() {
-        mockBusqueda(Optional.empty());
-
-        assertDoesNotThrow(() -> service.procesarRespuesta(TELEFONO, "1"));
-
         verify(citaRepo, never()).save(any());
-        verifyNoInteractions(notificacionRepo, notifClient, auditClient);
+        verify(mensajeria).enviarTexto(any(), eq(cita), eq(TEL), contains("Responde 1 para confirmar"));
     }
 
-    // ── Test 5: excepción de audit no impide que la cita ya se haya guardado ──
-
     @Test
-    public void testProcesarRespuesta_auditLanzaExcepcion_citaYaGuardada() {
+    public void auditFalla_laCitaYaQuedoGuardada() {
         Cita cita = cita();
-        mockBusqueda(Optional.of(cita));
-        when(citaRepo.save(any())).thenReturn(cita);
         doThrow(new RuntimeException("audit down")).when(auditClient)
                 .audit(anyString(), anyString(), any(), any(), any(), anyMap());
 
-        assertDoesNotThrow(() -> service.procesarRespuesta(TELEFONO, "1"));
-
+        assertDoesNotThrow(() -> service.procesarRespuesta(cita, TEL, "1"));
         verify(citaRepo).save(cita);
-    }
-
-    // ── helpers ──
-
-    private void mockBusqueda(Optional<Cita> resultado) {
-        when(citaRepo.findFirstByPaciente_TelefonoAndEstadoAndFechaHoraGreaterThanEqualOrderByFechaHoraAsc(
-                eq(TELEFONO), eq("SIN_CONFIRMAR"), any(OffsetDateTime.class)))
-                .thenReturn(resultado);
     }
 
     private Cita cita() {
         Organizacion org = new Organizacion();
         org.setId(orgId);
-
-        Paciente paciente = new Paciente();
-        paciente.setTelefono(TELEFONO);
-
+        Paciente p = new Paciente();
+        p.setTelefono(TEL);
         Cita c = new Cita();
         c.setId(citaId);
         c.setOrganizacion(org);
-        c.setPaciente(paciente);
+        c.setPaciente(p);
         c.setEstado("SIN_CONFIRMAR");
-        c.setFechaHora(OffsetDateTime.now().plusDays(1));
+        c.setFechaHora(OffsetDateTime.parse("2026-11-11T09:00:00Z"));
         return c;
     }
 }

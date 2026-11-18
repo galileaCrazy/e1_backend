@@ -1,197 +1,118 @@
 package com.clinica.mi_app.service;
 
-import com.clinica.mi_app.client.NotifClient;
+import com.clinica.mi_app.config.ClinicaReloj;
 import com.clinica.mi_app.model.Cita;
-import com.clinica.mi_app.model.Consultorio;
-import com.clinica.mi_app.model.Medico;
-import com.clinica.mi_app.model.Notificacion;
-import com.clinica.mi_app.model.Organizacion;
-import com.clinica.mi_app.model.Paciente;
 import com.clinica.mi_app.repository.CitaRepository;
-import com.clinica.mi_app.repository.NotificacionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.time.Duration;
+import java.time.Clock;
+import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyMap;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class ReminderJobTest {
 
     @Mock private CitaRepository citaRepository;
-    @Mock private NotificacionRepository notificacionRepository;
-    @Mock private NotifClient notifClient;
+    @Mock private RecordatorioService recordatorioService;
 
-    private ReminderJob job;
+    /** 16:00Z reales = 10:00 en la clínica → ahora = 2026-11-10T10:00Z (convención de reloj en UTC). */
+    private final ClinicaReloj reloj = new ClinicaReloj(Clock.fixed(Instant.parse("2026-11-10T16:00:00Z"), ZoneOffset.UTC));
+    private static final OffsetDateTime AHORA = OffsetDateTime.parse("2026-11-10T10:00:00Z");
 
     @BeforeEach
     public void setup() {
         MockitoAnnotations.openMocks(this);
-        job = new ReminderJob(citaRepository, notificacionRepository, notifClient);
     }
 
-    // ── Test 1: sin recordatorio previo + NotifClient exitoso → guarda Notificacion ENVIADO ──
+    private ReminderJob job(String provider, boolean twilioJob) {
+        return new ReminderJob(citaRepository, recordatorioService, reloj, provider, twilioJob);
+    }
 
     @Test
-    public void procesarCita_sinRecordatorioPrevio_guardaNotificacion() {
-        Cita cita = citaEjemplo();
-        when(notificacionRepository.findByCitaId(cita.getId())).thenReturn(List.of());
-        when(notifClient.sendTemplate(anyString(), anyMap(), anyString(), any(UUID.class)))
-                .thenReturn(Optional.of("ok"));
+    public void enviarRecordatorios_usaVentanasConElRelojDeLaClinica() {
+        when(citaRepository.findByFechaHoraBetweenAndEstadoNot(any(), any(), any())).thenReturn(List.of());
 
-        job.procesarCita(cita, "RECORDATORIO_48H");
+        job("simulado", false).enviarRecordatorios();
 
-        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
-        verify(notificacionRepository).save(captor.capture());
-        Notificacion guardada = captor.getValue();
-        assertEquals("RECORDATORIO_48H", guardada.getTipo());
-        assertEquals("ENVIADO", guardada.getEstado());
-        assertNotNull(guardada.getEnviadaEn());
-        assertEquals(cita, guardada.getCita());
+        ArgumentCaptor<OffsetDateTime> desde = ArgumentCaptor.forClass(OffsetDateTime.class);
+        ArgumentCaptor<OffsetDateTime> hasta = ArgumentCaptor.forClass(OffsetDateTime.class);
+        verify(citaRepository, times(2)).findByFechaHoraBetweenAndEstadoNot(desde.capture(), hasta.capture(), eq("CANCELADA"));
+        assertEquals(AHORA.plusHours(47).plusMinutes(30), desde.getAllValues().get(0));
+        assertEquals(AHORA.plusHours(48).plusMinutes(30), hasta.getAllValues().get(0));
+        assertEquals(AHORA.plusHours(23).plusMinutes(30), desde.getAllValues().get(1));
+        assertEquals(AHORA.plusHours(24).plusMinutes(30), hasta.getAllValues().get(1));
     }
-
-    // ── Test 2: ya existe Notificacion ENVIADO para ese tipo → sendTemplate no se llama ──
 
     @Test
-    public void procesarCita_recordatorioYaEnviado_noLlamaSendTemplate() {
-        Cita cita = citaEjemplo();
-        Notificacion ya = new Notificacion();
-        ya.setTipo("RECORDATORIO_48H");
-        ya.setEstado("ENVIADO");
-        when(notificacionRepository.findByCitaId(cita.getId())).thenReturn(List.of(ya));
+    public void enviarRecordatorios_delegaCadaCitaConSuTipo() {
+        Cita c48 = cita();
+        Cita c24 = cita();
+        when(citaRepository.findByFechaHoraBetweenAndEstadoNot(any(), any(), any()))
+                .thenReturn(List.of(c48))
+                .thenReturn(List.of(c24));
 
-        job.procesarCita(cita, "RECORDATORIO_48H");
+        job("simulado", false).enviarRecordatorios();
 
-        verifyNoInteractions(notifClient);
-        verify(notificacionRepository, never()).save(any());
+        verify(recordatorioService).enviarAutomatico(c48.getId(), "RECORDATORIO_48H");
+        verify(recordatorioService).enviarAutomatico(c24.getId(), "RECORDATORIO_24H");
     }
-
-    // ── Test 3: NotifClient devuelve Optional.empty() → no se guarda Notificacion ──
-
-    @Test
-    public void procesarCita_notifClientVacio_noGuardaNotificacion() {
-        Cita cita = citaEjemplo();
-        when(notificacionRepository.findByCitaId(cita.getId())).thenReturn(List.of());
-        when(notifClient.sendTemplate(anyString(), anyMap(), anyString(), any(UUID.class)))
-                .thenReturn(Optional.empty());
-
-        job.procesarCita(cita, "RECORDATORIO_24H");
-
-        verify(notificacionRepository, never()).save(any());
-    }
-
-    // ── Test 4: excepción en una cita no detiene el procesamiento de las demás ──
 
     @Test
     public void enviarRecordatorios_excepcionEnUnaCita_noDetieneLasDemas() {
-        Cita citaMala = citaEjemplo();
-        Cita citaBuena = citaEjemplo();
-
-        // Primera llamada (48h) devuelve las dos citas; segunda llamada (24h) devuelve vacío
+        Cita mala = cita();
+        Cita buena = cita();
         when(citaRepository.findByFechaHoraBetweenAndEstadoNot(any(), any(), any()))
-                .thenReturn(List.of(citaMala, citaBuena))
+                .thenReturn(List.of(mala, buena))
                 .thenReturn(List.of());
+        when(recordatorioService.enviarAutomatico(mala.getId(), "RECORDATORIO_48H")).thenThrow(new RuntimeException("boom"));
 
-        when(notificacionRepository.findByCitaId(any())).thenReturn(List.of());
-        // Primera cita lanza excepción; segunda tiene éxito
-        when(notifClient.sendTemplate(anyString(), anyMap(), anyString(), any(UUID.class)))
-                .thenThrow(new RuntimeException("fallo de red"))
-                .thenReturn(Optional.of("ok"));
+        assertDoesNotThrow(() -> job("simulado", false).enviarRecordatorios());
 
-        assertDoesNotThrow(() -> job.enviarRecordatorios());
-
-        // La cita buena debe haber generado un save a pesar del fallo anterior
-        verify(notificacionRepository, times(1)).save(any(Notificacion.class));
+        verify(recordatorioService).enviarAutomatico(buena.getId(), "RECORDATORIO_48H");
     }
-
-    // ── Test 5: ventanas de tiempo correctas ──
 
     @Test
-    public void enviarRecordatorios_ventanasDeTiempoCorrectas() {
-        when(citaRepository.findByFechaHoraBetweenAndEstadoNot(any(), any(), any()))
-                .thenReturn(List.of());
+    public void twilio_sinJobEnabled_noEnviaNada() {
+        ReminderJob job = job("twilio", false);
+        assertFalse(job.isHabilitado());
 
-        OffsetDateTime antes = OffsetDateTime.now();
         job.enviarRecordatorios();
-        OffsetDateTime despues = OffsetDateTime.now();
 
-        ArgumentCaptor<OffsetDateTime> desdeCaptor = ArgumentCaptor.forClass(OffsetDateTime.class);
-        ArgumentCaptor<OffsetDateTime> hastaCaptor = ArgumentCaptor.forClass(OffsetDateTime.class);
-        ArgumentCaptor<String> estadoCaptor = ArgumentCaptor.forClass(String.class);
-
-        verify(citaRepository, times(2)).findByFechaHoraBetweenAndEstadoNot(
-                desdeCaptor.capture(), hastaCaptor.capture(), estadoCaptor.capture());
-
-        List<OffsetDateTime> desdes = desdeCaptor.getAllValues();
-        List<OffsetDateTime> hastas = hastaCaptor.getAllValues();
-        List<String> estados = estadoCaptor.getAllValues();
-
-        // Tolerancia generosa para absorber tiempo de ejecución del test y granularidad del clock
-        Duration tol = Duration.ofSeconds(2);
-
-        // Ventana 48h: desde ≈ ahora+47h30m, hasta ≈ ahora+48h30m
-        OffsetDateTime desde48 = desdes.get(0);
-        OffsetDateTime hasta48 = hastas.get(0);
-        assertFalse(desde48.isBefore(antes.plusHours(47).plusMinutes(30).minus(tol)),
-                "desde48 demasiado temprano");
-        assertFalse(desde48.isAfter(despues.plusHours(47).plusMinutes(30).plus(tol)),
-                "desde48 demasiado tarde");
-        assertFalse(hasta48.isBefore(antes.plusHours(48).plusMinutes(30).minus(tol)),
-                "hasta48 demasiado temprano");
-        assertFalse(hasta48.isAfter(despues.plusHours(48).plusMinutes(30).plus(tol)),
-                "hasta48 demasiado tarde");
-
-        // Ventana 24h: desde ≈ ahora+23h30m, hasta ≈ ahora+24h30m
-        OffsetDateTime desde24 = desdes.get(1);
-        OffsetDateTime hasta24 = hastas.get(1);
-        assertFalse(desde24.isBefore(antes.plusHours(23).plusMinutes(30).minus(tol)),
-                "desde24 demasiado temprano");
-        assertFalse(desde24.isAfter(despues.plusHours(23).plusMinutes(30).plus(tol)),
-                "desde24 demasiado tarde");
-        assertFalse(hasta24.isBefore(antes.plusHours(24).plusMinutes(30).minus(tol)),
-                "hasta24 demasiado temprano");
-        assertFalse(hasta24.isAfter(despues.plusHours(24).plusMinutes(30).plus(tol)),
-                "hasta24 demasiado tarde");
-
-        // Ambas llamadas excluyen "CANCELADA"
-        assertEquals("CANCELADA", estados.get(0));
-        assertEquals("CANCELADA", estados.get(1));
+        verifyNoInteractions(citaRepository, recordatorioService);
     }
 
-    // ── helpers ──
+    @Test
+    public void twilio_conJobEnabled_siEnvia() {
+        when(citaRepository.findByFechaHoraBetweenAndEstadoNot(any(), any(), any())).thenReturn(List.of());
+        ReminderJob job = job("twilio", true);
+        assertTrue(job.isHabilitado());
 
-    private Cita citaEjemplo() {
-        Organizacion org = new Organizacion();
-        org.setId(UUID.randomUUID());
+        job.enviarRecordatorios();
 
-        Paciente paciente = new Paciente();
-        paciente.setNombre("Ana López");
-        paciente.setTelefono("+521234567890");
+        verify(citaRepository, times(2)).findByFechaHoraBetweenAndEstadoNot(any(), any(), any());
+    }
 
-        Medico medico = new Medico();
-        medico.setNombre("Dr. García");
+    @Test
+    public void otrosProveedores_siempreHabilitado() {
+        assertTrue(job("meta", false).isHabilitado());
+        assertTrue(job("simulado", false).isHabilitado());
+        assertTrue(job("intoglobe", false).isHabilitado());
+    }
 
-        Consultorio consultorio = new Consultorio();
-        consultorio.setNombre("Consultorio 1");
-
-        Cita cita = new Cita();
-        cita.setId(UUID.randomUUID());
-        cita.setOrganizacion(org);
-        cita.setPaciente(paciente);
-        cita.setMedico(medico);
-        cita.setConsultorio(consultorio);
-        cita.setFechaHora(OffsetDateTime.now().plusHours(48));
-        return cita;
+    private static Cita cita() {
+        Cita c = new Cita();
+        c.setId(UUID.randomUUID());
+        return c;
     }
 }

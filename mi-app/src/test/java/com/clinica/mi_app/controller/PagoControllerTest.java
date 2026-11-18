@@ -120,7 +120,7 @@ public class PagoControllerTest {
     }
 
     @Test
-    public void testBuscarPorCita_Success() throws Exception {
+    public void testListarPorCita_Success() throws Exception {
         PagoResponse pagoResponse = new PagoResponse();
         pagoResponse.setId(pagoId);
         pagoResponse.setCitaId(citaId);
@@ -129,14 +129,25 @@ public class PagoControllerTest {
         pagoResponse.setMetodo("EFECTIVO");
         pagoResponse.setEstado("PAGADO");
 
-        when(pagoService.buscarPorCita(citaId)).thenReturn(Optional.of(pagoResponse));
+        when(pagoService.listarPorCita(citaId)).thenReturn(List.of(pagoResponse));
 
         mockMvc.perform(get("/api/pagos/cita/{citaId}", citaId)
                 .header("Authorization", "Bearer mock-token"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.id", is(pagoId.toString())))
-                .andExpect(jsonPath("$.citaId", is(citaId.toString())))
-                .andExpect(jsonPath("$.monto", is(100.00)));
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].id", is(pagoId.toString())))
+                .andExpect(jsonPath("$[0].citaId", is(citaId.toString())))
+                .andExpect(jsonPath("$[0].monto", is(100.00)));
+    }
+
+    @Test
+    public void testListarPorCita_sinPagos_devuelve200ConListaVacia() throws Exception {
+        when(pagoService.listarPorCita(citaId)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/pagos/cita/{citaId}", citaId)
+                .header("Authorization", "Bearer mock-token"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
     }
 
     @Test

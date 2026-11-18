@@ -1,8 +1,22 @@
 import React from "react";
 import { CalendarPlus, ChevronLeft, ChevronRight, Edit3, FileText, RefreshCw, Save, X } from "lucide-react";
 import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
-import { formatDate, formatTime, nameById, statusVariant } from "../../../lib/display";
+import {
+  addDaysKey,
+  citaDateKey,
+  citaTimeKey,
+  clinicToday,
+  formatDate,
+  formatTime,
+  isFuture,
+  nameById,
+  statusVariant,
+} from "../../../lib/display";
+import { RecordatorioWhatsApp, useRecordatorioEstados } from "../../whatsapp/RecordatorioWhatsApp";
 import "./MedicoAgenda.css";
+
+// La agenda se refresca sola para que aparezca el cambio cuando el paciente responde por WhatsApp
+const REFRESCO_MS = 15000;
 
 const STATUS_OPTIONS = ["", "SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"];
 
@@ -13,6 +27,7 @@ export default function MedicoAgenda({ context }) {
   const [statusFilter, setStatusFilter] = React.useState("");
   const [creating, setCreating] = React.useState(false);
   const [editing, setEditing] = React.useState(null);
+  const [tick, setTick] = React.useState(0);
 
   const loadAgenda = React.useCallback(async () => {
     if (!context.medicoId) {
@@ -37,6 +52,26 @@ export default function MedicoAgenda({ context }) {
   React.useEffect(() => {
     loadAgenda();
   }, [loadAgenda]);
+
+  // Refresco silencioso: solo citas (pacientes y consultorios casi no cambian)
+  React.useEffect(() => {
+    if (!context.medicoId) return undefined;
+    const id = window.setInterval(async () => {
+      try {
+        const citas = await context.list(`/api/citas/medico/${context.medicoId}`, true);
+        setData((prev) => (prev ? { ...prev, citas: sortAppointments(citas) } : prev));
+        setTick((t) => t + 1);
+      } catch {
+        // se reintenta en el siguiente ciclo
+      }
+    }, REFRESCO_MS);
+    return () => window.clearInterval(id);
+  }, [context]);
+
+  const citasConRecordatorio = data
+    ? data.citas.filter((cita) => sameDate(cita.fechaHora, selectedDate) || isFuture(cita.fechaHora)).map((cita) => cita.id)
+    : [];
+  const [recordatorios, recargarRecordatorios] = useRecordatorioEstados(context, citasConRecordatorio, tick);
 
   async function createAppointment(payload) {
     try {
@@ -81,7 +116,7 @@ export default function MedicoAgenda({ context }) {
   const support = { pacientes: data.pacientes, consultorios: data.consultorios };
   const citasDelDia = data.citas.filter((cita) => sameDate(cita.fechaHora, selectedDate));
   const visibles = statusFilter ? citasDelDia.filter((cita) => cita.estado === statusFilter) : citasDelDia;
-  const proximas = data.citas.filter((cita) => new Date(cita.fechaHora).getTime() >= Date.now()).slice(0, 6);
+  const proximas = sortAppointments(data.citas.filter((cita) => isFuture(cita.fechaHora))).slice(0, 6);
   const confirmadas = citasDelDia.filter((cita) => cita.estado === "CONFIRMADA").length;
   const pendientes = citasDelDia.filter((cita) => cita.estado === "SIN_CONFIRMAR").length;
   const minutos = citasDelDia.reduce((total, cita) => total + Number(cita.duracionMin || 0), 0);
@@ -132,6 +167,9 @@ export default function MedicoAgenda({ context }) {
             <AgendaTimeline
               citas={visibles}
               support={support}
+              context={context}
+              recordatorios={recordatorios}
+              onRecordatorio={recargarRecordatorios}
               onOpen={(citaId) => context.go(`medico/consulta/${citaId}`)}
               onEdit={(cita) => { setEditing(cita); setCreating(false); }}
             />
@@ -156,6 +194,9 @@ export default function MedicoAgenda({ context }) {
             <UpcomingList
               citas={proximas}
               support={support}
+              context={context}
+              recordatorios={recordatorios}
+              onRecordatorio={recargarRecordatorios}
               onOpen={(citaId) => context.go(`medico/consulta/${citaId}`)}
               onEdit={(cita) => { setEditing(cita); setCreating(false); }}
             />
@@ -166,7 +207,7 @@ export default function MedicoAgenda({ context }) {
   );
 }
 
-function AgendaTimeline({ citas, support, onOpen, onEdit }) {
+function AgendaTimeline({ citas, support, context, recordatorios, onRecordatorio, onOpen, onEdit }) {
   if (!citas.length) return <Empty label="No hay citas para este dia." />;
   return (
     <div className="agenda-timeline">
@@ -180,6 +221,7 @@ function AgendaTimeline({ citas, support, onOpen, onEdit }) {
             <strong>{nameById("pacientes", cita.pacienteId, support)}</strong>
             <span>{cita.motivo || "Consulta medica"}</span>
             <small>{nameById("consultorios", cita.consultorioId, support)}</small>
+            <RecordatorioWhatsApp context={context} cita={cita} estado={recordatorios[cita.id]} onEnviado={onRecordatorio} />
           </div>
           <div className="agenda-actions">
             <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
@@ -196,7 +238,7 @@ function AgendaTimeline({ citas, support, onOpen, onEdit }) {
   );
 }
 
-function UpcomingList({ citas, support, onOpen, onEdit }) {
+function UpcomingList({ citas, support, context, recordatorios, onRecordatorio, onOpen, onEdit }) {
   if (!citas.length) return <Empty label="No hay citas proximas." />;
   return (
     <div className="agenda-upcoming">
@@ -205,6 +247,7 @@ function UpcomingList({ citas, support, onOpen, onEdit }) {
           <div>
             <strong>{nameById("pacientes", cita.pacienteId, support)}</strong>
             <span>{formatDate(cita.fechaHora)}</span>
+            <RecordatorioWhatsApp context={context} cita={cita} estado={recordatorios[cita.id]} onEnviado={onRecordatorio} compacto />
           </div>
           <div className="agenda-actions">
             <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
@@ -238,7 +281,8 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, cita, onCa
           medicoId: context.medicoId,
           pacienteId: data.get("pacienteId"),
           consultorioId: data.get("consultorioId"),
-          fechaHora: new Date(`${data.get("fecha")}T${data.get("hora")}`).toISOString(),
+          // Hora de reloj de la clínica guardada tal cual en UTC (10:00 → 10:00Z)
+          fechaHora: new Date(`${data.get("fecha")}T${data.get("hora")}:00Z`).toISOString(),
           duracionMin: Number(data.get("duracionMin")),
           estado: data.get("estado") || "SIN_CONFIRMAR",
           motivo: data.get("motivo") || null,
@@ -307,21 +351,17 @@ function sortAppointments(citas) {
   return [...citas].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
 }
 
+// "Hoy" = fecha de la clínica; las citas se comparan por su fecha UTC (convención de reloj en UTC)
 function todayInput() {
-  return toDateInput(new Date());
+  return clinicToday();
 }
 
 function toDateInput(value) {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
-  return local.toISOString().slice(0, 10);
+  return citaDateKey(value);
 }
 
 function toTimeInput(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "09:00";
-  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+  return citaTimeKey(value) || "09:00";
 }
 
 function sameDate(value, selectedDate) {
@@ -329,12 +369,10 @@ function sameDate(value, selectedDate) {
 }
 
 function shiftDate(value, days) {
-  const date = new Date(`${value}T12:00:00`);
-  date.setDate(date.getDate() + days);
-  return toDateInput(date);
+  return addDaysKey(value, days);
 }
 
 function formatAgendaDate(value) {
-  const date = new Date(`${value}T12:00:00`);
-  return date.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  const date = new Date(`${value}T12:00:00Z`);
+  return date.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" });
 }

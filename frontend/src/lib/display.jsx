@@ -1,6 +1,7 @@
 export function formatCell(value, type, support) {
   if (value == null || value === "") return <span className="muted">-</span>;
   if (type === "datetime") return formatDate(value);
+  if (type === "instant") return formatInstant(value);
   if (type === "money") return formatMoney(value);
   if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "SI" : "NO"}</span>;
   if (type === "status") return <span className={`badge ${statusVariant(value)}`}>{String(value)}</span>;
@@ -65,35 +66,110 @@ export function shortId(value) {
   return text.length > 12 ? `${text.slice(0, 8)}...` : text || "-";
 }
 
+// ── Fechas y horas ────────────────────────────────────────────────────────────
+// Convención del sistema: la hora de una cita se guarda como hora de reloj de la
+// clínica expresada en UTC (10:00 en la clínica → "10:00Z"). Por eso las fechas de
+// citas se formatean SIEMPRE con timeZone "UTC", y "ahora"/"hoy" se calculan con el
+// reloj de la clínica (clinicNow / clinicToday), no con el reloj real del navegador.
+
+export const CLINIC_TIME_ZONE = "America/Mexico_City";
+export const UTC = "UTC";
+
+/** Hora de reloj actual de la clínica, como Date en la convención UTC de las citas. */
+export function clinicNow() {
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", {
+      timeZone: CLINIC_TIME_ZONE,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      second: "2-digit",
+      hourCycle: "h23",
+    })
+      .formatToParts(new Date())
+      .map((part) => [part.type, part.value])
+  );
+  return new Date(Date.UTC(+parts.year, +parts.month - 1, +parts.day, +parts.hour, +parts.minute, +parts.second));
+}
+
+/** Fecha de hoy en la clínica, "YYYY-MM-DD". */
+export function clinicToday() {
+  return clinicNow().toISOString().slice(0, 10);
+}
+
+/** Fecha "YYYY-MM-DD" de una cita (parte UTC). */
+export function citaDateKey(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+}
+
+/** Hora "HH:MM" (24 h) de una cita (parte UTC). */
+export function citaTimeKey(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(11, 16);
+}
+
+/** Suma días a una fecha "YYYY-MM-DD" sin depender de la zona del navegador. */
+export function addDaysKey(dateKey, days) {
+  const date = new Date(`${dateKey}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+/** Fecha y hora de una cita. */
 export function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: UTC });
 }
 
+/** Hora de una cita. */
 export function formatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
-  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: UTC });
+}
+
+/** Fecha corta "dd/mm/aaaa" de una cita. */
+export function formatCitaFecha(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric", timeZone: UTC });
+}
+
+/** Hora 12 h ("10:00 a.m.") de una cita. */
+export function formatCitaHora12(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "--:--";
+  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: UTC });
+}
+
+/** Momento real (createdAt, enviadaEn...): se muestra en la hora local del navegador. */
+export function formatInstant(value) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return String(value);
+  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
 }
 
 export function formatMoney(value) {
   return `$${Number(value || 0).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
 }
 
+/** La cita es de hoy en la clínica. */
 export function isToday(value) {
-  const date = new Date(value);
-  const now = new Date();
-  return !Number.isNaN(date.getTime()) && date.toDateString() === now.toDateString();
+  return citaDateKey(value) === clinicToday();
 }
 
+/** La cita aún no ocurre según el reloj de la clínica. */
 export function isFuture(value) {
   const date = new Date(value);
-  return !Number.isNaN(date.getTime()) && date.getTime() >= Date.now();
+  return !Number.isNaN(date.getTime()) && date.getTime() >= clinicNow().getTime();
 }
 
 export function formatTodayLabel() {
-  return new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long" });
+  return new Date().toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: CLINIC_TIME_ZONE });
 }
 
 export function formatWeekday(value) {

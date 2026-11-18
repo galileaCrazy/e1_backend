@@ -174,16 +174,17 @@ function PatientAttachmentList({ rows }) {
   );
 }
 
+// GET /api/pagos/cita/{id} devuelve una lista ([] si la cita no tiene pagos)
 async function loadPagos(context, citas) {
   const pagos = await Promise.all(
     citas.map((cita) =>
       context
         .api(`/api/pagos/cita/${cita.id}`)
-        .then((pago) => pago)
-        .catch(() => null)
+        .then((result) => (Array.isArray(result) ? result : result ? [result] : []))
+        .catch(() => [])
     )
   );
-  return pagos.filter(Boolean);
+  return pagos.flat();
 }
 
 async function loadDiagnosticos(context, citas) {

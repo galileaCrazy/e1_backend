@@ -4,6 +4,7 @@ import com.clinica.mi_app.service.ConfiguracionTenantService;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -23,6 +24,7 @@ public class AuditClient {
     private final String auditServiceUrl;
     private final WebClient webClient;
 
+    @Autowired
     public AuditClient(ConfiguracionTenantService configuracionTenantService,
                        @Value("${audit.service.url:}") String auditServiceUrl) {
         this.configuracionTenantService = configuracionTenantService;

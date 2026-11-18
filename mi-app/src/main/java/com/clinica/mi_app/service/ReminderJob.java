@@ -1,43 +1,57 @@
 package com.clinica.mi_app.service;
 
-import com.clinica.mi_app.client.NotifClient;
+import com.clinica.mi_app.config.ClinicaReloj;
 import com.clinica.mi_app.model.Cita;
-import com.clinica.mi_app.model.Notificacion;
 import com.clinica.mi_app.repository.CitaRepository;
-import com.clinica.mi_app.repository.NotificacionRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Optional;
 
+/**
+ * Recordatorios automáticos a 48 h y 24 h. Delega en {@link RecordatorioService} (mismas validaciones
+ * que el envío manual). Con {@code notif.provider=twilio} no envía salvo
+ * {@code whatsapp.twilio.job-enabled=true}: el sandbox tiene cupo de mensajes y un solo destinatario.
+ */
 @Component
 public class ReminderJob {
 
     private static final Logger log = LoggerFactory.getLogger(ReminderJob.class);
 
     private final CitaRepository citaRepository;
-    private final NotificacionRepository notificacionRepository;
-    private final NotifClient notifClient;
+    private final RecordatorioService recordatorioService;
+    private final ClinicaReloj reloj;
+    private final boolean habilitado;
 
     public ReminderJob(CitaRepository citaRepository,
-                       NotificacionRepository notificacionRepository,
-                       NotifClient notifClient) {
+                       RecordatorioService recordatorioService,
+                       ClinicaReloj reloj,
+                       @Value("${notif.provider:simulado}") String provider,
+                       @Value("${whatsapp.twilio.job-enabled:false}") boolean twilioJobEnabled) {
         this.citaRepository = citaRepository;
-        this.notificacionRepository = notificacionRepository;
-        this.notifClient = notifClient;
+        this.recordatorioService = recordatorioService;
+        this.reloj = reloj;
+        this.habilitado = !"twilio".equalsIgnoreCase(provider) || twilioJobEnabled;
     }
 
     @Scheduled(cron = "${reminder.job.cron:0 */15 * * * *}")
     public void enviarRecordatorios() {
-        OffsetDateTime ahora = OffsetDateTime.now();
+        if (!habilitado) {
+            log.debug("ReminderJob deshabilitado para el proveedor twilio (whatsapp.twilio.job-enabled=false)");
+            return;
+        }
+        // Hora de reloj de la clínica expresada en UTC, igual que cita.fecha_hora
+        OffsetDateTime ahora = reloj.ahora();
         procesarVentana(ahora, 48, "RECORDATORIO_48H");
         procesarVentana(ahora, 24, "RECORDATORIO_24H");
+    }
+
+    boolean isHabilitado() {
+        return habilitado;
     }
 
     private void procesarVentana(OffsetDateTime ahora, int horas, String tipo) {
@@ -46,42 +60,10 @@ public class ReminderJob {
         List<Cita> citas = citaRepository.findByFechaHoraBetweenAndEstadoNot(desde, hasta, "CANCELADA");
         for (Cita cita : citas) {
             try {
-                procesarCita(cita, tipo);
+                recordatorioService.enviarAutomatico(cita.getId(), tipo);
             } catch (Exception ex) {
-                log.error("ReminderJob: error procesando cita={} tipo={}: {}",
-                        cita.getId(), tipo, ex.getMessage(), ex);
+                log.error("ReminderJob: error procesando cita={} tipo={}: {}", cita.getId(), tipo, ex.getMessage(), ex);
             }
-        }
-    }
-
-    // package-private para tests — permite verificar la lógica de negocio sin necesitar un Clock inyectado
-    void procesarCita(Cita cita, String tipo) {
-        boolean yaEnviado = notificacionRepository.findByCitaId(cita.getId()).stream()
-                .anyMatch(n -> tipo.equals(n.getTipo()) && "ENVIADO".equals(n.getEstado()));
-        if (yaEnviado) return;
-
-        // Nombre de plantilla en kebab-case del tipo (ej. "recordatorio-48h").
-        // Convención REST más común — ajustar si NotifService usa otra nomenclatura.
-        String templateName = tipo.toLowerCase().replace("_", "-");
-        Map<String, Object> vars = new HashMap<>();
-        vars.put("nombrePaciente", cita.getPaciente().getNombre());
-        vars.put("nombreMedico", cita.getMedico().getNombre());
-        vars.put("fechaHora", cita.getFechaHora().toString());
-        vars.put("consultorio", cita.getConsultorio().getNombre());
-
-        Optional<String> resultado = notifClient.sendTemplate(
-                templateName, vars, cita.getPaciente().getTelefono(), cita.getOrganizacion().getId());
-
-        // Si Optional vacío, NotifClient falló o el CB está abierto.
-        // No guardamos Notificacion para que el job reintente en la siguiente corrida de la misma ventana de 1h.
-        if (resultado.isPresent()) {
-            Notificacion n = new Notificacion();
-            n.setCita(cita);
-            n.setOrganizacion(cita.getOrganizacion());
-            n.setTipo(tipo);
-            n.setEstado("ENVIADO");
-            n.setEnviadaEn(OffsetDateTime.now());
-            notificacionRepository.save(n);
         }
     }
 }

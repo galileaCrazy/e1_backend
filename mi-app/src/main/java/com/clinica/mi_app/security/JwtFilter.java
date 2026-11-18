@@ -84,6 +84,10 @@ public class JwtFilter extends OncePerRequestFilter {
                 jwtClaims.put("medicoId", UUID.fromString(medicoId));
             }
 
+            String pacienteId = claims.get("pacienteId", String.class);
+            if (pacienteId != null) {
+                jwtClaims.put("pacienteId", UUID.fromString(pacienteId));
+            }
             authToken.setDetails(jwtClaims);
             SecurityContextHolder.getContext().setAuthentication(authToken);
         }

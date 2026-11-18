@@ -13,6 +13,7 @@ import {
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageCircle,
   Power,
   RefreshCw,
   Save,
@@ -33,6 +34,17 @@ import MedicoExpedientePaciente from "./features/medico/expediente/MedicoExpedie
 import PacienteAgendarCita from "./features/paciente/agendar/PacienteAgendarCita";
 import PacienteCitas from "./features/paciente/citas/PacienteCitas";
 import PacienteDashboard from "./features/paciente/dashboard/PacienteDashboard";
+import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
+import WhatsAppPanel from "./features/whatsapp/WhatsAppPanel";
+import NotificacionesBell from "./features/whatsapp/NotificacionesBell";
+import {
+  citaDateKey,
+  clinicToday,
+  formatCitaFecha,
+  formatCitaHora12,
+  formatDate,
+  formatInstant,
+} from "./lib/display";
 import "./styles.css";
 
 const STORAGE_KEY = "medinflow.session";
@@ -56,6 +68,7 @@ const iconMap = {
   pacienteAgendar: CalendarPlus,
   pacienteCitas: CalendarDays,
   ia: Bot,
+  whatsapp: MessageCircle,
   settings: Settings,
 };
 
@@ -251,6 +264,7 @@ const modules = {
       { key: "metodo", label: "Metodo", type: "select", options: ["EFECTIVO", "TRANSFERENCIA", "TARJETA"], required: true },
       { key: "concepto", label: "Concepto" },
       { key: "referencia", label: "Referencia" },
+      { key: "estado", label: "Estado", type: "select", options: ["PENDIENTE", "PAGADO"] },
     ],
   },
   diagnosticos: {
@@ -267,7 +281,7 @@ const modules = {
       ["codigoCie10", "CIE-10"],
       ["descripcion", "Descripcion"],
       ["tipo", "Tipo", "status"],
-      ["createdAt", "Creado", "datetime"],
+      ["createdAt", "Creado", "instant"],
     ],
     filters: [
       { key: "pacienteId", label: "Paciente", source: "pacientes" },
@@ -329,7 +343,7 @@ const modules = {
       ["canal", "Canal"],
       ["tipo", "Tipo"],
       ["estado", "Estado", "status"],
-      ["enviadaEn", "Enviada", "datetime"],
+      ["enviadaEn", "Enviada", "instant"],
     ],
     filters: [{ key: "citaId", label: "Cita", source: "citas" }],
     fields: [
@@ -369,7 +383,7 @@ const modules = {
     columns: [
       ["nombre", "Nombre"],
       ["plan", "Plan", "status"],
-      ["trialHasta", "Trial", "datetime"],
+      ["trialHasta", "Trial", "instant"],
       ["activo", "Activo", "bool"],
     ],
     fields: [
@@ -658,6 +672,9 @@ function Shell({ context, route, logout, children }) {
               />
             </>
           )}
+          {["ADMIN", "MEDICO"].includes(context.role) && (
+            <NavButton id="whatsapp" label="WhatsApp" active={active === "whatsapp"} onClick={() => navigate("whatsapp")} />
+          )}
           <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => navigate("ia")} />
         </nav>
         <div className="nav-footer">
@@ -677,6 +694,7 @@ function Shell({ context, route, logout, children }) {
           <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar en la vista actual..." />
         </label>
         <div className="user-chip">
+          {["ADMIN", "MEDICO"].includes(context.role) && <NotificacionesBell context={context} />}
           <div className="user-meta">
             <strong>{context.userName}</strong>
             <span>{context.role}</span>
@@ -723,6 +741,9 @@ function CurrentView({ route, context }) {
   if (route === "paciente/agendar") {
     return context.role === "PACIENTE" ? <PacienteAgendarCita context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
   }
+  if (route === "whatsapp") {
+    return ["ADMIN", "MEDICO"].includes(context.role) ? <WhatsAppPanel context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  }
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
   if (route.startsWith("modulo/")) {
@@ -739,54 +760,7 @@ function CurrentView({ route, context }) {
 function Dashboard({ context }) {
   if (context.role === "MEDICO") return <MedicoDashboard context={context} />;
   if (context.role === "PACIENTE") return <PacienteDashboard context={context} />;
-  const [data, setData] = React.useState(null);
-  const [error, setError] = React.useState("");
-
-  React.useEffect(() => {
-    let active = true;
-    async function load() {
-      try {
-        const [pacientes, medicos, citas, pagos] = await Promise.all([
-          context.role === "PACIENTE" ? [] : context.list(`/api/pacientes/organizacion/${context.orgId}`, true),
-          context.role === "PACIENTE" ? [] : context.list(`/api/medicos/organizacion/${context.orgId}`, true),
-          context.role === "PACIENTE" ? [] : context.list(`/api/citas/organizacion/${context.orgId}`, true),
-          context.role === "PACIENTE" ? [] : context.list(`/api/pagos/organizacion/${context.orgId}`, true),
-        ]);
-        if (active) setData({ pacientes, medicos, citas, pagos });
-      } catch (err) {
-        if (active) setError(err.message);
-      }
-    }
-    load();
-    return () => {
-      active = false;
-    };
-  }, [context]);
-
-  if (error) return <ErrorBox message={error} />;
-  if (!data) return <Loading label="Cargando resumen operativo..." />;
-
-  const unconfirmed = data.citas.filter((cita) => cita.estado === "SIN_CONFIRMAR").length;
-  const pendingPayments = data.pagos.filter((pago) => pago.estado === "PENDIENTE").length;
-
-  return (
-    <>
-      <ViewHeader title="Panel de Control" subtitle={`Resumen operativo conectado a la organizacion ${shortId(context.orgId)}.`}>
-        <button className="btn primary" onClick={() => context.go("modulo/citas")}>
-          Nueva cita
-        </button>
-      </ViewHeader>
-      <section className="metrics">
-        <Metric label="Citas" value={data.citas.length} />
-        <Metric label="Medicos activos" value={data.medicos.filter((item) => item.activo !== false).length} variant="secondary" />
-        <Metric label="Pagos pendientes" value={pendingPayments} variant="warning" />
-        <Metric label="Sin confirmar" value={unconfirmed} variant="danger" />
-      </section>
-      <Section title="Proximas citas">
-        <DataTable rows={data.citas.slice(0, 6)} columns={modules.citas.columns} support={data} />
-      </Section>
-    </>
-  );
+  return <AdminDashboard context={context} />;
 }
 
 function applyClientFilters(rows, filters, support) {
@@ -1466,8 +1440,7 @@ function MotivoCellWithModal({ text }) {
 const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
 
 function utcDateStr(isoString) {
-  const d = new Date(isoString);
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}-${String(d.getUTCDate()).padStart(2, "0")}`;
+  return citaDateKey(isoString);
 }
 
 function utcHoraStr(isoString) {
@@ -1475,9 +1448,9 @@ function utcHoraStr(isoString) {
   return `${String(d.getUTCHours()).padStart(2, "0")}:${String(d.getUTCMinutes()).padStart(2, "0")}`;
 }
 
+// Fecha de hoy en la clínica (no la del navegador)
 function todayStr() {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return clinicToday();
 }
 
 function DisabledTooltip({ active, tooltip, children }) {
@@ -2029,8 +2002,8 @@ function DiagnosticoForm({ item, context, support, onCancel, onSubmit, initialPa
 
   const citaLabel = (c) => {
     const f        = new Date(c.fechaHora);
-    const fechaStr = f.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-    const horaStr  = f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true });
+    const fechaStr = formatCitaFecha(f);
+    const horaStr  = formatCitaHora12(f);
     const nomMed   = medicos.find((m) => m.id === c.medicoId)?.nombre || "—";
     return `${fechaStr}  ·  ${horaStr}  ·  ${nomMed}`;
   };
@@ -2119,11 +2092,11 @@ function DiagnosticoForm({ item, context, support, onCancel, onSubmit, initialPa
               </div>
               <div className="cita-resumen-card-item">
                 <span>Fecha</span>
-                <strong>{new Date(citaSeleccionada.fechaHora).toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" })}</strong>
+                <strong>{formatCitaFecha(citaSeleccionada.fechaHora)}</strong>
               </div>
               <div className="cita-resumen-card-item">
                 <span>Hora</span>
-                <strong>{new Date(citaSeleccionada.fechaHora).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true })}</strong>
+                <strong>{formatCitaHora12(citaSeleccionada.fechaHora)}</strong>
               </div>
               <div className="cita-resumen-card-item">
                 <span>Consultorio</span>
@@ -2468,7 +2441,11 @@ function formPayload(form, fields, context = {}, support = {}, keepEmpty = false
     if (field.type === "hiddenUser") value = context.userId;
     if (field.type === "checkbox") value = value === "true";
     if (field.type === "number" && value !== "") value = Number(value);
-    if (field.type === "datetime-local" && value) value = new Date(value).toISOString();
+    // fechaHora de cita: la hora escrita es hora de reloj de la clínica y se guarda tal cual en UTC.
+    // Otros datetime-local (p. ej. trialHasta) son momentos reales en hora local.
+    if (field.type === "datetime-local" && value) {
+      value = (isCitaClock(field) ? new Date(`${value}:00Z`) : new Date(value)).toISOString();
+    }
     if (!keepEmpty && !field.required) value = requestValue(value);
     if (value !== undefined) payload[field.key] = value;
   });
@@ -2479,13 +2456,14 @@ function fieldValue(field, item, context, support = {}) {
   if (field.value) return field.value(item || {}, context, support);
   if (field.type === "hiddenOrg") return context.orgId;
   if (field.type === "hiddenUser") return context.userId;
-  if (field.type === "datetime-local") return toDatetimeInput(item[field.key]);
+  if (field.type === "datetime-local") return toDatetimeInput(item[field.key], isCitaClock(field));
   return item[field.key] ?? "";
 }
 
 function formatCell(value, type, support) {
   if (value == null || value === "") return <span className="muted">-</span>;
   if (type === "datetime") return formatDate(value);
+  if (type === "instant") return formatInstant(value);
   if (type === "money") return `$${Number(value).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
   if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "SI" : "NO"}</span>;
   if (type === "status") return <span className={`badge ${statusVariant(value)}`}>{String(value)}</span>;
@@ -2554,16 +2532,15 @@ function shortId(value) {
   return text.length > 12 ? `${text.slice(0, 8)}...` : text || "-";
 }
 
-function formatDate(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+function isCitaClock(field) {
+  return field.key === "fechaHora";
 }
 
-function toDatetimeInput(value) {
+function toDatetimeInput(value, citaClock = false) {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
+  if (citaClock) return date.toISOString().slice(0, 16);
   const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
   return local.toISOString().slice(0, 16);
 }
@@ -2583,8 +2560,8 @@ const CITA_ESTADO_V = {
 function citaLabelCompleto(cita, support) {
   if (!cita) return "";
   const f        = new Date(cita.fechaHora);
-  const fechaStr = f.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const horaStr  = f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const fechaStr = formatCitaFecha(f);
+  const horaStr  = formatCitaHora12(f);
   const nomMed   = (support.medicos || []).find((m) => m.id === cita.medicoId)?.nombre || "—";
   const estado   = CITA_ESTADO_LABEL[cita.estado] || cita.estado;
   return `${fechaStr}  ·  ${horaStr}  ·  ${nomMed}  ·  ${estado}`;
@@ -2597,8 +2574,8 @@ function CitaResumenCard({ cita, support }) {
   const paciente    = (support.pacientes    || []).find((p) => p.id === cita.pacienteId);
   const medico      = (support.medicos      || []).find((m) => m.id === cita.medicoId);
   const consultorio = (support.consultorios || []).find((c) => c.id === cita.consultorioId);
-  const fechaStr    = f.toLocaleDateString("es-MX", { day: "2-digit", month: "2-digit", year: "numeric" });
-  const horaStr     = f.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true });
+  const fechaStr    = formatCitaFecha(f);
+  const horaStr     = formatCitaHora12(f);
   const estadoLabel = CITA_ESTADO_LABEL[cita.estado] || cita.estado;
   const estadoV     = CITA_ESTADO_V[cita.estado] || "info";
 
@@ -3300,7 +3277,7 @@ function AdjuntosModuleMedico({ context }) {
                     </div>
                   )}
                   <div className="estudio-row-footer">
-                    <span className="estudio-fecha">{formatDate(e.createdAt)}</span>
+                    <span className="estudio-fecha">{formatInstant(e.createdAt)}</span>
                     {e.estado === "SUBIDO" && (
                       <button
                         className="btn small"
@@ -3492,7 +3469,7 @@ function AdjuntosModulePaciente({ context }) {
                 <div className="estudio-card-header">
                   <div className="estudio-card-title-group">
                     <span className="estudio-tipo">{e.tipo}</span>
-                    <span className="estudio-fecha-small">{formatDate(e.createdAt)}</span>
+                    <span className="estudio-fecha-small">{formatInstant(e.createdAt)}</span>
                   </div>
                   <span className={`badge ${ESTUDIO_ESTADO_V[e.estado] || "info"}`}>
                     {ESTUDIO_ESTADO_LABEL[e.estado] || e.estado}

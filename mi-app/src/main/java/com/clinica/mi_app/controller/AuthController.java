@@ -1,5 +1,10 @@
 package com.clinica.mi_app.controller;
 
+import com.clinica.mi_app.service.LocalAuthService;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.HttpStatus;
+import com.clinica.mi_app.exception.ErrorResponse;
+
 import com.clinica.mi_app.dto.request.LoginRequest;
 import com.clinica.mi_app.dto.request.RegistroRequest;
 import com.clinica.mi_app.service.AuthService;
@@ -18,9 +23,11 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthService authService;
+    private final ObjectProvider<LocalAuthService> localAuthService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, ObjectProvider<LocalAuthService> localAuthService) {
         this.authService = authService;
+        this.localAuthService = localAuthService;
     }
 
     @PostMapping("/login")
@@ -30,7 +37,15 @@ public class AuthController {
         @ApiResponse(responseCode = "400", description = "Datos invalidos en la solicitud"),
         @ApiResponse(responseCode = "401", description = "Email o contrasena incorrectos")
     })
-    public ResponseEntity<String> login(@Valid @RequestBody LoginRequest req, HttpServletRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req, HttpServletRequest request) {
+        LocalAuthService local = localAuthService.getIfAvailable();
+        if (local != null) {
+            // auth.mode=local: credenciales contra la BD + token RS256 firmado localmente
+            return local.login(req)
+                    .<ResponseEntity<?>>map(ResponseEntity::ok)
+                    .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                            .body(new ErrorResponse(401, "Email o contrasena incorrectos")));
+        }
         String[] tenant = parseTenant(request.getHeader("Host"));
         return authService.login(req.getEmail(), req.getPassword(), tenant[0], tenant[1]);
     }

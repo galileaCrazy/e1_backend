@@ -1,6 +1,7 @@
 import React from "react";
 import { CalendarPlus } from "lucide-react";
 import { Empty, ErrorBox, Loading, Section, ViewHeader } from "../../../components/ui";
+import { clinicToday } from "../../../lib/display";
 import "./PacienteAgendarCita.css";
 
 export default function PacienteAgendarCita({ context }) {
@@ -171,8 +172,7 @@ export default function PacienteAgendarCita({ context }) {
   );
 }
 
+// Fecha de hoy en la clínica (no la del navegador)
 function todayInput() {
-  const date = new Date();
-  const local = new Date(date.getTime() - date.getTimezoneOffset() * 60 * 1000);
-  return local.toISOString().slice(0, 10);
+  return clinicToday();
 }

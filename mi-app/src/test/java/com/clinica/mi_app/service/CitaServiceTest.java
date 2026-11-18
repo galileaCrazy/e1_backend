@@ -17,6 +17,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.Spy;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.isNull;
@@ -31,6 +32,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import com.clinica.mi_app.client.AuditClient;
+import com.clinica.mi_app.config.ClinicaReloj;
 import com.clinica.mi_app.dto.request.CitaRequest;
 import com.clinica.mi_app.dto.response.CitaResponse;
 import com.clinica.mi_app.exception.ResourceNotFoundException;
@@ -70,6 +72,9 @@ public class CitaServiceTest {
     @Mock
     private AuditClient auditClient;
 
+    @Spy
+    private ClinicaReloj clinicaReloj = new ClinicaReloj(java.time.Clock.systemUTC());
+
     @InjectMocks
     private CitaService citaService;
 
@@ -105,7 +110,7 @@ public class CitaServiceTest {
         // Arrange
         autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
 
-        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(1);
+        OffsetDateTime fechaCita = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0); // fecha fija: evita fallos cuando "ahora + N h" cruza medianoche UTC
         CitaRequest request = new CitaRequest();
         request.setOrganizacionId(organizacionId);
         request.setPacienteId(pacienteId);
@@ -283,7 +288,7 @@ public class CitaServiceTest {
     @Test
     public void testCrear_auditaConAccionCorrecta() {
         autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
-        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(1);
+        OffsetDateTime fechaCita = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0); // fecha fija: evita fallos cuando "ahora + N h" cruza medianoche UTC
         CitaRequest request = citaRequestBase(fechaCita);
 
         Organizacion org = org();
@@ -307,7 +312,7 @@ public class CitaServiceTest {
     @Test
     public void testActualizar_auditaConAccionCorrecta() {
         autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
-        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(2);
+        OffsetDateTime fechaCita = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0); // fecha fija: evita fallos cuando "ahora + N h" cruza medianoche UTC
         CitaRequest request = new CitaRequest();
         request.setFechaHora(fechaCita);
         request.setDuracionMin((short) 30);
@@ -374,7 +379,7 @@ public class CitaServiceTest {
     @Test
     public void testCrear_auditLanzaExcepcion_operacionNoFalla() {
         autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
-        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(1);
+        OffsetDateTime fechaCita = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0); // fecha fija: evita fallos cuando "ahora + N h" cruza medianoche UTC
         CitaRequest request = citaRequestBase(fechaCita);
 
         Organizacion org = org();
@@ -462,7 +467,7 @@ public class CitaServiceTest {
     @Test
     public void testActualizarCita_Success() {
         // Arrange
-        OffsetDateTime fechaCita = OffsetDateTime.now().plusHours(2);
+        OffsetDateTime fechaCita = java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC).plusDays(1).withHour(10).withMinute(0).withSecond(0).withNano(0); // fecha fija: evita fallos cuando "ahora + N h" cruza medianoche UTC
         CitaRequest request = new CitaRequest();
         request.setFechaHora(fechaCita);
         request.setDuracionMin((short) 45);
@@ -504,5 +509,98 @@ public class CitaServiceTest {
         // Assert
         assertNotNull(response);
         verify(citaRepository, times(1)).save(any(Cita.class));
+    }
+
+    // ── Zona horaria: "ahora" = hora de reloj de la clínica expresada en UTC ──────────
+
+    /** 16:00Z reales = 10:00 en America/Mexico_City (CST, UTC-6) → ahora de la clínica = 10:00Z. */
+    private static final java.time.Instant INSTANTE_10AM_CDMX = java.time.Instant.parse("2026-11-10T16:00:00Z");
+
+    private CitaService citaServiceConRelojFijo() {
+        ClinicaReloj fijo = new ClinicaReloj(java.time.Clock.fixed(INSTANTE_10AM_CDMX, java.time.ZoneOffset.UTC));
+        return new CitaService(citaRepository, organizacionRepository, pacienteRepository, medicoRepository,
+                consultorioRepository, horarioMedicoRepository, auditClient, fijo);
+    }
+
+    private CitaRequest prepararCreacion(OffsetDateTime fechaCita) {
+        autenticarComo("ADMIN", UUID.randomUUID(), organizacionId);
+        Organizacion org = new Organizacion();
+        org.setId(organizacionId);
+        Paciente paciente = new Paciente();
+        paciente.setId(pacienteId);
+        Medico medico = new Medico();
+        medico.setId(medicoId);
+        medico.setOrganizacion(org);
+        Consultorio consultorio = new Consultorio();
+        consultorio.setId(consultorioId);
+
+        Cita guardada = new Cita();
+        guardada.setId(citaId);
+        guardada.setOrganizacion(org);
+        guardada.setPaciente(paciente);
+        guardada.setMedico(medico);
+        guardada.setConsultorio(consultorio);
+        guardada.setFechaHora(fechaCita);
+        guardada.setDuracionMin((short) 30);
+
+        when(organizacionRepository.findById(organizacionId)).thenReturn(Optional.of(org));
+        when(pacienteRepository.findById(pacienteId)).thenReturn(Optional.of(paciente));
+        when(medicoRepository.findById(medicoId)).thenReturn(Optional.of(medico));
+        when(consultorioRepository.findById(consultorioId)).thenReturn(Optional.of(consultorio));
+        when(citaRepository.save(any(Cita.class))).thenReturn(guardada);
+
+        HorarioMedico horario = new HorarioMedico();
+        horario.setHoraInicio(java.time.LocalTime.of(8, 0));
+        horario.setHoraFin(java.time.LocalTime.of(14, 0));
+        horario.setDuracionConsulta((short) 30);
+        int jsDay = fechaCita.getDayOfWeek().getValue() % 7;
+        when(horarioMedicoRepository.findByMedicoIdAndDiaSemana(eq(medicoId), eq((short) jsDay)))
+                .thenReturn(List.of(horario));
+        when(citaRepository.findByMedicoIdAndFechaHoraBetween(eq(medicoId), any(), any()))
+                .thenReturn(List.of());
+
+        CitaRequest request = new CitaRequest();
+        request.setOrganizacionId(organizacionId);
+        request.setPacienteId(pacienteId);
+        request.setMedicoId(medicoId);
+        request.setConsultorioId(consultorioId);
+        request.setFechaHora(fechaCita);
+        request.setDuracionMin((short) 30);
+        request.setMotivo("Consulta general");
+        return request;
+    }
+
+    @Test
+    public void testCrear_horaDeRelojFuturaEnClinica_seAceptaAunqueYaPasoEnUtcReal() {
+        // 11:00Z = 11:00 en la clínica; en UTC real ya son las 16:00, pero la cita es futura.
+        CitaRequest request = prepararCreacion(OffsetDateTime.parse("2026-11-10T11:00:00Z"));
+
+        CitaResponse response = assertDoesNotThrow(() -> citaServiceConRelojFijo().crear(request));
+
+        assertEquals(citaId, response.getId());
+        verify(citaRepository).save(any(Cita.class));
+    }
+
+    @Test
+    public void testCrear_horaDeRelojPasadaEnClinica_seRechaza() {
+        // 09:00Z = 09:00 en la clínica, antes de las 10:00 actuales.
+        CitaRequest request = prepararCreacion(OffsetDateTime.parse("2026-11-10T09:00:00Z"));
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> citaServiceConRelojFijo().crear(request));
+
+        assertEquals("No se puede agendar una cita en fecha y hora pasada", ex.getMessage());
+        verify(citaRepository, never()).save(any(Cita.class));
+    }
+
+    @Test
+    public void testListarHorasDisponibles_ocultaSoloBloquesAnterioresALaHoraDeLaClinica() {
+        prepararCreacion(OffsetDateTime.parse("2026-11-10T11:00:00Z"));
+
+        List<String> horas = citaServiceConRelojFijo()
+                .listarHorasDisponibles(medicoId, java.time.LocalDate.of(2026, 11, 10), (short) 30);
+
+        // 10:00 en punto ya no es "después de ahora"; 10:30 en adelante sí.
+        assertEquals(List.of("10:30", "11:00", "11:30", "12:00", "12:30", "13:00", "13:30"), horas);
     }
 }

@@ -1,5 +1,7 @@
 package com.clinica.mi_app.config;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+
 import com.clinica.mi_app.exception.ErrorResponse;
 import com.clinica.mi_app.security.JwtFilter;
 
@@ -63,7 +65,10 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
                                 "/api/auth/**",
-                                "/api/whatsapp/**",
+                                // Webhooks de WhatsApp: se autentican con la firma del proveedor.
+                                // El resto de /api/whatsapp/** (conversaciones, simulador) exige JWT.
+                                "/api/whatsapp/twilio",
+                                "/api/whatsapp/twilio/status",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
@@ -73,6 +78,12 @@ public class SecurityConfig {
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
+    }
+
+    // Usado por UsuarioService para hashear contraseñas de usuarios creados desde el panel
+    @Bean
+    public BCryptPasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
     }
 
     @Bean

@@ -65,7 +65,11 @@ export default function MedicoDashboard({ context }) {
   const upcomingCitas = sortedCitas.filter((cita) => isFuture(cita.fechaHora) && !["CANCELADA", "NO_ASISTIO"].includes(cita.estado)).slice(0, 5);
   const unconfirmed = sortedCitas.filter((cita) => cita.estado === "SIN_CONFIRMAR").length;
   const citaIds = new Set(data.citas.map((cita) => String(cita.id)));
-  const pendingPayments = data.pagos.filter((pago) => citaIds.has(String(pago.citaId)) && pago.estado === "PENDIENTE");
+  // Pagos pendientes del más reciente al más antiguo (por fecha de la cita; pagadoEn es null en pendientes)
+  const citaFecha = new Map(data.citas.map((cita) => [String(cita.id), new Date(cita.fechaHora).getTime()]));
+  const pendingPayments = data.pagos
+    .filter((pago) => citaIds.has(String(pago.citaId)) && pago.estado === "PENDIENTE")
+    .sort((a, b) => (citaFecha.get(String(b.citaId)) || 0) - (citaFecha.get(String(a.citaId)) || 0));
   const patientIds = new Set(data.citas.map((cita) => String(cita.pacienteId)));
   const myPatients = data.pacientes.filter((paciente) => patientIds.has(String(paciente.id)));
 

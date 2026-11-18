@@ -20,4 +20,14 @@ public interface CitaRepository extends JpaRepository<Cita, UUID> {
 
     Optional<Cita> findFirstByPaciente_TelefonoAndEstadoAndFechaHoraGreaterThanEqualOrderByFechaHoraAsc(
             String telefono, String estado, OffsetDateTime desde);
+
+    // Dashboard del admin (rango semiabierto [desde, hasta))
+    List<Cita> findByOrganizacionIdAndFechaHoraGreaterThanEqualAndFechaHoraLessThan(
+            UUID organizacionId, OffsetDateTime desde, OffsetDateTime hasta);
+
+    List<Cita> findTop10ByOrganizacionIdAndEstadoAndFechaHoraGreaterThanEqualOrderByFechaHoraAsc(
+            UUID organizacionId, String estado, OffsetDateTime desde);
+
+    List<Cita> findTop8ByOrganizacionIdAndEstadoNotInAndFechaHoraGreaterThanEqualOrderByFechaHoraAsc(
+            UUID organizacionId, java.util.Collection<String> estadosExcluidos, OffsetDateTime desde);
 }

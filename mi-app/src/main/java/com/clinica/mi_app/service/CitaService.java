@@ -1,6 +1,7 @@
 package com.clinica.mi_app.service;
 
 import com.clinica.mi_app.client.AuditClient;
+import com.clinica.mi_app.config.ClinicaReloj;
 import com.clinica.mi_app.dto.request.CitaRequest;
 import com.clinica.mi_app.dto.response.CitaResponse;
 import com.clinica.mi_app.dto.response.DisponibilidadSlot;
@@ -55,11 +56,12 @@ public class CitaService {
     private final ConsultorioRepository consultorioRepo;
     private final HorarioMedicoRepository horarioRepo;
     private final AuditClient auditClient;
+    private final ClinicaReloj reloj;
 
     public CitaService(CitaRepository repo, OrganizacionRepository orgRepo,
                        PacienteRepository pacienteRepo, MedicoRepository medicoRepo,
                        ConsultorioRepository consultorioRepo, HorarioMedicoRepository horarioRepo,
-                       AuditClient auditClient) {
+                       AuditClient auditClient, ClinicaReloj reloj) {
         this.repo = repo;
         this.orgRepo = orgRepo;
         this.pacienteRepo = pacienteRepo;
@@ -67,6 +69,7 @@ public class CitaService {
         this.consultorioRepo = consultorioRepo;
         this.horarioRepo = horarioRepo;
         this.auditClient = auditClient;
+        this.reloj = reloj;
     }
 
     public List<CitaResponse> listarPorOrganizacion(UUID organizacionId) {
@@ -126,7 +129,8 @@ public class CitaService {
         Medico medico = medicoRepo.findById(medicoId)
                 .orElseThrow(() -> new ResourceNotFoundException("Medico", medicoId.toString()));
         short diaSemana = (short) (fecha.getDayOfWeek().getValue() % 7);
-        ZoneId zone = ZoneId.systemDefault();
+        // Convención: hora de reloj de la clínica guardada en UTC
+        ZoneId zone = ZoneOffset.UTC;
         OffsetDateTime inicioDia = fecha.atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime finDia = fecha.plusDays(1).atStartOfDay(zone).toOffsetDateTime();
         List<Cita> citasDelDia = repo.findByMedicoIdAndFechaHoraBetween(medico.getId(), inicioDia, finDia);
@@ -295,7 +299,7 @@ public class CitaService {
     }
 
     private void validarDisponibilidad(UUID medicoId, OffsetDateTime fechaHora, UUID excludeId) {
-        if (fechaHora.isBefore(OffsetDateTime.now(ZoneOffset.UTC))) {
+        if (fechaHora.isBefore(reloj.ahora())) {
             throw new IllegalArgumentException("No se puede agendar una cita en fecha y hora pasada");
         }
         LocalDate fecha = fechaHora.withOffsetSameInstant(ZoneOffset.UTC).toLocalDate();
@@ -332,7 +336,7 @@ public class CitaService {
                 OffsetDateTime citaFin = citaInicio.plusMinutes(cita.getDuracionMin());
                 return bloqueInicio.isBefore(citaFin) && bloqueFin.isAfter(citaInicio);
             });
-            if (!ocupado && bloqueInicio.isAfter(OffsetDateTime.now(zone))) {
+            if (!ocupado && bloqueInicio.isAfter(reloj.ahora())) {
                 bloques.add(actual.toString());
             }
             actual = actual.plusMinutes(duracionMin);
