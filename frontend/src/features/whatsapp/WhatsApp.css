@@ -67,7 +67,7 @@
 .wa-avatar {
   background: var(--secondary);
   border-radius: 999px;
-  color: #fff;
+  color: var(--blanco);
   display: grid;
   flex: none;
   font-size: 13px;
@@ -79,7 +79,7 @@
 
 /* Marco de celular */
 .wa-telefono {
-  background: #1f2937;
+  background: var(--tinta);
   border-radius: 32px;
   box-shadow: var(--shadow-lg);
   display: grid;
@@ -90,14 +90,14 @@
 }
 
 .wa-telefono > * {
-  background: #efeae2;
+  background: var(--lienzo);
 }
 
 .wa-cabecera {
   align-items: center;
   background: var(--secondary) !important;
   border-radius: 24px 24px 0 0;
-  color: #fff;
+  color: var(--blanco);
   display: flex;
   gap: 10px;
   padding: 14px 16px;
@@ -144,7 +144,7 @@
 
 .wa-burbuja {
   border-radius: 10px;
-  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.08);
+  box-shadow: var(--sombra-suave);
   max-width: 82%;
   padding: 8px 10px 6px;
 }
@@ -159,13 +159,13 @@
 
 .wa-burbuja.saliente {
   align-self: flex-end;
-  background: #d9fdd3;
+  background: var(--estado-confirmada-bg);
   border-top-right-radius: 2px;
 }
 
 .wa-burbuja.entrante {
   align-self: flex-start;
-  background: #fff;
+  background: var(--blanco);
   border-top-left-radius: 2px;
 }
 
@@ -200,7 +200,7 @@
 
 /* Simulador (canal de pruebas) */
 .wa-simulador {
-  background: #f0f2f5 !important;
+  background: var(--lienzo) !important;
   border-radius: 0 0 24px 24px;
   border-top: 1px dashed var(--outline-strong);
   display: grid;
@@ -226,7 +226,7 @@
 }
 
 .wa-entrada input {
-  background: #fff;
+  background: var(--blanco);
   border: 1px solid var(--outline);
   border-radius: 999px;
   flex: 1;
@@ -287,7 +287,7 @@
   background: var(--danger);
   border: 2px solid var(--surface);
   border-radius: 999px;
-  color: #fff;
+  color: var(--blanco);
   font-size: 10px;
   font-weight: 700;
   line-height: 1;

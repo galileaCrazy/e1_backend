@@ -10,18 +10,18 @@
   background: transparent;
   border: 0;
   border-radius: 999px;
-  color: var(--muted);
+  color: var(--tinta);
   cursor: pointer;
   font: inherit;
-  font-size: 0.85rem;
+  font-size: 0.9rem;
   font-weight: 600;
-  padding: 6px 14px;
+  min-height: 38px;
+  padding: 0 16px;
 }
 
 .admin-period-btn.active {
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  color: var(--primary);
+  background: var(--tinta);
+  color: var(--blanco);
 }
 
 .admin-metrics {
@@ -38,8 +38,9 @@
 
 /* Barra apilada de estados */
 .estados-bar {
-  background: var(--surface-soft);
-  border-radius: 8px;
+  background: var(--lienzo);
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-pill);
   display: flex;
   gap: 2px;
   height: 18px;
@@ -150,7 +151,7 @@
 }
 
 .medicos-bars-track span {
-  background: var(--secondary);
+  background: var(--laguna);
   border-radius: 6px;
   display: block;
   height: 100%;
@@ -211,7 +212,7 @@
     grid-template-columns: 72px minmax(0, 1fr);
   }
 
-  .admin-cita .badge {
+  .admin-cita .estado {
     grid-column: 2;
     justify-self: start;
   }
@@ -219,4 +220,21 @@
   .metodos {
     grid-template-columns: minmax(0, 1fr);
   }
+}
+
+/* ── CliniClick: lista de citas ── */
+.admin-cita-hora strong {
+  color: var(--tinta);
+  font-family: var(--fuente-titulos);
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-cita-info strong {
+  font-weight: 600;
+}
+
+.admin-cita-hora span,
+.admin-cita-info span {
+  color: var(--texto-2);
 }

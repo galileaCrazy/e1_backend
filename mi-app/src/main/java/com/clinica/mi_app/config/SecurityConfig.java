@@ -62,7 +62,7 @@ public class SecurityConfig {
                             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                             response.setContentType(MediaType.APPLICATION_JSON_VALUE);
                             jsonMapper.writeValue(response.getOutputStream(),
-                                    new ErrorResponse(401, "Autenticacion requerida"));
+                                    new ErrorResponse(401, "Autenticación requerida"));
                         })
                         .accessDeniedHandler((request, response, accessDeniedException) -> {
                             response.setStatus(HttpServletResponse.SC_FORBIDDEN);

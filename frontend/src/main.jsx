@@ -1,11 +1,14 @@
 import React from "react";
+import { Destello, Estado, etiquetaEstado } from "./components/ui";
 import { createRoot } from "react-dom/client";
 import { createPortal } from "react-dom";
 import {
   Activity,
   Bot,
   Building2,
+  CalendarCheck,
   CalendarDays,
+  Check,
   CalendarPlus,
   Clock3,
   CreditCard,
@@ -45,11 +48,16 @@ import {
   formatCitaFecha,
   formatCitaHora12,
   formatDate,
+  formatHoraTexto,
   formatInstant,
 } from "./lib/display";
+import "./styles/tokens.css";
 import "./styles.css";
+import "./styles/cliniclick.css";
 
 const STORAGE_KEY = "medinflow.session";
+/** El chatbot sigue en el código, pero su ítem del menú solo aparece con VITE_SHOW_CHAT=true. */
+const MOSTRAR_CHAT = import.meta.env.VITE_SHOW_CHAT === "true";
 const API_KEY = "medinflow.apiUrl";
 // VITE_API_URL vacía o sin definir = URL relativa ("/api/..."), que pasa por el proxy /api de Vite.
 // Así funciona igual desde la PC (localhost:5173) que desde el celular (http://<ip-local>:5173).
@@ -90,6 +98,7 @@ const iconMap = {
   usuarios: UserCog,
   organizaciones: Building2,
   medicoClinico: FileText,
+  medicoAgenda: CalendarCheck,
   pacienteAgendar: CalendarPlus,
   pacienteCitas: CalendarDays,
   ia: Bot,
@@ -101,6 +110,8 @@ const modules = {
   citas: {
     label: "Citas",
     roles: ["ADMIN", "MEDICO"],
+    // Hoy y próximas primero (más cercana arriba); después las pasadas (más reciente arriba)
+    ordenar: ordenarCitasProximasPrimero,
     description: "Agenda médica por organización, médico, paciente y estado.",
     clientFiltered: true,
     list: ({ orgId, role, medicoId }) => role === "MEDICO" && medicoId ? `/api/citas/medico/${medicoId}` : `/api/citas/organizacion/${orgId}`,
@@ -108,19 +119,19 @@ const modules = {
     columns: [
       ["fechaHora", "Fecha", "datetime"],
       ["pacienteId", "Paciente", "patient"],
-      ["medicoId", "Medico", "doctor"],
+      ["medicoId", "Médico", "doctor"],
       ["estado", "Estado", "status"],
       ["motivo", "Motivo", "motivo"],
     ],
     filters: [
       { key: "pacienteId", label: "Paciente", type: "combobox", source: "pacientes", live: true },
-      { key: "medicoId", label: "Medico", type: "combobox", source: "medicos", live: true, roles: ["ADMIN"] },
+      { key: "medicoId", label: "Médico", type: "combobox", source: "medicos", live: true, roles: ["ADMIN"] },
       { key: "estado", label: "Estado", options: ["", "SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"], live: true },
     ],
     fields: [
       { key: "organizacionId", type: "hiddenOrg", required: true },
       { key: "pacienteId", label: "Paciente", source: "pacientes", required: true },
-      { key: "medicoId", label: "Medico", source: "medicos", required: true },
+      { key: "medicoId", label: "Médico", source: "medicos", required: true },
       { key: "consultorioId", label: "Consultorio", source: "consultorios", required: true },
       { key: "duracionMin", label: "Duración", type: "select", options: ["20", "30", "45", "60"], required: true },
       { key: "fechaHora", label: "Fecha y hora", type: "datetime-local", required: true, full: true },
@@ -142,7 +153,7 @@ const modules = {
     endpoint: "/api/pacientes",
     columns: [
       ["nombre", "Paciente"],
-      ["telefono", "Telefono"],
+      ["telefono", "Teléfono"],
       ["email", "Correo"],
       ["sexo", "Sexo"],
       ["activo", "Activo", "bool"],
@@ -156,7 +167,7 @@ const modules = {
       { key: "nombre", label: "Nombre", required: true, onlyLetters: true, value: (item) => patientNamePart(item.nombre, 0) },
       { key: "apellidoPaterno", label: "Apellido paterno", onlyLetters: true, value: (item) => patientNamePart(item.nombre, 1) },
       { key: "apellidoMaterno", label: "Apellido materno", onlyLetters: true, value: (item) => patientNamePart(item.nombre, 2) },
-      { key: "telefono", label: "Telefono", onlyDigits: true, maxLength: 10 },
+      { key: "telefono", label: "Teléfono", onlyDigits: true, maxLength: 10 },
       { key: "fechaNacimiento", label: "Nacimiento", type: "date" },
       { key: "sexo", label: "Sexo", type: "select", options: ["", "M", "F", "O"] },
       { key: "email", label: "Correo", type: "email", emailLocalMax: 64 },
@@ -180,7 +191,7 @@ const modules = {
     list: ({ orgId }) => `/api/medicos/organizacion/${orgId}`,
     endpoint: "/api/medicos",
     columns: [
-      ["nombre", "Medico"],
+      ["nombre", "Médico"],
       ["especialidad", "Especialidad"],
       ["consultorioId", "Consultorio", "office"],
       ["tarifaBase", "Tarifa", "money"],
@@ -196,8 +207,8 @@ const modules = {
       { key: "consultorioId", label: "Consultorio", source: "consultorios", required: true },
       { key: "nombre", label: "Nombre", required: true, onlyLetters: true },
       { key: "especialidad", label: "Especialidad" },
-      { key: "cedula", label: "Cedula" },
-      { key: "telefono", label: "Telefono", onlyDigits: true, maxLength: 10 },
+      { key: "cedula", label: "Cédula" },
+      { key: "telefono", label: "Teléfono", onlyDigits: true, maxLength: 10 },
       { key: "tarifaBase", label: "Tarifa base", type: "number", min: 0 },
     ],
   },
@@ -210,8 +221,8 @@ const modules = {
     endpoint: "/api/consultorios",
     columns: [
       ["nombre", "Consultorio"],
-      ["direccion", "Direccion"],
-      ["telefono", "Telefono"],
+      ["direccion", "Dirección"],
+      ["telefono", "Teléfono"],
       ["activo", "Activo", "bool"],
     ],
     filters: [
@@ -221,8 +232,8 @@ const modules = {
     fields: [
       { key: "organizacionId", type: "hiddenOrg", required: true },
       { key: "nombre", label: "Nombre", required: true, onlyLetters: true },
-      { key: "direccion", label: "Direccion", type: "textarea", full: true },
-      { key: "telefono", label: "Telefono", onlyDigits: true, maxLength: 10 },
+      { key: "direccion", label: "Dirección", type: "textarea", full: true },
+      { key: "telefono", label: "Teléfono", onlyDigits: true, maxLength: 10 },
     ],
   },
   horarios: {
@@ -232,16 +243,16 @@ const modules = {
     list: ({ filters }) => (filters.medicoId ? `/api/horarios/medico/${filters.medicoId}` : null),
     endpoint: "/api/horarios",
     columns: [
-      ["medicoId", "Medico", "doctor"],
-      ["diaSemana", "Dia", "day"],
-      ["horaInicio", "Inicio"],
-      ["horaFin", "Fin"],
-      ["duracionConsulta", "Duracion"],
+      ["medicoId", "Médico", "doctor"],
+      ["diaSemana", "Día", "day"],
+      ["horaInicio", "Inicio", "hora"],
+      ["horaFin", "Fin", "hora"],
+      ["duracionConsulta", "Duración"],
     ],
-    filters: [{ key: "medicoId", label: "Medico", type: "combobox", source: "medicos", live: true }],
+    filters: [{ key: "medicoId", label: "Médico", type: "combobox", source: "medicos", live: true }],
     fields: [
-      { key: "medicoId", label: "Medico", source: "medicos", required: true },
-      { key: "diaSemana", label: "Dia", type: "select", options: [
+      { key: "medicoId", label: "Médico", source: "medicos", required: true },
+      { key: "diaSemana", label: "Día", type: "select", options: [
         { value: "0", label: "Domingo" },
         { value: "1", label: "Lunes" },
         { value: "2", label: "Martes" },
@@ -252,7 +263,7 @@ const modules = {
       ], required: true },
       { key: "horaInicio", label: "Hora inicio", type: "time", required: true },
       { key: "horaFin", label: "Hora fin", type: "time", required: true },
-      { key: "duracionConsulta", label: "Duracion", type: "select", options: ["20", "30", "45", "60"], required: true },
+      { key: "duracionConsulta", label: "Duración", type: "select", options: ["20", "30", "45", "60"], required: true },
     ],
   },
   pagos: {
@@ -274,7 +285,7 @@ const modules = {
     columns: [
       ["citaId", "Cita", "appointment"],
       ["monto", "Monto", "money"],
-      ["metodo", "Metodo"],
+      ["metodo", "Método"],
       ["estado", "Estado", "status"],
       ["referencia", "Referencia"],
     ],
@@ -286,7 +297,7 @@ const modules = {
       { key: "organizacionId", type: "hiddenOrg", required: true },
       { key: "citaId", label: "Cita", source: "citas", required: true },
       { key: "monto", label: "Monto", type: "number", required: true },
-      { key: "metodo", label: "Metodo", type: "select", options: ["EFECTIVO", "TRANSFERENCIA", "TARJETA"], required: true },
+      { key: "metodo", label: "Método", type: "select", options: ["EFECTIVO", "TRANSFERENCIA", "TARJETA"], required: true },
       { key: "concepto", label: "Concepto" },
       { key: "referencia", label: "Referencia" },
       { key: "estado", label: "Estado", type: "select", options: ["PENDIENTE", "PAGADO"] },
@@ -304,7 +315,7 @@ const modules = {
     columns: [
       ["citaId", "Cita", "appointment"],
       ["codigoCie10", "CIE-10"],
-      ["descripcion", "Descripcion"],
+      ["descripcion", "Descripción"],
       ["tipo", "Tipo", "status"],
       ["createdAt", "Creado", "instant"],
     ],
@@ -316,9 +327,9 @@ const modules = {
     fields: [
       { key: "citaId", label: "Cita", source: "citas", required: true },
       { key: "_medicoRef", source: "medicos" },
-      { key: "codigoCie10", label: "Codigo CIE-10" },
+      { key: "codigoCie10", label: "Código CIE-10" },
       { key: "tipo", label: "Tipo", type: "select", options: ["PRINCIPAL", "SECUNDARIO"] },
-      { key: "descripcion", label: "Descripcion", type: "textarea", full: true, required: true },
+      { key: "descripcion", label: "Descripción", type: "textarea", full: true, required: true },
     ],
   },
   adjuntos: {
@@ -389,15 +400,15 @@ const modules = {
     columns: [
       ["email", "Correo"],
       ["rol", "Rol", "status"],
-      ["medicoId", "Medico", "doctor"],
+      ["medicoId", "Médico", "doctor"],
       ["activo", "Activo", "bool"],
     ],
     fields: [
       { key: "organizacionId", type: "hiddenOrg", required: true },
-      { key: "medicoId", label: "Medico", source: "medicos" },
+      { key: "medicoId", label: "Médico", source: "medicos" },
       { key: "email", label: "Correo", type: "email", required: true },
       { key: "rol", label: "Rol", type: "select", options: ["ADMIN", "MEDICO"], required: true },
-      { key: "password", label: "Password", type: "password", required: true },
+      { key: "password", label: "Contraseña", type: "password", required: true },
     ],
   },
   organizaciones: {
@@ -550,7 +561,7 @@ function App() {
     const next = { ...result, claims: decodeJwt(result.token) };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
     setSession(next);
-    notify("Sesion iniciada");
+    notify("Sesión iniciada");
     go("dashboard");
   };
 
@@ -609,46 +620,100 @@ function AuthPage({ mode, onSubmit, go, notify }) {
   }
 
   return (
-    <main className="auth-shell">
-      <section className="auth-panel">
-        <div className="auth-card">
-          <div className="brand">
-            <h1>MedInFlow</h1>
-            <p>Plataforma medica integral</p>
+    <main className="cc-auth">
+      <section className="cc-auth-marca">
+        <svg className="cc-auth-corazon" viewBox="0 0 100 92" aria-hidden="true">
+          <path d="M50 88 L10 50 A22 22 0 0 1 50 14 A22 22 0 0 1 90 50 Z" />
+        </svg>
+        <img className="cc-auth-logo" src="/brand/cliniclick-blanco.png" alt="CliniClick" />
+        <div className="cc-auth-lema">
+          <h1>Tu consultorio,<br />a un clic.</h1>
+          <p>Tus pacientes confirman su cita desde WhatsApp y tú lo ves al instante.</p>
+        </div>
+        <div className="cc-auth-ejemplos" aria-hidden="true">
+          <div className="cc-auth-ejemplo">
+            <span className="cc-auth-ejemplo-icono"><Check size={18} strokeWidth={2.8} /></span>
+            <span>
+              <b>Ana Sofía</b> confirmó su cita
+              <br />
+              <span className="cc-auth-ejemplo-sub">Mañana · 11:00 a.m.</span>
+            </span>
           </div>
-          <form className="stack" onSubmit={handleSubmit}>
-            <Field label="Correo electronico" name="email" type="email" placeholder="admin@clinica.com" required />
-            <Field label="Password" name="password" type="password" placeholder="Minimo 8 caracteres" required />
-            {isRegister && <Field label="Organizacion ID" name="organizacionId" placeholder="UUID de la organizacion" required />}
-            <button className="btn primary wide" disabled={submitting}>
-              {submitting ? "Conectando..." : isRegister ? "Crear cuenta paciente" : "Iniciar sesion"}
-            </button>
-          </form>
-          <button className="btn ghost wide" onClick={() => go(isRegister ? "login" : "registro")}>
-            {isRegister ? "Ya tengo cuenta" : "Registrar paciente"}
-          </button>
+          <div className="cc-auth-ejemplo lima">5 pacientes por confirmar mañana</div>
         </div>
       </section>
-      <section className="auth-art">
-        <div className="visual-window">
-          <div className="monitor-card">
-            <span className="badge info">OPERACION CLINICA</span>
-            <h2>Agenda, expedientes y pagos en un solo panel.</h2>
-            <div className="metric-lines">
-              <span style={{ width: "86%" }} />
-              <span style={{ width: "64%", background: "var(--secondary)" }} />
-              <span style={{ width: "42%", background: "var(--tertiary)" }} />
-            </div>
+
+      <section className="cc-auth-zona">
+        <form className="cc-auth-form" onSubmit={handleSubmit}>
+          <div className="cc-auth-titulo">
+            <img className="cc-auth-logo-movil" src="/brand/wordmark-tinta.png" alt="CliniClick" />
+            <h2>{isRegister ? "Crea tu cuenta" : "Inicia sesión"}</h2>
+            <p>{isRegister ? "Regístrate como paciente de tu clínica." : "Entra con la cuenta de tu clínica."}</p>
           </div>
-        </div>
-        <h2>Precision clinica para operar el dia.</h2>
+          <label className="cc-campo">
+            Correo electrónico
+            <input name="email" type="email" autoComplete="email" placeholder="nombre@tuclinica.mx" required />
+          </label>
+          <label className="cc-campo">
+            Contraseña
+            <input
+              name="password"
+              type="password"
+              autoComplete={isRegister ? "new-password" : "current-password"}
+              placeholder="Mínimo 8 caracteres"
+              minLength={isRegister ? 8 : undefined}
+              required
+            />
+          </label>
+          {isRegister && (
+            <label className="cc-campo">
+              ID de la organización
+              <input name="organizacionId" placeholder="Te lo da tu clínica" required />
+            </label>
+          )}
+          <button className="cc-boton primario grande" disabled={submitting}>
+            {submitting ? "Entrando..." : isRegister ? "Crear cuenta" : "Entrar"}
+            <Destello />
+          </button>
+          <div className="cc-separador" />
+          <p className="cc-auth-alterno">
+            {isRegister ? "¿Ya tienes cuenta? " : "¿Eres paciente? "}
+            <button type="button" className="cc-enlace" onClick={() => go(isRegister ? "login" : "registro")}>
+              {isRegister ? "Inicia sesión" : "Crea tu cuenta"}
+            </button>
+          </p>
+        </form>
       </section>
     </main>
   );
 }
 
+/** No leídos de la campana (respuestas de pacientes) para el contador de "Actividad" en el menú. */
+function useNoLeidas(context) {
+  const [n, setN] = React.useState(0);
+  const habilitado = ["ADMIN", "MEDICO"].includes(context.role);
+  React.useEffect(() => {
+    if (!habilitado) return undefined;
+    let activo = true;
+    const cargar = () =>
+      context.api("/api/notificaciones/recientes")
+        .then((d) => activo && setN(d?.noLeidas || 0))
+        .catch(() => {});
+    cargar();
+    const id = window.setInterval(cargar, 30000);
+    window.addEventListener("medinflow:notificaciones", cargar);
+    return () => {
+      activo = false;
+      window.clearInterval(id);
+      window.removeEventListener("medinflow:notificaciones", cargar);
+    };
+  }, [context, habilitado]);
+  return n;
+}
+
 function Shell({ context, route, logout, children }) {
   const [open, setOpen] = React.useState(false);
+  const noLeidas = useNoLeidas(context);
   const [search, setSearch] = React.useState("");
   const allowed = Object.entries(modules).filter(([, config]) => config.roles.includes(context.role));
   const active = route.startsWith("modulo/") ? moduloDeRuta(route) : route;
@@ -668,26 +733,38 @@ function Shell({ context, route, logout, children }) {
 
   return (
     <div className="app-shell">
-      {open && <button className="sidebar-backdrop" aria-label="Cerrar menu" onClick={() => setOpen(false)} />}
+      {open && <button className="sidebar-backdrop" aria-label="Cerrar menú" onClick={() => setOpen(false)} />}
       <aside className={`sidebar ${open ? "open" : ""}`}>
         <div className="sidebar-header">
-          <div>
-            <div className="brand-mark">MedInFlow</div>
-            <p>{context.userName}</p>
-          </div>
-          <button className="btn icon sidebar-close" onClick={() => setOpen(false)} aria-label="Cerrar menu">
+          <img className="sidebar-logo" src="/brand/wordmark-blanco.png" alt="CliniClick" />
+          <button className="btn icon sidebar-close" onClick={() => setOpen(false)} aria-label="Cerrar menú">
             <X size={18} />
           </button>
         </div>
-        <nav className="nav-list">
-          <NavButton id="dashboard" label="Dashboard" active={active === "dashboard"} onClick={() => navigate("dashboard")} />
+        <nav className="nav-list" aria-label="Menú principal">
+          <NavButton id="dashboard" label="Inicio" active={active === "dashboard"} onClick={() => navigate("dashboard")} />
+          {context.role === "MEDICO" && (
+            <NavButton
+              id="medicoAgenda"
+              label="Agenda"
+              active={route === "medico/agenda" || route.startsWith("medico/agenda/")}
+              onClick={() => navigate("medico/agenda")}
+            />
+          )}
           {allowed.map(([key, config]) => (
-            <NavButton key={key} id={key} label={config.label} active={active === key} onClick={() => navigate(`modulo/${key}`)} />
+            <NavButton
+              key={key}
+              id={key}
+              label={config.label}
+              active={active === key}
+              contador={key === "notificaciones" ? noLeidas : 0}
+              onClick={() => navigate(`modulo/${key}`)}
+            />
           ))}
           {context.role === "MEDICO" && (
             <NavButton
               id="medicoClinico"
-              label="Diagnosticos y Adjuntos"
+              label="Diagnósticos y Adjuntos"
               active={route === "medico/diagnosticos-adjuntos"}
               onClick={() => navigate("medico/diagnosticos-adjuntos")}
             />
@@ -711,7 +788,7 @@ function Shell({ context, route, logout, children }) {
           {["ADMIN", "MEDICO"].includes(context.role) && (
             <NavButton id="whatsapp" label="WhatsApp" active={active === "whatsapp"} onClick={() => navigate("whatsapp")} />
           )}
-          <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => navigate("ia")} />
+          {MOSTRAR_CHAT && <NavButton id="ia" label="IA Chat" active={active === "ia"} onClick={() => navigate("ia")} />}
         </nav>
         <div className="nav-footer">
           <NavButton id="settings" label="Ajustes" active={active === "settings"} onClick={() => navigate("settings")} />
@@ -719,10 +796,17 @@ function Shell({ context, route, logout, children }) {
             <LogOut size={18} />
             <span>Salir</span>
           </button>
+          <div className="sidebar-usuario">
+            <span className="sidebar-avatar" aria-hidden="true">{initials(context.userName)}</span>
+            <span className="sidebar-usuario-texto">
+              <strong>{context.userName}</strong>
+              <span>{etiquetaEstado(context.role)}</span>
+            </span>
+          </div>
         </div>
       </aside>
       <header className="topbar">
-        <button className="btn icon mobile-menu" onClick={() => setOpen((value) => !value)} aria-label="Menu">
+        <button className="btn icon mobile-menu" onClick={() => setOpen((value) => !value)} aria-label="Menú">
           <Menu size={18} />
         </button>
         <label className="search">
@@ -731,11 +815,6 @@ function Shell({ context, route, logout, children }) {
         </label>
         <div className="user-chip">
           {["ADMIN", "MEDICO"].includes(context.role) && <NotificacionesBell context={context} />}
-          <div className="user-meta">
-            <strong>{context.userName}</strong>
-            <span>{context.role}</span>
-          </div>
-          <div className="avatar">{initials(context.userName)}</div>
         </div>
       </header>
       <main className="content">
@@ -745,12 +824,15 @@ function Shell({ context, route, logout, children }) {
   );
 }
 
-function NavButton({ id, label, active, onClick }) {
+function NavButton({ id, label, active, onClick, contador = 0 }) {
   const Icon = iconMap[id] || Activity;
   return (
-    <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick}>
-      <Icon size={18} />
+    <button className={`nav-item ${active ? "active" : ""}`} onClick={onClick} aria-current={active ? "page" : undefined}>
+      <Icon size={20} aria-hidden="true" />
       <span>{label}</span>
+      {contador > 0 && (
+        <span className="nav-contador" aria-label={`${contador} sin leer`}>{contador > 9 ? "9+" : contador}</span>
+      )}
     </button>
   );
 }
@@ -796,6 +878,25 @@ function CurrentView({ route, context }) {
     return <ModuleView moduleKey={key} config={config} context={context} />;
   }
   return <Dashboard context={context} />;
+}
+
+/**
+ * Citas: primero las de hoy en adelante (la más cercana arriba) y luego las pasadas (la más reciente arriba).
+ * "Hoy" es el día de la clínica; las citas se comparan por su fecha UTC (convención de reloj en UTC).
+ */
+function ordenarCitasProximasPrimero(rows) {
+  const hoy = clinicToday();
+  const t = (r) => new Date(r.fechaHora).getTime() || 0;
+  const proximas = rows.filter((r) => citaDateKey(r.fechaHora) >= hoy).sort((a, b) => t(a) - t(b));
+  const pasadas = rows.filter((r) => citaDateKey(r.fechaHora) < hoy).sort((a, b) => t(b) - t(a));
+  return [...proximas, ...pasadas];
+}
+
+/** Etiqueta legible de una opción de <select>: enums → "Por confirmar", "Transferencia"...; números tal cual. */
+function etiquetaOpcion(campo, valor) {
+  if (campo === "sexo") return { M: "Masculino", F: "Femenino", O: "Otro" }[valor] || valor;
+  if (/^\d+$/.test(String(valor))) return campo.toLowerCase().includes("duracion") ? `${valor} min` : String(valor);
+  return etiquetaEstado(valor);
 }
 
 /** "modulo/citas?cita=..." → "citas" */
@@ -923,9 +1024,11 @@ function ModuleView({ moduleKey, config, context }) {
 
   // Filas a mostrar: client-side para módulos con clientFiltered, directas para el resto
   const displayRows = React.useMemo(() => {
-    if (config.clientFilter) return config.clientFilter(rows, { ...filters, ...liveFilters }, context.role, support, context);
-    if (!config.clientFiltered) return rows;
-    return applyClientFilters(rows, { ...filters, ...liveFilters }, support);
+    let resultado;
+    if (config.clientFilter) resultado = config.clientFilter(rows, { ...filters, ...liveFilters }, context.role, support, context);
+    else if (!config.clientFiltered) resultado = rows;
+    else resultado = applyClientFilters(rows, { ...filters, ...liveFilters }, support);
+    return config.ordenar ? config.ordenar(resultado) : resultado;
   }, [rows, filters, liveFilters, support, config, context]);
 
   const hasActiveFilters = config.clientFiltered &&
@@ -1338,7 +1441,7 @@ function FormControl({ field, defaultValue, support, onLiveChange }) {
         <select name={field.key} defaultValue={defaultValue || ""} required={field.required}>
           {field.options.map((option) => {
             const val = typeof option === "object" ? option.value : option;
-            const lbl = typeof option === "object" ? option.label : (option || "Todos");
+            const lbl = typeof option === "object" ? option.label : (option ? etiquetaOpcion(field.key, option) : "Todos");
             return <option key={val || "empty"} value={val}>{lbl}</option>;
           })}
         </select>
@@ -1490,7 +1593,7 @@ function MotivoCellWithModal({ text }) {
 
 // ── CitaForm: formulario especializado con disponibilidad real ────────────────
 
-const DAY_NAMES = ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"];
+const DAY_NAMES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 function utcDateStr(isoString) {
   return citaDateKey(isoString);
@@ -1736,7 +1839,7 @@ function CitaForm({ item, context, support, onCancel, onSubmit }) {
           >
             {slots.map((s) => (
               <option key={s.hora} value={s.hora}>
-                {s.hora} – {s.horaFin} ({s.duracionMin} min)
+                {formatHoraTexto(s.hora)} – {formatHoraTexto(s.horaFin)} ({s.duracionMin} min)
               </option>
             ))}
           </select>
@@ -1754,7 +1857,7 @@ function CitaForm({ item, context, support, onCancel, onSubmit }) {
           <span>Estado</span>
           <select name="estado" defaultValue={item?.estado || "SIN_CONFIRMAR"}>
             {ESTADOS_CITA.map((estado) => (
-              <option key={estado} value={estado}>{estado.replace(/_/g, " ")}</option>
+              <option key={estado} value={estado}>{etiquetaEstado(estado)}</option>
             ))}
           </select>
         </label>
@@ -1856,7 +1959,7 @@ function HorarioForm({ item, context, support, onCancel, onSubmit, onEditExistin
       {conflicto ? (
         <div className="field full">
           <small className="error-text">
-            Este médico ya tiene un horario asignado para {DIAS_SEMANA[Number(diaSemana)]} ({String(conflicto.horaInicio).slice(0, 5)} – {String(conflicto.horaFin).slice(0, 5)}).
+            Este médico ya tiene un horario asignado para {DIAS_SEMANA[Number(diaSemana)]} ({formatHoraTexto(conflicto.horaInicio)} – {formatHoraTexto(conflicto.horaFin)}).
           </small>
           {onEditExisting && (
             <button
@@ -2035,7 +2138,7 @@ function DiagnosticoForm({ item, context, support, onCancel, onSubmit, initialPa
   const [loadingCitas, setLoadingCitas]                 = React.useState(false);
 
   const ESTADO_ORDER = { CONFIRMADA: 0, REAGENDADA: 1, SIN_CONFIRMAR: 2, NO_ASISTIO: 3, CANCELADA: 99 };
-  const ESTADO_LABEL = { CONFIRMADA: "Confirmada", REAGENDADA: "Reagendada", SIN_CONFIRMAR: "Sin confirmar", NO_ASISTIO: "No asistió", CANCELADA: "Cancelada" };
+  const ESTADO_LABEL = { CONFIRMADA: "Confirmada", REAGENDADA: "Reagendada", SIN_CONFIRMAR: "Por confirmar", NO_ASISTIO: "No asistió", CANCELADA: "Cancelada" };
   const ESTADO_V     = { CONFIRMADA: "ok", REAGENDADA: "warn", SIN_CONFIRMAR: "warn", NO_ASISTIO: "danger", CANCELADA: "danger" };
 
   // Cargar citas cuando cambia el paciente (solo modo independiente, no al editar)
@@ -2130,9 +2233,7 @@ function DiagnosticoForm({ item, context, support, onCancel, onSubmit, initialPa
           <div className="cita-resumen-card">
             <div className="cita-resumen-card-header">
               <span className="cita-resumen-card-title">Consulta seleccionada</span>
-              <span className={`badge ${ESTADO_V[citaSeleccionada.estado] || "info"}`}>
-                {ESTADO_LABEL[citaSeleccionada.estado] || citaSeleccionada.estado}
-              </span>
+              <Estado valor={citaSeleccionada.estado} />
             </div>
             <div className="cita-resumen-card-grid">
               <div className="cita-resumen-card-item">
@@ -2208,7 +2309,7 @@ function DiagnosticoForm({ item, context, support, onCancel, onSubmit, initialPa
 
 function Chat({ context }) {
   const [messages, setMessages] = React.useState([
-    { role: "assistant", text: "Hola, soy el asistente de MedInFlow.\n\n¿Con qué especialidad médica te puedo ayudar hoy?" },
+    { role: "assistant", text: "Hola, soy el asistente de CliniClick.\n\n¿Con qué especialidad médica te puedo ayudar hoy?" },
   ]);
   const [loading, setLoading] = React.useState(false);
   const bottomRef = React.useRef(null);
@@ -2237,7 +2338,7 @@ function Chat({ context }) {
       const respuesta = typeof result === "string" ? result : (result?.respuesta ?? "Sin respuesta");
       setMessages((items) => [...items, { role: "assistant", text: respuesta }]);
     } catch (err) {
-      console.error("[MedInFlow IA]", err);
+      console.error("[CliniClick IA]", err);
       const fallbacks = [
         "Hola, disculpa la interrupción. En este momento estoy atendiendo varias solicitudes a la vez.\n\nPor favor intenta nuevamente en unos segundos, con gusto te ayudo.",
         "Hola, disculpa. En este momento tengo un pequeño problema de conexión.\n\nPor favor intenta nuevamente en un momento, estaré disponible para ayudarte.",
@@ -2253,10 +2354,10 @@ function Chat({ context }) {
 
   return (
     <>
-      <ViewHeader title="Asistente de Citas" subtitle="Recepcionista virtual de MedInFlow." />
+      <ViewHeader title="Asistente de Citas" subtitle="Recepcionista virtual de CliniClick." />
       <section className="chat-shell">
         <aside className="chat-list">
-          <span className="badge info">MedInFlow IA</span>
+          <span className="badge info">CliniClick IA</span>
           <h3>Conversación activa</h3>
           <p className="muted">Puedo ayudarte a agendar tu cita médica.</p>
         </aside>
@@ -2292,7 +2393,7 @@ function SettingsView({ context }) {
   const [value, setValue] = React.useState(context.apiUrl);
   return (
     <>
-      <ViewHeader title="Ajustes" subtitle="Configuracion local del cliente web." />
+      <ViewHeader title="Ajustes" subtitle="Configuración local del cliente web." />
       <Section>
         <form
           className="form-grid"
@@ -2315,7 +2416,7 @@ function SettingsView({ context }) {
             <input value={context.role} disabled />
           </label>
           <label className="field">
-            <span>Organizacion</span>
+            <span>Organización</span>
             <input value={context.orgId} disabled />
           </label>
           <label className="field full">
@@ -2522,13 +2623,14 @@ function formatCell(value, type, support) {
   if (type === "datetime") return formatDate(value);
   if (type === "instant") return formatInstant(value);
   if (type === "money") return `$${Number(value).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
-  if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "SI" : "NO"}</span>;
-  if (type === "status") return <span className={`badge ${statusVariant(value)}`}>{String(value)}</span>;
+  if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "Sí" : "No"}</span>;
+  if (type === "status") return <Estado valor={value} />;
   if (type === "patient") return nameById("pacientes", value, support);
   if (type === "doctor") return nameById("medicos", value, support);
   if (type === "office") return nameById("consultorios", value, support);
   if (type === "appointment") return nameById("citas", value, support);
-  if (type === "day") return ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"][Number(value)] || value;
+  if (type === "hora") return formatHoraTexto(value);
+  if (type === "day") return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][Number(value)] || value;
   if (type === "motivo") return <MotivoCellWithModal text={String(value)} />;
   return String(value).length > 42 ? <span className="mono">{shortId(value)}</span> : String(value);
 }
@@ -2607,7 +2709,7 @@ function toDatetimeInput(value, citaClock = false) {
 const CITA_ESTADO_ORDER = { CONFIRMADA: 0, REAGENDADA: 1, SIN_CONFIRMAR: 2, NO_ASISTIO: 3, CANCELADA: 99 };
 const CITA_ESTADO_LABEL = {
   CONFIRMADA: "Confirmada", REAGENDADA: "Reagendada",
-  SIN_CONFIRMAR: "Sin confirmar", NO_ASISTIO: "No asistió", CANCELADA: "Cancelada",
+  SIN_CONFIRMAR: "Por confirmar", NO_ASISTIO: "No asistió", CANCELADA: "Cancelada",
 };
 const CITA_ESTADO_V = {
   CONFIRMADA: "ok", REAGENDADA: "warn", SIN_CONFIRMAR: "warn",
@@ -2633,14 +2735,12 @@ function CitaResumenCard({ cita, support }) {
   const consultorio = (support.consultorios || []).find((c) => c.id === cita.consultorioId);
   const fechaStr    = formatCitaFecha(f);
   const horaStr     = formatCitaHora12(f);
-  const estadoLabel = CITA_ESTADO_LABEL[cita.estado] || cita.estado;
-  const estadoV     = CITA_ESTADO_V[cita.estado] || "info";
 
   return (
     <div className="cita-resumen-card">
       <div className="cita-resumen-card-header">
         <span className="cita-resumen-card-title">Resumen de la consulta</span>
-        <span className={`badge ${estadoV}`}>{estadoLabel}</span>
+        <Estado valor={cita.estado} />
       </div>
       <div className="cita-resumen-card-grid">
         <div className="cita-resumen-card-item"><span>Paciente</span><strong>{paciente?.nombre || "—"}</strong></div>
@@ -3271,9 +3371,7 @@ function AdjuntosModuleMedico({ context }) {
                 <div key={e.id} className={`estudio-row estudio-row-${ESTUDIO_ESTADO_V[e.estado] || "info"}`}>
                   <div className="estudio-row-header">
                     <span className="estudio-tipo">{e.tipo}</span>
-                    <span className={`badge ${ESTUDIO_ESTADO_V[e.estado] || "info"}`}>
-                      {ESTUDIO_ESTADO_LABEL[e.estado] || e.estado}
-                    </span>
+                    <Estado valor={e.estado} />
                   </div>
                   {e.nombreArchivo && e.urlArchivo && (
                     esTipoImagen(e.mimeType, e.nombreArchivo) ? (
@@ -3528,9 +3626,7 @@ function AdjuntosModulePaciente({ context }) {
                     <span className="estudio-tipo">{e.tipo}</span>
                     <span className="estudio-fecha-small">{formatInstant(e.createdAt)}</span>
                   </div>
-                  <span className={`badge ${ESTUDIO_ESTADO_V[e.estado] || "info"}`}>
-                    {ESTUDIO_ESTADO_LABEL[e.estado] || e.estado}
-                  </span>
+                  <Estado valor={e.estado} />
                 </div>
 
                 {/* ── Archivo subido ── */}

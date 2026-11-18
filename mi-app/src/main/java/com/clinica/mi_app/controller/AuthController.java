@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@Tag(name = "Autenticacion", description = "Proxy hacia el AuthService externo de InToGlobe")
+@Tag(name = "Autenticación", description = "Proxy hacia el AuthService externo de InToGlobe")
 public class AuthController {
 
     private final AuthService authService;
@@ -31,11 +31,11 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    @Operation(summary = "Iniciar sesion", description = "Proxy: autentica contra el AuthService externo y retorna token RS256")
+    @Operation(summary = "Iniciar sesión", description = "Proxy: autentica contra el AuthService externo y retorna token RS256")
     @ApiResponses({
         @ApiResponse(responseCode = "200", description = "Login exitoso, retorna token JWT RS256"),
         @ApiResponse(responseCode = "400", description = "Datos invalidos en la solicitud"),
-        @ApiResponse(responseCode = "401", description = "Email o contrasena incorrectos")
+        @ApiResponse(responseCode = "401", description = "Correo o contraseña incorrectos")
     })
     public ResponseEntity<?> login(@Valid @RequestBody LoginRequest req, HttpServletRequest request) {
         LocalAuthService local = localAuthService.getIfAvailable();
@@ -44,7 +44,7 @@ public class AuthController {
             return local.login(req)
                     .<ResponseEntity<?>>map(ResponseEntity::ok)
                     .orElseGet(() -> ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                            .body(new ErrorResponse(401, "Email o contrasena incorrectos")));
+                            .body(new ErrorResponse(401, "Correo o contraseña incorrectos")));
         }
         String[] tenant = parseTenant(request.getHeader("Host"));
         return authService.login(req.getEmail(), req.getPassword(), tenant[0], tenant[1]);

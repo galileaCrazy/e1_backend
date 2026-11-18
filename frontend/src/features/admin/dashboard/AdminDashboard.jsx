@@ -1,6 +1,6 @@
 import React from "react";
 import { RefreshCw } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
 import {
   addDaysKey,
   clinicToday,
@@ -18,11 +18,11 @@ const REFRESCO_MS = 15000;
 const PERIODOS = [7, 30];
 
 const ESTADOS = [
-  { key: "CONFIRMADA", label: "Confirmadas", color: "var(--secondary)" },
-  { key: "SIN_CONFIRMAR", label: "Sin confirmar", color: "var(--warning)" },
-  { key: "REAGENDADA", label: "Reagendadas", color: "var(--primary-ui)" },
-  { key: "NO_ASISTIO", label: "No asistió", color: "var(--danger)" },
-  { key: "CANCELADA", label: "Canceladas", color: "var(--outline-strong)" },
+  { key: "CONFIRMADA", label: "Confirmadas", color: "var(--laguna-boton)" },
+  { key: "SIN_CONFIRMAR", label: "Por confirmar", color: "var(--lima)" },
+  { key: "REAGENDADA", label: "Reagendadas", color: "var(--bruma)" },
+  { key: "NO_ASISTIO", label: "No asistió", color: "var(--texto-2)" },
+  { key: "CANCELADA", label: "Canceladas", color: "var(--cancelada)" },
 ];
 
 const METODOS = [
@@ -78,7 +78,7 @@ export default function AdminDashboard({ context }) {
   }, [context, periodo, reloadKey]);
 
   const header = (
-    <ViewHeader title="Panel de Control" subtitle={capitalize(formatTodayLabel())}>
+    <ViewHeader title="Inicio" subtitle={capitalize(formatTodayLabel())}>
       <div className="admin-period" role="group" aria-label="Periodo de ingresos">
         {PERIODOS.map((dias) => (
           <button
@@ -156,7 +156,7 @@ export default function AdminDashboard({ context }) {
           {resumen ? <IngresosPorMedico medicos={resumen.porMedico || []} /> : <Loading label="Cargando..." />}
         </Section>
 
-        <Section title="Próximas citas sin confirmar" badge={String((dashboard.proximasSinConfirmar || []).length)}>
+        <Section title="Próximas citas por confirmar" badge={String((dashboard.proximasSinConfirmar || []).length)}>
           <ListaCitas
             citas={dashboard.proximasSinConfirmar || []}
             conTelefono
@@ -325,7 +325,7 @@ function ListaCitas({ citas, conTelefono = false, vacio, context, recordatorios,
               <RecordatorioWhatsApp context={context} cita={cita} estado={recordatorios[cita.id]} onEnviado={onRecordatorio} />
             )}
           </div>
-          <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+          <Estado valor={cita.estado} />
         </article>
       ))}
     </div>

@@ -1,15 +1,17 @@
+import { Estado } from "../components/ui";
 export function formatCell(value, type, support) {
   if (value == null || value === "") return <span className="muted">-</span>;
   if (type === "datetime") return formatDate(value);
   if (type === "instant") return formatInstant(value);
   if (type === "money") return formatMoney(value);
-  if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "SI" : "NO"}</span>;
-  if (type === "status") return <span className={`badge ${statusVariant(value)}`}>{String(value)}</span>;
+  if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "Sí" : "No"}</span>;
+  if (type === "status") return <Estado valor={value} />;
   if (type === "patient") return nameById("pacientes", value, support);
   if (type === "doctor") return nameById("medicos", value, support);
   if (type === "office") return nameById("consultorios", value, support);
   if (type === "appointment") return nameById("citas", value, support);
-  if (type === "day") return ["Dom", "Lun", "Mar", "Mie", "Jue", "Vie", "Sab"][Number(value)] || value;
+  if (type === "hora") return formatHoraTexto(value);
+  if (type === "day") return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][Number(value)] || value;
   return String(value).length > 42 ? <span className="mono">{shortId(value)}</span> : String(value);
 }
 
@@ -119,17 +121,45 @@ export function addDaysKey(dateKey, days) {
 }
 
 /** Fecha y hora de una cita. */
+// ── Horas: UN solo formato en toda la app, 12 h sin cero inicial: "9:30 a.m.", "1:00 p.m." ──
+
+/** "9:30 a.m." a partir de hora (0–23) y minuto. */
+export function hora12(h, m) {
+  const hh = h % 12 === 0 ? 12 : h % 12;
+  return `${hh}:${String(m).padStart(2, "0")} ${h < 12 ? "a.m." : "p.m."}`;
+}
+
+/** Hora "HH:MM" o "HH:MM:SS" (horarios, horas disponibles) → "9:30 a.m.". */
+export function formatHoraTexto(value) {
+  const m = /^(\d{1,2}):(\d{2})/.exec(String(value || ""));
+  return m ? hora12(Number(m[1]), Number(m[2])) : String(value || "");
+}
+
+/** Hora de un INSTANTE real (createdAt, enviadaEn...) en una zona; por defecto, la del navegador. */
+export function formatHoraInstante(value, timeZone) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", hourCycle: "h23", timeZone })
+      .formatToParts(date)
+      .map((x) => [x.type, x.value])
+  );
+  return hora12(Number(p.hour) % 24, Number(p.minute));
+}
+
+/** Fecha y hora de una cita: "19 nov 2026, 9:30 a.m." (convención de reloj en UTC). */
 export function formatDate(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: UTC });
+  const fecha = date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: UTC }).replace(".", "");
+  return `${fecha}, ${hora12(date.getUTCHours(), date.getUTCMinutes())}`;
 }
 
 /** Hora de una cita. */
 export function formatTime(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
-  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", timeZone: UTC });
+  return hora12(date.getUTCHours(), date.getUTCMinutes());
 }
 
 /** Fecha corta "dd/mm/aaaa" de una cita. */
@@ -143,14 +173,15 @@ export function formatCitaFecha(value) {
 export function formatCitaHora12(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "--:--";
-  return date.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: true, timeZone: UTC });
+  return hora12(date.getUTCHours(), date.getUTCMinutes());
 }
 
 /** Momento real (createdAt, enviadaEn...): se muestra en la hora local del navegador. */
 export function formatInstant(value) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return String(value);
-  return date.toLocaleString("es-MX", { dateStyle: "medium", timeStyle: "short" });
+  const fecha = date.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric" }).replace(".", "");
+  return `${fecha}, ${formatHoraInstante(date)}`;
 }
 
 export function formatMoney(value) {
@@ -173,7 +204,7 @@ export function formatTodayLabel() {
 }
 
 export function formatWeekday(value) {
-  return ["Domingo", "Lunes", "Martes", "Miercoles", "Jueves", "Viernes", "Sabado"][Number(value)] || value;
+  return ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"][Number(value)] || value;
 }
 
 export function sliceTime(value) {

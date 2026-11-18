@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarDays, CalendarPlus, CreditCard, FileText, Upload } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
 import { formatDate, formatMoney, formatTime, isFuture, sessionDisplayName, shortId, statusVariant } from "../../../lib/display";
 import "./PacienteDashboard.css";
 
@@ -41,7 +41,7 @@ export default function PacienteDashboard({ context }) {
   if (error) {
     return (
       <>
-        <ViewHeader title="Mi portal" subtitle={`Bienvenido, ${context.userName}.`} />
+        <ViewHeader title="Inicio" subtitle={`Bienvenido, ${context.userName}.`} />
         <ErrorBox message={error} />
       </>
     );
@@ -56,7 +56,7 @@ export default function PacienteDashboard({ context }) {
 
   return (
     <>
-      <ViewHeader title="Mi portal" subtitle={`Bienvenido, ${displayPatientName(data.paciente, context)}.`}>
+      <ViewHeader title="Inicio" subtitle={`Bienvenido, ${displayPatientName(data.paciente, context)}.`}>
         <button className="btn" onClick={() => context.go("paciente/citas")}>
           <CalendarDays size={16} /> Mis citas
         </button>
@@ -102,7 +102,7 @@ function PatientAppointmentCard({ cita, medicos }) {
         <CalendarDays size={22} />
         <span>{formatDate(cita.fechaHora)}</span>
       </div>
-      <h3>{cita.motivo || "Consulta medica"}</h3>
+      <h3>{cita.motivo || "Consulta médica"}</h3>
       <dl>
         <div>
           <dt>Hora</dt>
@@ -117,13 +117,13 @@ function PatientAppointmentCard({ cita, medicos }) {
           <dd>{doctorName(cita.medicoId, medicos)}</dd>
         </div>
       </dl>
-      <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+      <Estado valor={cita.estado} />
     </article>
   );
 }
 
 function PatientDiagnosisList({ rows }) {
-  if (!rows.length) return <Empty label="Aun no hay diagnosticos publicados en tu expediente." />;
+  if (!rows.length) return <Empty label="Aún no hay diagnósticos publicados en tu expediente." />;
   return (
     <div className="patient-list">
       {rows.map((row) => (
@@ -150,7 +150,7 @@ function PatientPaymentList({ rows }) {
             <strong>{formatMoney(row.monto)}</strong>
             <span>{row.concepto || row.metodo || "Pago de cita"}</span>
           </div>
-          <span className={`badge ${statusVariant(row.estado)}`}>{row.estado}</span>
+          <Estado valor={row.estado} />
         </article>
       ))}
     </div>

@@ -127,7 +127,7 @@ public class CitaService {
 
     public List<String> listarHorasDisponibles(UUID medicoId, LocalDate fecha, Short duracionMin) {
         Medico medico = medicoRepo.findById(medicoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Medico", medicoId.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Médico", medicoId.toString()));
         short diaSemana = (short) (fecha.getDayOfWeek().getValue() % 7);
         // Convención: hora de reloj de la clínica guardada en UTC
         ZoneId zone = ZoneOffset.UTC;
@@ -191,11 +191,11 @@ public class CitaService {
     @Transactional
     public CitaResponse crear(CitaRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Paciente paciente = pacienteRepo.findById(req.getPacienteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", req.getPacienteId().toString()));
         Medico medico = medicoRepo.findById(req.getMedicoId())
-                .orElseThrow(() -> new ResourceNotFoundException("Medico", req.getMedicoId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Médico", req.getMedicoId().toString()));
 
         if (Roles.PACIENTE.equals(AuthenticatedUser.getRol()) && !AuthenticatedUser.getEmail().equals(paciente.getEmail())) {
             throw new ResourceNotFoundException("Paciente", req.getPacienteId().toString());
@@ -204,7 +204,7 @@ public class CitaService {
             org = paciente.getOrganizacion();
         }
         if (!medico.getOrganizacion().getId().equals(org.getId())) {
-            throw new ResourceNotFoundException("Medico", req.getMedicoId().toString());
+            throw new ResourceNotFoundException("Médico", req.getMedicoId().toString());
         }
 
         Consultorio consultorio = Roles.PACIENTE.equals(AuthenticatedUser.getRol())
@@ -272,7 +272,7 @@ public class CitaService {
     @Transactional
     public CitaResponse cambiarEstado(UUID id, String nuevoEstado) {
         if (!ESTADOS_VALIDOS.contains(nuevoEstado)) {
-            throw new IllegalArgumentException("Estado no valido: " + nuevoEstado);
+            throw new IllegalArgumentException("Estado no válido: " + nuevoEstado);
         }
         Cita c = repo.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Cita", id.toString()));
@@ -307,7 +307,7 @@ public class CitaService {
         List<DisponibilidadSlot> disponibles = calcularDisponibilidad(medicoId, fecha, excludeId);
         boolean libre = disponibles.stream().anyMatch(s -> s.getHora().equals(horaSlot));
         if (!libre) {
-            throw new IllegalArgumentException("El horario seleccionado no esta disponible para este medico");
+            throw new IllegalArgumentException("El horario seleccionado no está disponible para este médico");
         }
     }
 
@@ -316,7 +316,7 @@ public class CitaService {
             return;
         }
         if (!ESTADOS_VALIDOS.contains(estado)) {
-            throw new IllegalArgumentException("Estado de cita invalido: " + estado);
+            throw new IllegalArgumentException("Estado de cita inválido: " + estado);
         }
         cita.setEstado(estado);
     }

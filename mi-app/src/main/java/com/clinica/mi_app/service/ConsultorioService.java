@@ -40,7 +40,7 @@ public class ConsultorioService {
 
     public ConsultorioResponse crear(ConsultorioRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Consultorio c = new Consultorio();
         c.setOrganizacion(org);
         c.setNombre(req.getNombre());

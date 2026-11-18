@@ -27,7 +27,7 @@
 .slot-grid button.active {
   border-color: var(--primary);
   background: var(--primary);
-  color: #fff;
+  color: var(--blanco);
 }
 
 .slot-state {

@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarDays, Users } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
 import {
   formatCell,
   formatDate,
@@ -11,7 +11,7 @@ import {
   isFuture,
   isToday,
   nameById,
-  sliceTime,
+  formatHoraTexto,
   statusVariant,
 } from "../../../lib/display";
 import "./MedicoDashboard.css";
@@ -25,7 +25,7 @@ export default function MedicoDashboard({ context }) {
     async function load() {
       if (!context.medicoId) {
         setData(null);
-        setError("Tu usuario medico no tiene un medico asociado. Un administrador debe asignar medico_id al usuario.");
+        setError("Tu usuario médico no tiene un médico asociado. Un administrador debe asignar medico_id al usuario.");
         return;
       }
 
@@ -52,12 +52,12 @@ export default function MedicoDashboard({ context }) {
   if (error) {
     return (
       <>
-        <ViewHeader title="Dashboard" subtitle={`Bienvenido, ${context.userName}.`} />
+        <ViewHeader title="Inicio" subtitle={`Te damos la bienvenida, ${context.userName}.`} />
         <ErrorBox message={error} />
       </>
     );
   }
-  if (!data) return <Loading label="Cargando dashboard medico..." />;
+  if (!data) return <Loading label="Cargando dashboard médico..." />;
 
   const support = { pacientes: data.pacientes, consultorios: data.consultorios };
   const sortedCitas = [...data.citas].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
@@ -75,7 +75,7 @@ export default function MedicoDashboard({ context }) {
 
   return (
     <>
-      <ViewHeader title="Dashboard" subtitle={`Bienvenido, ${context.userName}.`}>
+      <ViewHeader title="Inicio" subtitle={`Te damos la bienvenida, ${context.userName}.`}>
         <button className="btn" onClick={() => context.go("modulo/pacientes")}>
           <Users size={16} /> Pacientes
         </button>
@@ -86,8 +86,8 @@ export default function MedicoDashboard({ context }) {
 
       <section className="metrics">
         <Metric label="Citas hoy" value={todayCitas.length} />
-        <Metric label="Proximas citas" value={upcomingCitas.length} variant="secondary" />
-        <Metric label="Sin confirmar" value={unconfirmed} variant="warning" />
+        <Metric label="Próximas citas" value={upcomingCitas.length} variant="secondary" />
+        <Metric label="Por confirmar" value={unconfirmed} variant="warning" />
         <Metric label="Pacientes vinculados" value={myPatients.length} variant="danger" />
       </section>
 
@@ -102,8 +102,8 @@ export default function MedicoDashboard({ context }) {
         </section>
 
         <aside>
-          <Section title="Proximas 5 citas">
-            <AppointmentList rows={upcomingCitas} support={support} emptyLabel="No hay proximas citas en tu agenda." compact />
+          <Section title="Próximas 5 citas">
+            <AppointmentList rows={upcomingCitas} support={support} emptyLabel="No hay próximas citas en tu agenda." compact />
           </Section>
           <Section title="Horario semanal">
             <DoctorSchedule horarios={data.horarios} />
@@ -129,10 +129,10 @@ function AppointmentList({ rows, support, emptyLabel, compact = false }) {
           </div>
           <div className="appointment-main">
             <strong>{nameById("pacientes", cita.pacienteId, support)}</strong>
-            <span>{cita.motivo || "Consulta medica"}</span>
+            <span>{cita.motivo || "Consulta médica"}</span>
             <small>{nameById("consultorios", cita.consultorioId, support)}</small>
           </div>
-          <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+          <Estado valor={cita.estado} />
         </article>
       ))}
     </div>
@@ -140,7 +140,7 @@ function AppointmentList({ rows, support, emptyLabel, compact = false }) {
 }
 
 function DoctorPatientList({ pacientes, citas }) {
-  if (!pacientes.length) return <Empty label="Aun no hay pacientes ligados a tus citas." />;
+  if (!pacientes.length) return <Empty label="Aún no hay pacientes ligados a tus citas." />;
   return (
     <div className="patient-mini-list">
       {pacientes.map((paciente) => {
@@ -156,7 +156,7 @@ function DoctorPatientList({ pacientes, citas }) {
               <strong>{paciente.nombre}</strong>
               <span>{paciente.email || paciente.telefono || "Sin contacto registrado"}</span>
             </div>
-            <small>{nextCita ? formatDate(nextCita.fechaHora) : "Sin cita proxima"}</small>
+            <small>{nextCita ? formatDate(nextCita.fechaHora) : "Sin cita próxima"}</small>
           </article>
         );
       })}
@@ -165,7 +165,7 @@ function DoctorPatientList({ pacientes, citas }) {
 }
 
 function DoctorSchedule({ horarios }) {
-  if (!horarios.length) return <Empty label="No hay horario registrado para este medico." />;
+  if (!horarios.length) return <Empty label="No hay horario registrado para este médico." />;
   const ordered = [...horarios].sort((a, b) => Number(a.diaSemana) - Number(b.diaSemana) || String(a.horaInicio).localeCompare(String(b.horaInicio)));
   return (
     <div className="schedule-list">
@@ -173,7 +173,7 @@ function DoctorSchedule({ horarios }) {
         <div className="schedule-row" key={horario.id}>
           <span>{formatWeekday(horario.diaSemana)}</span>
           <strong>
-            {sliceTime(horario.horaInicio)} - {sliceTime(horario.horaFin)}
+            {formatHoraTexto(horario.horaInicio)} – {formatHoraTexto(horario.horaFin)}
           </strong>
           <small>{horario.duracionConsulta} min</small>
         </div>

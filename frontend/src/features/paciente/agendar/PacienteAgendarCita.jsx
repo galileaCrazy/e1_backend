@@ -1,7 +1,7 @@
 import React from "react";
 import { CalendarPlus } from "lucide-react";
 import { Empty, ErrorBox, Loading, Section, ViewHeader } from "../../../components/ui";
-import { clinicToday } from "../../../lib/display";
+import { clinicToday, formatHoraTexto } from "../../../lib/display";
 import "./PacienteAgendarCita.css";
 
 export default function PacienteAgendarCita({ context }) {
@@ -72,7 +72,7 @@ export default function PacienteAgendarCita({ context }) {
     const form = new FormData(event.currentTarget);
     const medico = medicos.find((item) => String(item.id) === String(medicoId));
     if (!medico || !hora) {
-      context.notify("Selecciona medico, fecha y hora disponible", "error");
+      context.notify("Selecciona médico, fecha y hora disponible", "error");
       return;
     }
 
@@ -148,7 +148,7 @@ export default function PacienteAgendarCita({ context }) {
                 <div className="slot-grid">
                   {horas.map((item) => (
                     <button key={item} type="button" className={hora === item ? "active" : ""} onClick={() => setHora(item)} disabled={submitting}>
-                      {item}
+                      {formatHoraTexto(item)}
                     </button>
                   ))}
                 </div>

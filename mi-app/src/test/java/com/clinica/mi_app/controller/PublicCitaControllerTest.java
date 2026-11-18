@@ -57,7 +57,8 @@ class PublicCitaControllerTest {
 
     private static PublicCitaResponse respuesta(String resultado) {
         return new PublicCitaResponse("Ana", "Clínica Centro", "Dra. Mariana López Ruiz", "Pediatría",
-                "Consultorio 1", null, OffsetDateTime.parse("2026-11-19T10:00:00Z"), "SIN_CONFIRMAR", resultado);
+                "Consultorio 1", null, OffsetDateTime.parse("2026-11-19T10:00:00Z"), "SIN_CONFIRMAR", resultado,
+                (short) 30, "9515550100");
     }
 
     @Test

@@ -51,6 +51,8 @@ class PublicCitaServiceTest {
         assertEquals(OffsetDateTime.parse("2026-11-19T10:00:00Z"), r.fechaHora());
         assertEquals("SIN_CONFIRMAR", r.estado());
         assertNull(r.resultado());
+        assertEquals((short) 30, r.duracionMin());
+        assertEquals("9515550100", r.telefonoClinica(), "teléfono público del consultorio");
         assertFalse(r.toString().contains("9511234567"), "nunca expone el teléfono");
         verifyNoInteractions(respuestaService);
     }
@@ -164,6 +166,7 @@ class PublicCitaServiceTest {
         m.setEspecialidad("Pediatría");
         Consultorio cons = new Consultorio();
         cons.setNombre("Consultorio 1");
+        cons.setTelefono("9515550100");
         Cita c = new Cita();
         c.setId(UUID.randomUUID());
         c.setOrganizacion(o);
@@ -171,6 +174,7 @@ class PublicCitaServiceTest {
         c.setMedico(m);
         c.setConsultorio(cons);
         c.setEstado("SIN_CONFIRMAR");
+        c.setDuracionMin((short) 30);
         c.setFechaHora(OffsetDateTime.parse("2026-11-19T10:00:00Z"));
         return c;
     }

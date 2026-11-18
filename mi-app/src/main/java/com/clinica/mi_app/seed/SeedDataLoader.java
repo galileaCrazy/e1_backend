@@ -44,6 +44,8 @@ public class SeedDataLoader {
     /** Cuántas respuestas recientes (últimas 48 h) quedan sin leer para que la campana se vea natural. */
     static final int RESPUESTAS_SIN_LEER = 4;
     static final Duration RECIENTE = Duration.ofDays(2);
+    /** Días hacia atrás con historial de recordatorios y confirmaciones. */
+    static final int DIAS_HISTORIAL = 7;
 
     /** Notificación del seed. {@code enviada} es un instante REAL (no la convención de reloj en UTC). */
     record NotifSeed(UUID org, UUID cita, String tipo, String estado, Instant enviada, String respuesta) {}
@@ -244,7 +246,8 @@ public class SeedDataLoader {
         jdbc.update("INSERT INTO cita (id, organizacion_id, paciente_id, medico_id, consultorio_id, fecha_hora, duracion_min, estado, motivo, cancelada_en, cancelada_por, created_at) " +
                         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 cita, org, paciente, medico, consultorio, Timestamp.from(fh.toInstant()), 30, estado, pick(d.motivos()),
-                canceladaEn == null ? null : Timestamp.from(canceladaEn), canceladaPor, Timestamp.from(creada));
+                // cancelada_en usa la convención de reloj (como WhatsAppRespuestaService con reloj.ahora())
+                canceladaEn == null ? null : Timestamp.from(aReloj(canceladaEn).toInstant()), canceladaPor, Timestamp.from(creada));
 
         notificaciones.addAll(notificacionesDeCita(org, cita, real, estado, canceladaPor, canceladaEn, ahora,
                 Duration.ofMinutes(10 + rnd.nextInt(170))));
@@ -253,11 +256,14 @@ public class SeedDataLoader {
             // Pago de la consulta
             double r = rnd.nextDouble();
             String metodo = r < 0.45 ? "EFECTIVO" : (r < 0.75 ? "TARJETA" : "TRANSFERENCIA");
-            boolean pagado = rnd.nextDouble() < 0.9;
+            // pagado_en usa la convención de reloj de la clínica en UTC (igual que PagoService con reloj.ahora()
+            // y CobroResumenService). Nunca después de la hora actual: si la consulta acaba de empezar, queda pendiente.
+            OffsetDateTime pagadoEn = fh.plusMinutes(35);
+            boolean pagado = rnd.nextDouble() < 0.9 && pagadoEn.isBefore(aReloj(ahora));
             jdbc.update("INSERT INTO pago (organizacion_id, cita_id, monto, metodo, concepto, estado, referencia, pagado_en) VALUES (?,?,?,?,?,?,?,?)",
                     org, cita, d.tarifa(), metodo, "Consulta · " + d.especialidad(), pagado ? "PAGADO" : "PENDIENTE",
                     "TRANSFERENCIA".equals(metodo) ? "SPEI-" + (100000 + rnd.nextInt(899999)) : null,
-                    pagado ? Timestamp.from(real.plus(Duration.ofMinutes(35))) : null);
+                    pagado ? Timestamp.from(pagadoEn.toInstant()) : null);
             // Diagnóstico CIE-10
             String[] dx = d.cie10()[rnd.nextInt(d.cie10().length)];
             jdbc.update("INSERT INTO diagnostico (cita_id, codigo_cie10, descripcion, tipo, created_at) VALUES (?,?,?,?,?)",
@@ -275,8 +281,9 @@ public class SeedDataLoader {
     /**
      * Notificaciones realistas de una cita, todas con instantes reales y nunca en el futuro:
      * <ul>
-     *   <li>RECORDATORIO_48H / 24H exactamente 48 / 24 h antes de la cita, solo si ese momento ya pasó,
-     *       solo para citas recientes o próximas (últimos 3 días en adelante) y nunca después de cancelarse.</li>
+     *   <li>RECORDATORIO_48H / 24H exactamente 48 / 24 h antes de la cita, solo para citas de DÍAS ANTERIORES
+     *       a hoy (últimos {@value #DIAS_HISTORIAL} días) y nunca después de cancelarse. Las citas de hoy, de
+     *       mañana y futuras no traen recordatorios: en la demo el panel "Por confirmar" empieza en 0.</li>
      *   <li>CONFIRMACION_PACIENTE ("1") un rato después del primer recordatorio, si la cita está confirmada.</li>
      *   <li>CANCELACION_PACIENTE ("2") en el momento real de la cancelación hecha por el paciente.</li>
      * </ul>
@@ -285,7 +292,8 @@ public class SeedDataLoader {
                                                 Instant canceladaEn, Instant ahora, Duration demoraRespuesta) {
         List<NotifSeed> out = new ArrayList<>();
         boolean cancelada = "CANCELADA".equals(estado);
-        if (real.isAfter(ahora.minus(Duration.ofDays(3)))) {
+        Instant inicioHoy = LocalDate.ofInstant(ahora, CLINICA_TZ).atStartOfDay(CLINICA_TZ).toInstant();
+        if (real.isBefore(inicioHoy) && real.isAfter(inicioHoy.minus(Duration.ofDays(DIAS_HISTORIAL)))) {
             for (Object[] r : new Object[][]{{"RECORDATORIO_48H", 48}, {"RECORDATORIO_24H", 24}}) {
                 Instant envio = real.minus(Duration.ofHours((Integer) r[1]));
                 if (!envio.isBefore(ahora)) continue;                                       // nunca en el futuro
@@ -327,6 +335,11 @@ public class SeedDataLoader {
                     n.org(), n.cita(), "WHATSAPP", n.tipo(), n.estado(), cuando, cuando, !sinLeer.contains(n), n.respuesta());
         }
         return unicas.size();
+    }
+
+    /** Instante real → "hora de reloj de la clínica expresada en UTC" (convención de cita.fecha_hora). */
+    static OffsetDateTime aReloj(Instant real) {
+        return LocalDateTime.ofInstant(real, CLINICA_TZ).atOffset(ZoneOffset.UTC);
     }
 
     private static Instant minimo(Instant a, Instant b) {

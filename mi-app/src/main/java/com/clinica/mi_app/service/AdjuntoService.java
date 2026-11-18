@@ -94,7 +94,7 @@ public class AdjuntoService {
      */
     public AdjuntoResponse solicitar(SolicitudEstudioRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Paciente paciente = pacienteRepo.findById(req.getPacienteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", req.getPacienteId().toString()));
         Cita cita = citaRepo.findById(req.getCitaId())
@@ -222,7 +222,7 @@ public class AdjuntoService {
 
     public AdjuntoResponse crear(AdjuntoRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Paciente paciente = pacienteRepo.findById(req.getPacienteId())
                 .orElseThrow(() -> new ResourceNotFoundException("Paciente", req.getPacienteId().toString()));
         Usuario subidoPor = usuarioRepo.findById(req.getSubidoPorId())

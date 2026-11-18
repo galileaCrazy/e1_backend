@@ -1,6 +1,6 @@
 import React from "react";
 import { AlertTriangle, Check, MessageSquareReply, Send } from "lucide-react";
-import { CLINIC_TIME_ZONE } from "../../lib/display";
+import { CLINIC_TIME_ZONE, formatHoraInstante } from "../../lib/display";
 import "./WhatsApp.css";
 
 /**
@@ -56,10 +56,49 @@ export function useCanalWhatsApp(context) {
   return canal;
 }
 
-/** Botón "Enviar recordatorio WhatsApp" + indicador del último estado (enviado / respondió / falló). */
-export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compacto = false }) {
+/**
+ * Envío de un recordatorio con el canal configurado. Con "enlace" la pestaña de wa.me se abre DENTRO
+ * del clic (si se abriera después del await, el navegador la bloquearía). Un 409 ("ya se envió") no es
+ * un error: se avisa y se ofrece "Reenviar". Devuelve true si se envió.
+ */
+export function useEnviarRecordatorio(context) {
   const canal = useCanalWhatsApp(context);
   const esEnlace = canal === "enlace";
+  return React.useCallback(
+    async (citaId, reenviar = false) => {
+      const pestana = esEnlace ? window.open("", "_blank") : null;
+      try {
+        const r = await context.api(`/api/admin/recordatorios/${citaId}/enviar${reenviar ? "?reenviar=true" : ""}`, { method: "POST" });
+        if (r?.waUrl) {
+          if (pestana && !pestana.closed) {
+            pestana.opener = null;
+            pestana.location.href = r.waUrl;
+          } else {
+            window.open(r.waUrl, "_blank", "noopener");
+          }
+          context.notify("Se abrió WhatsApp con el recordatorio y el enlace. Envíalo al paciente.");
+        } else {
+          pestana?.close();
+          context.notify(reenviar ? "Recordatorio reenviado por WhatsApp" : "Recordatorio enviado por WhatsApp");
+        }
+        return true;
+      } catch (err) {
+        pestana?.close();
+        if (/ya se envi/i.test(err.message || "")) {
+          context.notify("Esta cita ya tenía recordatorio. Usa \"Reenviar\" si quieres mandarlo otra vez.");
+        } else {
+          context.notify(mensajeErrorCanal(err.message), "error");
+        }
+        return false;
+      }
+    },
+    [context, esEnlace]
+  );
+}
+
+/** Botón "Enviar recordatorio WhatsApp" + indicador del último estado (enviado / respondió / falló). */
+export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compacto = false }) {
+  const enviarRecordatorio = useEnviarRecordatorio(context);
   const [enviando, setEnviando] = React.useState(false);
   const [confirmarReenvio, setConfirmarReenvio] = React.useState(false);
   const yaEnviado = estado && ["ENVIADO", "RESPONDIO"].includes(estado.estado);
@@ -68,30 +107,8 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
   async function enviar(reenviar) {
     setEnviando(true);
     setConfirmarReenvio(false);
-    // Canal "enlace": la pestaña se abre dentro del clic; si se abriera después del await,
-    // el navegador la bloquearía como ventana emergente.
-    const pestana = esEnlace ? window.open("", "_blank") : null;
     try {
-      const r = await context.api(`/api/admin/recordatorios/${cita.id}/enviar${reenviar ? "?reenviar=true" : ""}`, { method: "POST" });
-      if (r?.waUrl) {
-        if (pestana && !pestana.closed) {
-          pestana.opener = null;
-          pestana.location.href = r.waUrl;
-        } else {
-          window.open(r.waUrl, "_blank", "noopener");
-        }
-        context.notify("Se abrió WhatsApp con el recordatorio y el enlace. Envíalo al paciente.");
-      } else {
-        pestana?.close();
-        context.notify(reenviar ? "Recordatorio reenviado por WhatsApp" : "Recordatorio enviado por WhatsApp");
-      }
-    } catch (err) {
-      pestana?.close();
-      if (/ya se envi/i.test(err.message || "")) {
-        context.notify("Esta cita ya tenía recordatorio. Usa \"Reenviar\" si quieres mandarlo otra vez.");
-      } else {
-        context.notify(mensajeErrorCanal(err.message), "error");
-      }
+      await enviarRecordatorio(cita.id, reenviar);
     } finally {
       setEnviando(false);
       onEnviado?.();
@@ -151,7 +168,7 @@ function IndicadorRecordatorio({ estado }) {
 }
 
 /** Mensajes de error del canal en español (los del backend ya vienen en español). */
-function mensajeErrorCanal(mensaje) {
+export function mensajeErrorCanal(mensaje) {
   if (mensaje === "HTTP 502") return "El proveedor de WhatsApp no respondió; el intento quedó registrado como fallido.";
   if (mensaje === "Failed to fetch") return "No hay conexión con el servidor. Revisa que el backend esté levantado.";
   if (/^HTTP \d+$/.test(mensaje || "")) return `No se pudo enviar el recordatorio (${mensaje}).`;
@@ -166,7 +183,7 @@ export function formatMomentoEnvio(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
   const dia = (x) => x.toLocaleDateString("en-CA", { timeZone: CLINIC_TIME_ZONE });
-  const hora = d.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: CLINIC_TIME_ZONE });
+  const hora = formatHoraInstante(d, CLINIC_TIME_ZONE);
   if (dia(d) === dia(new Date())) return hora;
   const fecha = d.toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: CLINIC_TIME_ZONE }).replace(".", "");
   return `${fecha}, ${hora}`;
@@ -176,7 +193,7 @@ export function formatMomentoEnvio(value) {
 export function formatHoraLocal(value) {
   const d = new Date(value);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit" });
+  return formatHoraInstante(d);
 }
 
 function recortar(texto) {

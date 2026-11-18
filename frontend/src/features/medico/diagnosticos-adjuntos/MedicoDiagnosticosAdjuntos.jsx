@@ -15,7 +15,7 @@ export default function MedicoDiagnosticosAdjuntos({ context }) {
   const loadBase = React.useCallback(async () => {
     if (!context.medicoId) {
       setBase(null);
-      setError("Tu usuario medico no tiene un medico asociado.");
+      setError("Tu usuario médico no tiene un médico asociado.");
       return;
     }
 
@@ -87,7 +87,7 @@ export default function MedicoDiagnosticosAdjuntos({ context }) {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      context.notify("Diagnostico guardado");
+      context.notify("Diagnóstico guardado");
       await loadClinical();
     } catch (err) {
       context.notify(err.message, "error");
@@ -110,18 +110,18 @@ export default function MedicoDiagnosticosAdjuntos({ context }) {
   if (error) {
     return (
       <>
-        <ViewHeader title="Diagnosticos y Adjuntos" />
+        <ViewHeader title="Diagnósticos y Adjuntos" />
         <ErrorBox message={error} />
       </>
     );
   }
-  if (!base) return <Loading label="Cargando datos clinicos..." />;
+  if (!base) return <Loading label="Cargando datos clínicos..." />;
 
   const selectedPaciente = base.pacientes.find((paciente) => String(paciente.id) === String(selectedPacienteId));
 
   return (
     <>
-      <ViewHeader title="Diagnosticos y Adjuntos">
+      <ViewHeader title="Diagnósticos y Adjuntos">
         <button className="btn primary" onClick={loadBase}>
           <RefreshCw size={16} /> Actualizar
         </button>
@@ -130,7 +130,7 @@ export default function MedicoDiagnosticosAdjuntos({ context }) {
       <section className="metrics">
         <Metric label="Pacientes" value={base.pacientes.length} />
         <Metric label="Citas del paciente" value={citasPaciente.length} variant="secondary" />
-        <Metric label="Diagnosticos" value={clinical.diagnosticos.length} variant="warning" />
+        <Metric label="Diagnósticos" value={clinical.diagnosticos.length} variant="warning" />
         <Metric label="Adjuntos" value={clinical.adjuntos.length} variant="danger" />
       </section>
 
@@ -159,10 +159,10 @@ export default function MedicoDiagnosticosAdjuntos({ context }) {
           <Section title={selectedPaciente ? selectedPaciente.nombre : "Paciente"}>
             <PatientSummary paciente={selectedPaciente} />
           </Section>
-          <Section title={loadingClinical ? "Cargando diagnosticos..." : "Diagnosticos"}>
+          <Section title={loadingClinical ? "Cargando diagnósticos..." : "Diagnósticos"}>
             <DiagnosisList diagnosticos={clinical.diagnosticos} citas={base.citas} />
           </Section>
-          <Section title="Nuevo diagnostico">
+          <Section title="Nuevo diagnóstico">
             <DiagnosisForm citaId={selectedCitaId} onSubmit={saveDiagnostico} />
           </Section>
         </section>
@@ -195,7 +195,7 @@ function PatientSummary({ paciente }) {
         <strong>{paciente.email || "-"}</strong>
       </div>
       <div>
-        <span>Telefono</span>
+        <span>Teléfono</span>
         <strong>{paciente.telefono || "-"}</strong>
       </div>
       <div>
@@ -211,7 +211,7 @@ function PatientSummary({ paciente }) {
 }
 
 function DiagnosisList({ diagnosticos, citas }) {
-  if (!diagnosticos.length) return <Empty label="No hay diagnosticos para esta seleccion." />;
+  if (!diagnosticos.length) return <Empty label="No hay diagnósticos para esta selección." />;
   return (
     <div className="clinical-list">
       {diagnosticos.map((diagnostico) => {
@@ -232,7 +232,7 @@ function DiagnosisList({ diagnosticos, citas }) {
 }
 
 function AttachmentList({ adjuntos }) {
-  if (!adjuntos.length) return <Empty label="No hay adjuntos para esta seleccion." />;
+  if (!adjuntos.length) return <Empty label="No hay adjuntos para esta selección." />;
   return (
     <div className="clinical-list">
       {adjuntos.map((adjunto) => (
@@ -265,7 +265,7 @@ function DiagnosisForm({ citaId, onSubmit }) {
         event.currentTarget.reset();
       }}
     >
-      {!citaId && <ErrorBox message="Selecciona una cita para registrar diagnostico." />}
+      {!citaId && <ErrorBox message="Selecciona una cita para registrar diagnóstico." />}
       <label className="field">
         <span>Tipo</span>
         <select name="tipo" defaultValue="PRINCIPAL" disabled={!citaId}>
@@ -278,7 +278,7 @@ function DiagnosisForm({ citaId, onSubmit }) {
         <input name="codigoCie10" maxLength="10" placeholder="Opcional" disabled={!citaId} />
       </label>
       <label className="field full">
-        <span>Descripcion</span>
+        <span>Descripción</span>
         <textarea name="descripcion" rows="5" required disabled={!citaId} />
       </label>
       <div className="actions full">

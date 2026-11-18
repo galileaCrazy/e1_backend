@@ -1,0 +1,581 @@
+/* ── CliniClick · componentes y layout ─────────────────────────────────────────
+   Se carga después de styles.css. Solo usa tokens de styles/tokens.css.
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* ── Botones base de la app (.btn) ─────────────────────────────────────────── */
+.btn {
+  min-height: var(--toque-min);
+  height: auto;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-sm);
+  background: var(--blanco);
+  color: var(--tinta);
+  font-family: var(--fuente-texto);
+  font-weight: 600;
+}
+
+.btn:hover {
+  background: var(--lienzo);
+}
+
+.btn.primary {
+  border-color: var(--laguna-boton);
+  background: var(--laguna-boton);
+  color: var(--blanco);
+}
+
+.btn.primary:hover {
+  border-color: var(--laguna-texto);
+  background: var(--laguna-texto);
+}
+
+.btn.ghost {
+  border-color: transparent;
+  background: transparent;
+}
+
+.btn.ghost:hover {
+  background: var(--bruma-suave);
+}
+
+.btn.danger {
+  border-color: var(--estado-cancelada-bg);
+  background: var(--estado-cancelada-bg);
+  color: var(--estado-cancelada-fg);
+}
+
+.btn.icon {
+  width: var(--toque-min);
+  min-width: var(--toque-min);
+}
+
+.btn.small {
+  min-height: 36px;
+  border-radius: 12px;
+}
+
+.btn:focus-visible,
+.nav-item:focus-visible {
+  outline: var(--foco);
+  outline-offset: 2px;
+}
+
+/* ── Campos ────────────────────────────────────────────────────────────────── */
+.field span {
+  color: var(--tinta);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: var(--toque-min);
+  height: auto;
+  border: 1.5px solid var(--linea);
+  border-radius: var(--radio-sm);
+  background: var(--blanco);
+  color: var(--tinta);
+  font-size: 15px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  border-color: var(--laguna-texto);
+  box-shadow: 0 0 0 3px var(--bruma);
+}
+
+/* ── Contenedores ──────────────────────────────────────────────────────────── */
+.section,
+.metric {
+  border: 1px solid var(--linea);
+  border-radius: var(--radio-md);
+  background: var(--blanco);
+  box-shadow: none;
+}
+
+.view-header h2 {
+  font-family: var(--fuente-titulos);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.section-head h3 {
+  font-family: var(--fuente-titulos);
+  font-weight: 700;
+}
+
+.badge {
+  border-radius: var(--radio-pill);
+  font-weight: 600;
+}
+
+/* Etiquetas en tipo oración, no en mayúsculas ("Por confirmar", no "POR CONFIRMAR") */
+.metric span {
+  color: var(--texto-2);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.metric strong {
+  font-family: var(--fuente-titulos);
+  font-weight: 800;
+}
+
+.empty,
+.loading,
+.error-box {
+  border-radius: var(--radio-md);
+}
+
+/* ── Menú lateral (Tinta) ──────────────────────────────────────────────────── */
+.sidebar {
+  border-right: 0;
+  background: var(--tinta);
+  color: var(--blanco);
+  padding: 28px 18px;
+  gap: 24px;
+}
+
+.sidebar-header {
+  align-items: center;
+  padding: 0 10px;
+  border-bottom: 0;
+}
+
+.sidebar-logo {
+  display: block;
+  width: 140px;
+  height: auto;
+}
+
+.sidebar .btn.icon {
+  border-color: transparent;
+  background: transparent;
+  color: var(--bruma);
+}
+
+.nav-list,
+.nav-footer {
+  gap: 4px;
+}
+
+.nav-list {
+  scrollbar-color: rgba(195, 231, 241, 0.3) transparent;
+}
+
+.nav-list::-webkit-scrollbar-thumb {
+  background: rgba(195, 231, 241, 0.3);
+}
+
+.nav-footer {
+  border-top: 1px solid rgba(195, 231, 241, 0.18);
+}
+
+.nav-item {
+  min-height: 46px;
+  gap: 14px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: var(--radio-sm);
+  color: var(--bruma);
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--blanco);
+}
+
+/* Activo en Laguna. Se usa el tono de botón (#1F7A76) para que el texto blanco de 15 px pase 4.5:1. */
+.nav-item.active {
+  background: var(--laguna-boton);
+  color: var(--blanco);
+  font-weight: 600;
+}
+
+.nav-item:focus-visible {
+  outline-color: var(--lima);
+}
+
+.nav-contador {
+  margin-left: auto;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 6px;
+  border-radius: var(--radio-pill);
+  background: var(--lima);
+  color: var(--tinta);
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-usuario {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding: 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-avatar {
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--bruma);
+  color: var(--tinta);
+  font-family: var(--fuente-titulos);
+  font-weight: 700;
+  font-size: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sidebar-usuario-texto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.sidebar-usuario-texto strong {
+  overflow: hidden;
+  color: var(--blanco);
+  font-size: 14px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-usuario-texto span {
+  color: var(--bruma);
+  font-size: 12px;
+}
+
+/* ── Barra superior ────────────────────────────────────────────────────────── */
+.topbar {
+  border-bottom: 1px solid var(--linea);
+  background: var(--lienzo);
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.search input {
+  min-height: var(--toque-min);
+  border: 1px solid var(--linea);
+  background: var(--blanco);
+}
+
+.search input:focus {
+  border-color: var(--laguna-texto);
+  box-shadow: 0 0 0 3px var(--bruma);
+}
+
+.search svg {
+  color: var(--texto-2);
+}
+
+/* ── Login ─────────────────────────────────────────────────────────────────── */
+.cc-auth {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-wrap: wrap;
+  background: var(--lienzo);
+  color: var(--tinta);
+}
+
+.cc-auth-marca {
+  position: relative;
+  flex: 1 1 520px;
+  min-height: 420px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 48px;
+  padding: 56px clamp(28px, 6vw, 80px);
+  background: var(--tinta);
+}
+
+.cc-auth-corazon {
+  position: absolute;
+  left: -160px;
+  bottom: -260px;
+  width: 760px;
+  height: 700px;
+  opacity: 0.2;
+  pointer-events: none;
+}
+
+.cc-auth-corazon path {
+  fill: none;
+  stroke: var(--laguna);
+  stroke-width: 2.4;
+  stroke-linejoin: round;
+}
+
+.cc-auth-logo {
+  position: relative;
+  display: block;
+  width: 170px;
+  height: auto;
+}
+
+.cc-auth-lema {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  max-width: 520px;
+}
+
+.cc-auth-lema h1 {
+  margin: 0;
+  color: var(--blanco);
+  font-family: var(--fuente-titulos);
+  font-size: clamp(36px, 4.4vw, 56px);
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+}
+
+.cc-auth-lema p {
+  margin: 0;
+  color: var(--bruma);
+  font-size: 18px;
+  line-height: 1.6;
+}
+
+.cc-auth-ejemplos {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 420px;
+}
+
+.cc-auth-ejemplo {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: var(--radio-md);
+  background: var(--blanco);
+  color: var(--tinta);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.cc-auth-ejemplo b {
+  font-weight: 600;
+}
+
+.cc-auth-ejemplo.lima {
+  margin-left: 48px;
+  padding: 12px 18px;
+  background: var(--lima);
+  font-weight: 500;
+}
+
+.cc-auth-ejemplo-icono {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 12px;
+  background: var(--estado-confirmada-bg);
+  color: var(--estado-confirmada-fg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cc-auth-ejemplo-sub {
+  color: var(--texto-2);
+}
+
+.cc-auth-zona {
+  flex: 1 1 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 56px 28px;
+}
+
+.cc-auth-form {
+  width: 100%;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+}
+
+.cc-auth-titulo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cc-auth-titulo h2 {
+  margin: 0;
+  font-family: var(--fuente-titulos);
+  font-size: 32px;
+  font-weight: 700;
+}
+
+.cc-auth-titulo p {
+  margin: 0;
+  color: var(--texto-2);
+  font-size: 16px;
+}
+
+.cc-auth-logo-movil {
+  display: none;
+  width: 150px;
+  height: auto;
+  margin-bottom: 8px;
+}
+
+.cc-campo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.cc-campo input {
+  height: 52px;
+  padding: 0 16px;
+  border: 1.5px solid var(--linea);
+  border-radius: var(--radio-sm);
+  background: var(--blanco);
+  color: var(--tinta);
+  font-family: var(--fuente-texto);
+  font-size: 16px;
+}
+
+.cc-campo input::placeholder {
+  color: var(--texto-2);
+  opacity: 1; /* 6.06:1 sobre blanco; con opacidad bajaría de 4.5:1 */
+}
+
+.cc-campo input:focus {
+  border-color: var(--laguna-texto);
+  outline: none;
+  box-shadow: 0 0 0 3px var(--bruma);
+}
+
+.cc-boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: 52px;
+  padding: 0 20px;
+  border: 1.5px solid var(--tinta);
+  border-radius: 16px;
+  background: var(--blanco);
+  color: var(--tinta);
+  font-family: var(--fuente-texto);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.cc-boton.primario {
+  border-color: var(--laguna-boton);
+  background: var(--laguna-boton);
+  color: var(--blanco);
+}
+
+.cc-boton.primario:hover {
+  background: var(--laguna-texto);
+}
+
+.cc-boton.grande {
+  min-height: 54px;
+}
+
+.cc-boton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+
+.cc-boton:focus-visible {
+  outline: var(--foco);
+  outline-offset: 3px;
+}
+
+.cc-separador {
+  height: 1px;
+  background: var(--linea);
+}
+
+.cc-auth-alterno {
+  margin: 0;
+  color: var(--texto-2);
+  font-size: 15px;
+  text-align: center;
+}
+
+.cc-enlace {
+  min-height: var(--toque-min);
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--laguna-texto);
+  font: inherit;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
+.cc-enlace:hover {
+  color: var(--tinta);
+}
+
+@media (max-width: 760px) {
+  .cc-auth-marca {
+    display: none;
+  }
+
+  .cc-auth-zona {
+    align-items: flex-start;
+    padding: 40px 20px;
+  }
+
+  .cc-auth-logo-movil {
+    display: block;
+  }
+}
+
+/* ── Métricas: acento superior por variante (sin texto lima) ── */
+.metric {
+  border-top: 4px solid var(--laguna-boton);
+  padding: 20px 22px;
+}
+
+.metric.secondary { border-top-color: var(--laguna); }
+.metric.warning   { border-top-color: var(--lima); }
+.metric.danger    { border-top-color: var(--cancelada); }
+
+.metric strong,
+.metric.warning strong { color: var(--tinta); }
+.metric.secondary strong { color: var(--laguna-texto); }
+.metric.danger strong { color: var(--estado-cancelada-fg); }

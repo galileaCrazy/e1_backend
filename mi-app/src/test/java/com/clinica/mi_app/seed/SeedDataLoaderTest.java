@@ -20,12 +20,14 @@ import static org.mockito.Mockito.mockingDetails;
 class SeedDataLoaderTest {
 
     private static final ZoneId CLINICA = ZoneId.of("America/Mexico_City");
-    /** Martes 17/11/2026 10:00 en la clínica (16:00Z). */
-    private static final Instant AHORA = Instant.parse("2026-11-17T16:00:00Z");
+    /** Martes 17/11/2026 5:00 p.m. en la clínica (23:00Z): ya hubo consultas (y cobros) hoy. */
+    private static final Instant AHORA = Instant.parse("2026-11-17T23:00:00Z");
 
     private final JdbcTemplate jdbc = mock(JdbcTemplate.class);
     private final Map<UUID, Instant> citaReal = new HashMap<>();
     private final List<Object[]> notifs = new ArrayList<>();
+    /** args: [sql, org, cita, monto, metodo, concepto, estado, referencia, pagado_en] */
+    private final List<Object[]> pagos = new ArrayList<>();
 
     @BeforeEach
     void generar() {
@@ -39,6 +41,8 @@ class SeedDataLoaderTest {
                 citaReal.put((UUID) a[1], reloj.atZone(CLINICA).toInstant());
             } else if (sql.startsWith("INSERT INTO notificacion ")) {
                 notifs.add(a);
+            } else if (sql.startsWith("INSERT INTO pago ")) {
+                pagos.add(a);
             }
         }
         assertFalse(citaReal.isEmpty());
@@ -106,25 +110,63 @@ class SeedDataLoaderTest {
     }
 
     @Test
+    void sinRecordatoriosParaCitasDeHoyNiFuturas() {
+        Instant inicioHoy = LocalDate.ofInstant(AHORA, CLINICA).atStartOfDay(CLINICA).toInstant();
+        notifs.stream()
+                .filter(n -> tipo(n).startsWith("RECORDATORIO_") || tipo(n).equals("CONFIRMACION_PACIENTE"))
+                .forEach(n -> assertTrue(citaReal.get(cita(n)).isBefore(inicioHoy),
+                        () -> tipo(n) + " para una cita de hoy o futura: " + citaReal.get(cita(n))));
+    }
+
+    @Test
+    void pagosPagadosEnLosUltimos7Dias_incluidoHoy_yNuncaDespuesDeAhora() {
+        // pagado_en usa la convención de reloj de la clínica en UTC (como PagoService con reloj.ahora())
+        OffsetDateTime ahoraReloj = LocalDateTime.ofInstant(AHORA, CLINICA).atOffset(ZoneOffset.UTC);
+        LocalDate hoy = ahoraReloj.toLocalDate();
+        List<OffsetDateTime> pagados = pagos.stream()
+                .filter(p -> "PAGADO".equals(p[6]))
+                .map(p -> ((Timestamp) p[8]).toInstant().atOffset(ZoneOffset.UTC))
+                .toList();
+        assertFalse(pagados.isEmpty());
+        pagados.forEach(f -> assertFalse(f.isAfter(ahoraReloj), "pago con fecha futura: " + f));
+        long ultimos7 = pagados.stream().filter(f -> !f.toLocalDate().isBefore(hoy.minusDays(6))).count();
+        assertTrue(ultimos7 > 0, "debe haber ingresos en los últimos 7 días");
+        assertTrue(pagados.stream().anyMatch(f -> f.toLocalDate().equals(hoy)), "debe haber ingresos de hoy");
+    }
+
+    @Test
     void notificacionesDeCita_reglas() {
         UUID org = UUID.randomUUID(), cita = UUID.randomUUID();
-        Instant manana = AHORA.plus(Duration.ofHours(24 + 6));   // la de 24 h aún no toca
-        var proxima = SeedDataLoader.notificacionesDeCita(org, cita, manana, "SIN_CONFIRMAR", null, null, AHORA, Duration.ofMinutes(30));
-        assertEquals(List.of("RECORDATORIO_48H"), proxima.stream().map(SeedDataLoader.NotifSeed::tipo).toList());
+        Duration demora = Duration.ofMinutes(30);
 
-        Instant enDiezDias = AHORA.plus(Duration.ofDays(10));
-        assertTrue(SeedDataLoader.notificacionesDeCita(org, cita, enDiezDias, "SIN_CONFIRMAR", null, null, AHORA,
-                Duration.ofMinutes(30)).isEmpty(), "sin recordatorios futuros");
+        // Mañana y hoy (aunque ya haya pasado): sin recordatorios ni confirmaciones
+        assertTrue(SeedDataLoader.notificacionesDeCita(org, cita, AHORA.plus(Duration.ofHours(18)), "SIN_CONFIRMAR",
+                null, null, AHORA, demora).isEmpty(), "mañana");
+        assertTrue(SeedDataLoader.notificacionesDeCita(org, cita, AHORA.minus(Duration.ofHours(2)), "CONFIRMADA",
+                null, null, AHORA, demora).isEmpty(), "hoy, más temprano");
+        assertTrue(SeedDataLoader.notificacionesDeCita(org, cita, AHORA.plus(Duration.ofDays(10)), "SIN_CONFIRMAR",
+                null, null, AHORA, demora).isEmpty(), "futura");
 
-        Instant hoyTarde = AHORA.plus(Duration.ofHours(5));
-        var confirmada = SeedDataLoader.notificacionesDeCita(org, cita, hoyTarde, "CONFIRMADA", null, null, AHORA, Duration.ofMinutes(30));
+        // Ayer, confirmada: 48 h, 24 h y la confirmación del paciente
+        Instant ayer = AHORA.minus(Duration.ofHours(30));
+        var confirmada = SeedDataLoader.notificacionesDeCita(org, cita, ayer, "CONFIRMADA", null, null, AHORA, demora);
         assertEquals(List.of("RECORDATORIO_48H", "RECORDATORIO_24H", "CONFIRMACION_PACIENTE"),
                 confirmada.stream().map(SeedDataLoader.NotifSeed::tipo).toList());
 
-        Instant canceladaEn = hoyTarde.minus(Duration.ofHours(30));  // entre el de 48 h y el de 24 h
-        var cancelada = SeedDataLoader.notificacionesDeCita(org, cita, hoyTarde, "CANCELADA", "PACIENTE", canceladaEn, AHORA, Duration.ZERO);
+        // Ayer, cancelada por el paciente entre el de 48 h y el de 24 h: no se recuerda una cita ya cancelada
+        Instant canceladaEn = ayer.minus(Duration.ofHours(30));
+        var cancelada = SeedDataLoader.notificacionesDeCita(org, cita, ayer, "CANCELADA", "PACIENTE", canceladaEn, AHORA, Duration.ZERO);
         assertEquals(List.of("RECORDATORIO_48H", "CANCELACION_PACIENTE"),
-                cancelada.stream().map(SeedDataLoader.NotifSeed::tipo).toList(), "no se recuerda una cita ya cancelada");
+                cancelada.stream().map(SeedDataLoader.NotifSeed::tipo).toList());
         assertEquals(canceladaEn, cancelada.get(1).enviada());
+
+        // La cancelación de una cita FUTURA sí se registra (el paciente puede cancelar antes del recordatorio)
+        var futuraCancelada = SeedDataLoader.notificacionesDeCita(org, cita, AHORA.plus(Duration.ofDays(2)), "CANCELADA",
+                "PACIENTE", AHORA.minus(Duration.ofHours(3)), AHORA, Duration.ZERO);
+        assertEquals(List.of("CANCELACION_PACIENTE"), futuraCancelada.stream().map(SeedDataLoader.NotifSeed::tipo).toList());
+
+        // Más de 7 días atrás: sin recordatorios
+        assertTrue(SeedDataLoader.notificacionesDeCita(org, cita, AHORA.minus(Duration.ofDays(12)), "CONFIRMADA",
+                null, null, AHORA, demora).isEmpty());
     }
 }

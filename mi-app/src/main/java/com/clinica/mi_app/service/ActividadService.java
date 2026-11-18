@@ -174,8 +174,16 @@ public class ActividadService {
                         c.getPaciente() != null && TelefonoMx.aDiezDigitos(c.getPaciente().getTelefono()) != null))
                 .toList();
 
+        List<ProximoDiaResponse.CitaDelDia> todas = delDia.stream()
+                .map(c -> new ProximoDiaResponse.CitaDelDia(c.getId(), c.getFechaHora(), c.getEstado(),
+                        c.getPaciente() == null ? null : c.getPaciente().getNombre(),
+                        c.getMedico() == null ? null : c.getMedico().getId(),
+                        c.getMedico() == null ? null : c.getMedico().getNombre()))
+                .toList();
+
         return new ProximoDiaResponse(fecha, fecha.equals(manana), delDia.size(),
-                contar(delDia, "CONFIRMADA"), contar(delDia, "CANCELADA"), contar(delDia, "SIN_CONFIRMAR"), pendientes);
+                contar(delDia, "CONFIRMADA"), contar(delDia, "CANCELADA"), contar(delDia, "SIN_CONFIRMAR"),
+                pendientes, todas);
     }
 
     private static long contar(List<Cita> citas, String estado) {

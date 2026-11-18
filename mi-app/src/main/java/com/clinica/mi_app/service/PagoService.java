@@ -53,7 +53,7 @@ public class PagoService {
 
     public PagoResponse crear(PagoRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Cita cita = citaRepo.findById(req.getCitaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cita", req.getCitaId().toString()));
         Pago p = new Pago();

@@ -61,7 +61,7 @@ public class ConfiguracionTenantService {
                                                 Boolean whatsappConectado,
                                                 String whatsappNumero) {
         Organizacion org = orgRepo.findById(organizacionId)
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", organizacionId.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", organizacionId.toString()));
 
         ConfiguracionTenant cfg = repo.findByOrganizacionId(organizacionId)
                 .orElseGet(() -> {

@@ -155,7 +155,7 @@ public class IAService {
                 .findByOrganizacionIdAndEmail(organizacionId, email)
                 .orElseGet(() -> {
                     Organizacion org = organizacionRepository.findById(organizacionId)
-                            .orElseThrow(() -> new ResourceNotFoundException("Organizacion", organizacionId.toString()));
+                            .orElseThrow(() -> new ResourceNotFoundException("Organización", organizacionId.toString()));
                     Paciente nuevo = new Paciente();
                     nuevo.setEmail(email);
                     nuevo.setNombre(email.contains("@") ? email.split("@")[0] : email);

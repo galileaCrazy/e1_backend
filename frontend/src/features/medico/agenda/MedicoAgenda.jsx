@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarPlus, ChevronLeft, ChevronRight, Edit3, FileText, RefreshCw, Save, X } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado, etiquetaEstado } from "../../../components/ui";
 import {
   addDaysKey,
   citaDateKey,
@@ -33,7 +33,7 @@ export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
   const loadAgenda = React.useCallback(async () => {
     if (!context.medicoId) {
       setData(null);
-      setError("Tu usuario medico no tiene un medico asociado.");
+      setError("Tu usuario médico no tiene un médico asociado.");
       return;
     }
 
@@ -124,7 +124,7 @@ export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
 
   return (
     <>
-      <ViewHeader title="Mi agenda">
+      <ViewHeader title="Agenda">
         <button className="btn" onClick={loadAgenda}>
           <RefreshCw size={16} /> Actualizar
         </button>
@@ -134,21 +134,21 @@ export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
       </ViewHeader>
 
       <section className="metrics">
-        <Metric label="Citas del dia" value={citasDelDia.length} />
+        <Metric label="Citas del día" value={citasDelDia.length} />
         <Metric label="Confirmadas" value={confirmadas} variant="secondary" />
-        <Metric label="Sin confirmar" value={pendientes} variant="warning" />
-        <Metric label="Minutos agendados" value={minutos} variant="danger" />
+        <Metric label="Por confirmar" value={pendientes} variant="warning" />
+        <Metric label="Minutos agendados" value={minutos} />
       </section>
 
       <section className="section agenda-controls">
-        <button className="btn icon" onClick={() => setSelectedDate(shiftDate(selectedDate, -1))} title="Dia anterior">
+        <button className="btn icon" onClick={() => setSelectedDate(shiftDate(selectedDate, -1))} title="Día anterior">
           <ChevronLeft size={18} />
         </button>
         <label className="field">
-          <span>Dia</span>
+          <span>Día</span>
           <input type="date" value={selectedDate} onChange={(event) => setSelectedDate(event.target.value)} />
         </label>
-        <button className="btn icon" onClick={() => setSelectedDate(shiftDate(selectedDate, 1))} title="Dia siguiente">
+        <button className="btn icon" onClick={() => setSelectedDate(shiftDate(selectedDate, 1))} title="Día siguiente">
           <ChevronRight size={18} />
         </button>
         <label className="field">
@@ -156,7 +156,7 @@ export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
           <select value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
             <option value="">Todos</option>
             {STATUS_OPTIONS.filter(Boolean).map((estado) => (
-              <option key={estado} value={estado}>{estado}</option>
+              <option key={estado} value={estado}>{etiquetaEstado(estado)}</option>
             ))}
           </select>
         </label>
@@ -164,7 +164,7 @@ export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
 
       <div className="agenda-grid">
         <section>
-          <Section title="Dia seleccionado" badge={formatAgendaDate(selectedDate)}>
+          <Section title="Día seleccionado" badge={formatAgendaDate(selectedDate)}>
             <AgendaTimeline
               citas={visibles}
               support={support}
@@ -192,7 +192,7 @@ export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
               />
             </Section>
           )}
-          <Section title="Proximas citas">
+          <Section title="Próximas citas">
             <UpcomingList
               citas={proximas}
               support={support}
@@ -214,7 +214,7 @@ function AgendaTimeline({ citas, support, context, recordatorios, onRecordatorio
   React.useEffect(() => {
     ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
   }, [resaltada, citas.length]);
-  if (!citas.length) return <Empty label="No hay citas para este dia." />;
+  if (!citas.length) return <Empty label="No hay citas para este día." />;
   return (
     <div className="agenda-timeline">
       {citas.map((cita) => (
@@ -229,12 +229,12 @@ function AgendaTimeline({ citas, support, context, recordatorios, onRecordatorio
           </div>
           <div className="agenda-detail">
             <strong>{nameById("pacientes", cita.pacienteId, support)}</strong>
-            <span>{cita.motivo || "Consulta medica"}</span>
+            <span>{cita.motivo || "Consulta médica"}</span>
             <small>{nameById("consultorios", cita.consultorioId, support)}</small>
             <RecordatorioWhatsApp context={context} cita={cita} estado={recordatorios[cita.id]} onEnviado={onRecordatorio} />
           </div>
           <div className="agenda-actions">
-            <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+            <Estado valor={cita.estado} />
             <button className="btn icon" onClick={() => onEdit(cita)} title="Editar cita">
               <Edit3 size={16} />
             </button>
@@ -249,7 +249,7 @@ function AgendaTimeline({ citas, support, context, recordatorios, onRecordatorio
 }
 
 function UpcomingList({ citas, support, context, recordatorios, onRecordatorio, onOpen, onEdit }) {
-  if (!citas.length) return <Empty label="No hay citas proximas." />;
+  if (!citas.length) return <Empty label="No hay citas próximas." />;
   return (
     <div className="agenda-upcoming">
       {citas.map((cita) => (
@@ -260,7 +260,7 @@ function UpcomingList({ citas, support, context, recordatorios, onRecordatorio, 
             <RecordatorioWhatsApp context={context} cita={cita} estado={recordatorios[cita.id]} onEnviado={onRecordatorio} compacto />
           </div>
           <div className="agenda-actions">
-            <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+            <Estado valor={cita.estado} />
             <button className="btn icon" onClick={() => onEdit(cita)} title="Editar cita">
               <Edit3 size={16} />
             </button>
@@ -325,7 +325,7 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, cita, onCa
         <input name="hora" type="time" defaultValue={hora} required />
       </label>
       <label className="field">
-        <span>Duracion</span>
+        <span>Duración</span>
         <select name="duracionMin" defaultValue={String(cita?.duracionMin || 30)} required>
           <option value="20">20 min</option>
           <option value="30">30 min</option>
@@ -337,7 +337,7 @@ function AgendaForm({ context, pacientes, consultorios, selectedDate, cita, onCa
         <span>Estado</span>
         <select name="estado" defaultValue={cita?.estado || "SIN_CONFIRMAR"} required>
           {STATUS_OPTIONS.filter(Boolean).map((estado) => (
-            <option key={estado} value={estado}>{estado}</option>
+            <option key={estado} value={estado}>{etiquetaEstado(estado)}</option>
           ))}
         </select>
       </label>

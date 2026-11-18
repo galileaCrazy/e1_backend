@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowLeft, ExternalLink, RefreshCw, Save } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado, etiquetaEstado } from "../../../components/ui";
 import { formatDate, formatMoney, nameById, statusVariant } from "../../../lib/display";
 import "./MedicoConsultaDetalle.css";
 
@@ -14,7 +14,7 @@ export default function MedicoConsultaDetalle({ context, citaId }) {
       const cita = await context.api(`/api/citas/${citaId}`);
       if (context.role === "MEDICO" && String(cita.medicoId) !== String(context.medicoId)) {
         setData(null);
-        setError("Esta cita no pertenece al medico de tu usuario.");
+        setError("Esta cita no pertenece al médico de tu usuario.");
         return;
       }
 
@@ -41,7 +41,7 @@ export default function MedicoConsultaDetalle({ context, citaId }) {
         method: "POST",
         body: JSON.stringify(payload),
       });
-      context.notify("Diagnostico guardado");
+      context.notify("Diagnóstico guardado");
       await loadDetail();
     } catch (err) {
       context.notify(err.message, "error");
@@ -77,8 +77,8 @@ export default function MedicoConsultaDetalle({ context, citaId }) {
       </ViewHeader>
 
       <section className="metrics">
-        <Metric label="Estado cita" value={data.cita.estado} />
-        <Metric label="Diagnosticos" value={data.diagnosticos.length} variant="secondary" />
+        <Metric label="Estado de la cita" value={etiquetaEstado(data.cita.estado)} />
+        <Metric label="Diagnósticos" value={data.diagnosticos.length} variant="secondary" />
         <Metric label="Adjuntos" value={data.adjuntos.length} variant="warning" />
         <Metric label="Pago" value={pagoEstado} variant="danger" />
       </section>
@@ -90,17 +90,17 @@ export default function MedicoConsultaDetalle({ context, citaId }) {
               <Info label="Fecha" value={formatDate(data.cita.fechaHora)} />
               <Info label="Paciente" value={data.paciente.nombre} />
               <Info label="Consultorio" value={nameById("consultorios", data.cita.consultorioId, support)} />
-              <Info label="Duracion" value={`${data.cita.duracionMin} min`} />
+              <Info label="Duración" value={`${data.cita.duracionMin} min`} />
               <Info label="Motivo" value={data.cita.motivo || "Sin motivo registrado"} wide />
-              <span className={`badge ${statusVariant(data.cita.estado)}`}>{data.cita.estado}</span>
+              <Estado valor={data.cita.estado} />
             </div>
           </Section>
 
-          <Section title="Diagnosticos">
+          <Section title="Diagnósticos">
             <DiagnosticoList diagnosticos={data.diagnosticos} />
           </Section>
 
-          <Section title="Agregar diagnostico">
+          <Section title="Agregar diagnóstico">
             <DiagnosticoForm citaId={data.cita.id} onSubmit={saveDiagnostico} />
           </Section>
         </section>
@@ -135,7 +135,7 @@ function PatientPanel({ paciente, onOpen }) {
     <div className="consulta-panel">
       <strong>{paciente.nombre}</strong>
       <span>{paciente.email || "Sin correo"}</span>
-      <span>{paciente.telefono || "Sin telefono"}</span>
+      <span>{paciente.telefono || "Sin teléfono"}</span>
       <small>{paciente.fechaNacimiento ? `Nacimiento: ${paciente.fechaNacimiento}` : "Sin fecha de nacimiento"}</small>
       <button className="btn" onClick={onOpen}>Abrir expediente</button>
     </div>
@@ -147,16 +147,16 @@ function PaymentPanel({ pago }) {
   return (
     <div className="consulta-panel">
       <strong>{formatMoney(pago.monto)}</strong>
-      <span>{pago.concepto || "Consulta medica"}</span>
+      <span>{pago.concepto || "Consulta médica"}</span>
       <span>{pago.metodo}</span>
       <small>{pago.referencia || "Sin referencia"}</small>
-      <span className={`badge ${statusVariant(pago.estado)}`}>{pago.estado}</span>
+      <Estado valor={pago.estado} />
     </div>
   );
 }
 
 function DiagnosticoList({ diagnosticos }) {
-  if (!diagnosticos.length) return <Empty label="No hay diagnosticos registrados." />;
+  if (!diagnosticos.length) return <Empty label="No hay diagnósticos registrados." />;
   return (
     <div className="diagnosis-list">
       {diagnosticos.map((diagnostico) => (
@@ -217,7 +217,7 @@ function DiagnosticoForm({ citaId, onSubmit }) {
         <input name="codigoCie10" maxLength="10" placeholder="Opcional" />
       </label>
       <label className="field full">
-        <span>Descripcion</span>
+        <span>Descripción</span>
         <textarea name="descripcion" rows="5" required />
       </label>
       <div className="actions full">

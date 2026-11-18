@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarDays } from "lucide-react";
-import { Empty, ErrorBox, Loading, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Section, ViewHeader, Estado } from "../../../components/ui";
 import { formatDate, formatTime, isFuture, shortId, statusVariant } from "../../../lib/display";
 import "./PacienteCitas.css";
 
@@ -73,11 +73,11 @@ export default function PacienteCitas({ context }) {
                   <span>{formatDate(cita.fechaHora)}</span>
                 </div>
                 <div className="patient-appointment-info">
-                  <strong>{cita.motivo || "Consulta medica"}</strong>
+                  <strong>{cita.motivo || "Consulta médica"}</strong>
                   <span>Médico {doctorName(cita.medicoId, medicos)}</span>
                   <small>{cita.duracionMin || 0} min</small>
                 </div>
-                <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+                <Estado valor={cita.estado} />
               </article>
             ))}
           </div>

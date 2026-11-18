@@ -63,7 +63,7 @@ public class PacienteService {
 
     public PacienteResponse crear(PacienteRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Paciente p = new Paciente();
         p.setOrganizacion(org);
         p.setNombre(req.getNombre());

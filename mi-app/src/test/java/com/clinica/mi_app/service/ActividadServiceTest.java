@@ -161,6 +161,13 @@ class ActividadServiceTest {
         assertEquals(1, r.pendientes().size());
         assertEquals(OffsetDateTime.parse("2026-11-18T11:00:00Z"), r.pendientes().get(0).fechaHora());
         assertTrue(r.pendientes().get(0).telefonoValido());
+
+        // Tira de horas: todas las citas del día del médico (incluida la cancelada), ordenadas por hora
+        assertEquals(List.of("09:00", "10:00", "11:00"),
+                r.citas().stream().map(c -> c.fechaHora().toLocalTime().toString()).toList());
+        assertEquals(List.of("CONFIRMADA", "CANCELADA", "SIN_CONFIRMAR"),
+                r.citas().stream().map(ProximoDiaResponse.CitaDelDia::estado).toList());
+        assertEquals("Ana Sofía Ramírez Mendoza", r.citas().get(0).pacienteNombre());
     }
 
     @Test
@@ -205,6 +212,7 @@ class ActividadServiceTest {
         assertNull(r.fecha());
         assertEquals(0, r.total());
         assertTrue(r.pendientes().isEmpty());
+        assertTrue(r.citas().isEmpty());
     }
 
     // ── Helpers ──

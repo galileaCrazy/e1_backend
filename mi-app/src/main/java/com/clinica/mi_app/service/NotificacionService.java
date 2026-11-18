@@ -60,7 +60,7 @@ public class NotificacionService {
         Notificacion n = repo.findById(id)
                 .filter(x -> x.getOrganizacion().getId().equals(organizacionId))
                 .filter(x -> medicoId == null || x.getCita().getMedico().getId().equals(medicoId))
-                .orElseThrow(() -> new ResourceNotFoundException("Notificacion", id.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Notificación", id.toString()));
         n.setLeida(true);
         repo.save(n);
     }
@@ -89,12 +89,12 @@ public class NotificacionService {
 
     public NotificacionResponse buscarPorId(UUID id) {
         return repo.findById(id).map(NotificacionMapper::toResponse)
-                .orElseThrow(() -> new ResourceNotFoundException("Notificacion", id.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Notificación", id.toString()));
     }
 
     public NotificacionResponse crear(NotificacionRequest req) {
         Organizacion org = orgRepo.findById(req.getOrganizacionId())
-                .orElseThrow(() -> new ResourceNotFoundException("Organizacion", req.getOrganizacionId().toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Organización", req.getOrganizacionId().toString()));
         Cita cita = citaRepo.findById(req.getCitaId())
                 .orElseThrow(() -> new ResourceNotFoundException("Cita", req.getCitaId().toString()));
         Notificacion n = new Notificacion();
@@ -112,7 +112,7 @@ public class NotificacionService {
 
     public NotificacionResponse actualizar(UUID id, NotificacionRequest req) {
         Notificacion n = repo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Notificacion", id.toString()));
+                .orElseThrow(() -> new ResourceNotFoundException("Notificación", id.toString()));
         n.setCanal(req.getCanal());
         n.setTipo(req.getTipo());
         return NotificacionMapper.toResponse(repo.save(n));

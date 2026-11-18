@@ -31,7 +31,7 @@ public class PagoRequest {
     private String referencia;
 
     /** Opcional: PAGADO | PENDIENTE. Si es null se conserva el estado actual (PENDIENTE al crear). */
-    @Pattern(regexp = "PAGADO|PENDIENTE", message = "Estado de pago invalido: use PAGADO o PENDIENTE")
+    @Pattern(regexp = "PAGADO|PENDIENTE", message = "Estado de pago inválido: usa PAGADO o PENDIENTE")
     private String estado;
 
     public UUID getOrganizacionId() { return organizacionId; }

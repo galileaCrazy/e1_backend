@@ -1,6 +1,6 @@
 import React from "react";
 import { ArrowLeft, ExternalLink, RefreshCw } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
 import { formatDate, formatMoney, statusVariant } from "../../../lib/display";
 import "./MedicoExpedientePaciente.css";
 
@@ -19,7 +19,7 @@ export default function MedicoExpedientePaciente({ context, pacienteId }) {
 
       if (String(paciente.organizacionId) !== String(context.orgId)) {
         setData(null);
-        setError("Este paciente no pertenece a tu organizacion.");
+        setError("Este paciente no pertenece a tu organización.");
         return;
       }
 
@@ -75,7 +75,7 @@ export default function MedicoExpedientePaciente({ context, pacienteId }) {
 
       <section className="metrics">
         <Metric label="Citas" value={data.citas.length} />
-        <Metric label="Diagnosticos" value={data.diagnosticos.length} variant="secondary" />
+        <Metric label="Diagnósticos" value={data.diagnosticos.length} variant="secondary" />
         <Metric label="Adjuntos" value={data.adjuntos.length} variant="warning" />
         <Metric label="Pagos pendientes" value={pagosPendientes} variant="danger" />
       </section>
@@ -90,7 +90,7 @@ export default function MedicoExpedientePaciente({ context, pacienteId }) {
             <AppointmentHistory citas={data.citas} onOpen={(citaId) => context.go(`medico/consulta/${citaId}`)} />
           </Section>
 
-          <Section title="Diagnosticos registrados">
+          <Section title="Diagnósticos registrados">
             <DiagnosisHistory diagnosticos={data.diagnosticos} citas={data.citas} />
           </Section>
         </section>
@@ -116,7 +116,7 @@ function PatientCard({ paciente, ultimaCita }) {
         <strong>{paciente.nombre}</strong>
       </div>
       <div>
-        <span>Telefono</span>
+        <span>Teléfono</span>
         <strong>{paciente.telefono || "-"}</strong>
       </div>
       <div>
@@ -132,7 +132,7 @@ function PatientCard({ paciente, ultimaCita }) {
         <strong>{paciente.sexo || "-"}</strong>
       </div>
       <div>
-        <span>Ultima cita</span>
+        <span>Última cita</span>
         <strong>{ultimaCita ? formatDate(ultimaCita.fechaHora) : "-"}</strong>
       </div>
       <div className="wide">
@@ -144,16 +144,16 @@ function PatientCard({ paciente, ultimaCita }) {
 }
 
 function AppointmentHistory({ citas, onOpen }) {
-  if (!citas.length) return <Empty label="Este paciente aun no tiene citas registradas." />;
+  if (!citas.length) return <Empty label="Este paciente aún no tiene citas registradas." />;
   return (
     <div className="history-list">
       {citas.map((cita) => (
         <article className="history-item" key={cita.id}>
           <div>
             <strong>{formatDate(cita.fechaHora)}</strong>
-            <span>{cita.motivo || "Consulta medica"}</span>
+            <span>{cita.motivo || "Consulta médica"}</span>
           </div>
-          <span className={`badge ${statusVariant(cita.estado)}`}>{cita.estado}</span>
+          <Estado valor={cita.estado} />
           <button className="btn" onClick={() => onOpen(cita.id)}>Consulta</button>
         </article>
       ))}
@@ -162,7 +162,7 @@ function AppointmentHistory({ citas, onOpen }) {
 }
 
 function DiagnosisHistory({ diagnosticos, citas }) {
-  if (!diagnosticos.length) return <Empty label="No hay diagnosticos en el expediente." />;
+  if (!diagnosticos.length) return <Empty label="No hay diagnósticos en el expediente." />;
   return (
     <div className="history-list">
       {diagnosticos.map((diagnostico) => {
@@ -192,7 +192,7 @@ function PaymentHistory({ pagos }) {
             <strong>{formatMoney(pago.monto)}</strong>
             <span>{pago.concepto || pago.metodo}</span>
           </div>
-          <span className={`badge ${statusVariant(pago.estado)}`}>{pago.estado}</span>
+          <Estado valor={pago.estado} />
         </article>
       ))}
     </div>

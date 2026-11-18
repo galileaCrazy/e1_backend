@@ -1,23 +1,12 @@
 import React from "react";
-import {
-  AlertCircle,
-  Building2,
-  CalendarCheck,
-  CalendarDays,
-  CalendarX,
-  CheckCircle2,
-  Clock,
-  Hourglass,
-  MapPin,
-  Stethoscope,
-} from "lucide-react";
-import { formatCitaHora12, UTC } from "../../lib/display";
+import { AlertCircle, CalendarX, Check, CheckCircle2, Hourglass, Lock, MapPin, Phone, UserRound } from "lucide-react";
+import { UTC, formatCitaHora12 } from "../../lib/display";
 import "./CitaPublica.css";
 
 /**
- * Página pública /c/{token} (canal "enlace"): el paciente ve su cita y la confirma o cancela sin
- * iniciar sesión. Usa rutas relativas (/api/public/...) para funcionar por el proxy de Vite tanto
- * en Wi-Fi (http://<ip>:5173) como por el túnel, sin depender de VITE_API_URL.
+ * Página pública /c/{token} (canal "enlace"): "pase de cita" para que el paciente confirme o cancele sin
+ * iniciar sesión. Usa rutas relativas (/api/public/...) para funcionar por el proxy de Vite tanto en
+ * Wi-Fi (http://<ip>:5173) como por el túnel, sin depender de VITE_API_URL.
  */
 export default function CitaPublica({ token }) {
   const [cita, setCita] = React.useState(null);
@@ -28,7 +17,7 @@ export default function CitaPublica({ token }) {
   const [resultado, setResultado] = React.useState(null);
 
   React.useEffect(() => {
-    document.title = "Tu cita · MedInFlow";
+    document.title = "Tu cita · CliniClick";
     let activo = true;
     llamar("GET", token)
       .then((data) => activo && setCita(data))
@@ -53,124 +42,162 @@ export default function CitaPublica({ token }) {
     }
   }
 
+  const nombre = cita?.pacienteNombre;
+  let titulo = "Tu cita";
+  let subtitulo = "";
+  if (cargando) titulo = "Cargando tu cita...";
+  else if (error) titulo = TITULOS[error.codigo] || "No pudimos abrir tu cita";
+  else if (resultado === "CONFIRMADA") titulo = "¡Gracias! Te esperamos";
+  else if (resultado === "CANCELADA") titulo = "Tu cita fue cancelada";
+  else if (cita) {
+    titulo = nombre ? `Hola, ${nombre}` : "Hola";
+    subtitulo = `${cita.clinica || "Tu clínica"} te recuerda tu cita. ¿Nos confirmas?`;
+  }
+
   return (
-    <div className="cp-pagina">
-      <header className="cp-marca">
-        <span className="cp-logo" aria-hidden="true">M</span>
-        <span>MedInFlow</span>
+    <div className="pase">
+      <header className="pase-cabeza">
+        <svg className="pase-corazon" viewBox="0 0 100 92" aria-hidden="true">
+          <path d="M50 88 L10 50 A22 22 0 0 1 50 14 A22 22 0 0 1 90 50 Z" />
+        </svg>
+        <img className="pase-logo" src="/brand/cliniclick-blanco.png" alt="CliniClick" />
+        <div className="pase-saludo" aria-live="polite">
+          <h1>{titulo}</h1>
+          {subtitulo && <p>{subtitulo}</p>}
+        </div>
       </header>
 
-      <main className="cp-tarjeta" aria-live="polite">
+      <main className="pase-cuerpo">
         {cargando && (
-          <div className="cp-estado">
-            <Hourglass size={34} className="cp-icono muted" />
-            <p>Cargando tu cita...</p>
+          <div className="pase-tarjeta pase-estado" aria-busy="true">
+            <Hourglass size={34} className="pase-icono tenue" />
+            <p>Un momento, estamos buscando tu cita.</p>
           </div>
         )}
 
         {!cargando && error && <EstadoError error={error} />}
 
-        {!cargando && !error && resultado && <EstadoResultado resultado={resultado} cita={cita} />}
-
-        {!cargando && !error && !resultado && cita && (
+        {!cargando && !error && cita && (
           <>
-            <h1>{cita.pacienteNombre ? `Hola, ${cita.pacienteNombre}` : "Hola"}</h1>
-            <p className="cp-intro">Te recordamos tu próxima cita. ¿Nos confirmas si vas a asistir?</p>
-            <DetalleCita cita={cita} />
+            <Boleto cita={cita} resultado={resultado} />
 
-            {cita.estado === "CONFIRMADA" && (
-              <p className="cp-aviso ok">
-                <CheckCircle2 size={16} /> Tu cita ya está confirmada.
-              </p>
-            )}
-
-            {!preguntarCancelar ? (
-              <div className="cp-acciones">
-                {cita.estado !== "CONFIRMADA" && (
-                  <button type="button" className="cp-btn primario" disabled={enviando} onClick={() => responder("CONFIRMAR")}>
-                    <CalendarCheck size={18} />
-                    {enviando ? "Enviando..." : "Confirmar asistencia"}
-                  </button>
-                )}
-                <button type="button" className="cp-btn peligro" disabled={enviando} onClick={() => setPreguntarCancelar(true)}>
-                  <CalendarX size={18} />
-                  Cancelar cita
+            {resultado ? (
+              <Resultado resultado={resultado} cita={cita} />
+            ) : preguntarCancelar ? (
+              <div className="pase-acciones" role="group" aria-label="Confirmar cancelación">
+                <p className="pase-pregunta">¿Seguro que quieres cancelar tu cita? Este enlace solo se puede usar una vez.</p>
+                <button type="button" className="pase-boton peligro-lleno" disabled={enviando} onClick={() => responder("CANCELAR")}>
+                  {enviando ? "Cancelando..." : "Sí, cancelar mi cita"}
+                </button>
+                <button type="button" className="pase-boton secundario" disabled={enviando} onClick={() => setPreguntarCancelar(false)}>
+                  No, volver
                 </button>
               </div>
             ) : (
-              <div className="cp-confirmar" role="group" aria-label="Confirmar cancelación">
-                <p>¿Seguro que quieres cancelar tu cita? Este enlace solo se puede usar una vez.</p>
-                <div className="cp-acciones">
-                  <button type="button" className="cp-btn peligro" disabled={enviando} onClick={() => responder("CANCELAR")}>
-                    {enviando ? "Cancelando..." : "Sí, cancelar mi cita"}
+              <div className="pase-acciones">
+                {cita.estado === "CONFIRMADA" ? (
+                  <p className="pase-ya"><CheckCircle2 size={18} /> Tu cita ya está confirmada.</p>
+                ) : (
+                  <button type="button" className="pase-boton primario" disabled={enviando} onClick={() => responder("CONFIRMAR")}>
+                    <Check size={20} strokeWidth={2.8} />
+                    {enviando ? "Enviando..." : "Sí, ahí estaré"}
                   </button>
-                  <button type="button" className="cp-btn" disabled={enviando} onClick={() => setPreguntarCancelar(false)}>
-                    No, volver
-                  </button>
-                </div>
+                )}
+                <button type="button" className="pase-boton peligro" disabled={enviando} onClick={() => setPreguntarCancelar(true)}>
+                  No podré asistir
+                </button>
+                <LlamarClinica telefono={cita.telefonoClinica} />
               </div>
             )}
           </>
         )}
       </main>
 
-      <footer className="cp-pie">Este enlace es personal. No lo compartas.</footer>
+      <footer className="pase-pie">
+        <Lock size={16} aria-hidden="true" /> Enlace personal de un solo uso
+      </footer>
     </div>
   );
 }
 
-function DetalleCita({ cita }) {
+/** Tarjeta tipo boleto: fecha grande en bloque Tinta, muescas laterales y datos de la cita. */
+function Boleto({ cita, resultado }) {
+  const fecha = new Date(cita.fechaHora);
+  const dia = fecha.toLocaleDateString("es-MX", { weekday: "short", timeZone: UTC }).replace(".", "").toUpperCase();
+  const numero = fecha.toLocaleDateString("es-MX", { day: "numeric", timeZone: UTC });
+  const mes = fecha.toLocaleDateString("es-MX", { month: "short", timeZone: UTC }).replace(".", "");
+  const [hora, ampm] = formatCitaHora12(cita.fechaHora).split(" ");
+  const fechaCompleta = fecha.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", timeZone: UTC });
   return (
-    <dl className="cp-detalle">
-      {cita.clinica && (
-        <Fila icono={Building2} etiqueta="Clínica" valor={cita.clinica} />
-      )}
-      <Fila
-        icono={Stethoscope}
-        etiqueta="Médico"
-        valor={[cita.medico, cita.especialidad].filter(Boolean).join(" · ") || "Tu médico"}
-      />
-      <Fila icono={CalendarDays} etiqueta="Fecha" valor={fechaLarga(cita.fechaHora)} />
-      <Fila icono={Clock} etiqueta="Hora" valor={formatCitaHora12(cita.fechaHora)} />
-      {(cita.consultorio || cita.direccion) && (
-        <Fila icono={MapPin} etiqueta="Lugar" valor={[cita.consultorio, cita.direccion].filter(Boolean).join(" · ")} />
-      )}
-    </dl>
+    <article className={`pase-tarjeta pase-boleto ${resultado === "CANCELADA" ? "cancelado" : ""}`} aria-label={`Cita del ${fechaCompleta} a las ${hora} ${ampm}`}>
+      <div className="pase-boleto-arriba">
+        <div className="pase-fecha" aria-hidden="true">
+          <span className="pase-fecha-dia">{dia}</span>
+          <span className="pase-fecha-num">{numero}</span>
+          <span className="pase-fecha-mes">{mes}</span>
+        </div>
+        <div className="pase-hora">
+          <span className="pase-hora-valor">{hora} <small>{ampm}</small></span>
+          <span className="pase-hora-detalle">
+            {cita.duracionMin ? `Consulta de ${cita.duracionMin} min` : "Consulta"}
+          </span>
+        </div>
+      </div>
+      <div className="pase-corte" aria-hidden="true"><span /></div>
+      <dl className="pase-datos">
+        <div>
+          <dt><UserRound size={20} aria-hidden="true" /><span className="sr-only">Médico</span></dt>
+          <dd>
+            <strong>{cita.medico || "Tu médico"}</strong>
+            {cita.especialidad && <span>{cita.especialidad}</span>}
+          </dd>
+        </div>
+        {(cita.consultorio || cita.direccion) && (
+          <div>
+            <dt><MapPin size={20} aria-hidden="true" /><span className="sr-only">Lugar</span></dt>
+            <dd>
+              <strong>{cita.consultorio || cita.clinica}</strong>
+              {cita.direccion && <span>{cita.direccion}</span>}
+            </dd>
+          </div>
+        )}
+      </dl>
+    </article>
   );
 }
 
-function Fila({ icono: Icono, etiqueta, valor }) {
-  return (
-    <div className="cp-fila">
-      <Icono size={18} aria-hidden="true" />
-      <dt>{etiqueta}</dt>
-      <dd>{valor}</dd>
-    </div>
-  );
-}
-
-function EstadoResultado({ resultado, cita }) {
+function Resultado({ resultado, cita }) {
   const confirmada = resultado === "CONFIRMADA";
   return (
-    <div className="cp-estado">
-      {confirmada ? <CheckCircle2 size={44} className="cp-icono ok" /> : <CalendarX size={44} className="cp-icono peligro" />}
-      <h1>{confirmada ? "¡Gracias! Tu cita quedó confirmada" : "Tu cita fue cancelada"}</h1>
-      <p>
-        {confirmada
-          ? "Te esperamos. Si surge algún cambio, comunícate con la clínica."
-          : "Avisamos a la clínica. Si deseas reagendar, comunícate con ellos."}
-      </p>
-      {cita && <DetalleCita cita={cita} />}
+    <div className="pase-acciones">
+      <div className={`pase-resultado ${confirmada ? "ok" : "cancelada"}`} role="status">
+        {confirmada ? <CheckCircle2 size={22} /> : <CalendarX size={22} />}
+        <span>
+          {confirmada
+            ? "Tu asistencia quedó confirmada. Si surge algún cambio, comunícate con la clínica."
+            : "Avisamos a la clínica. Si deseas reagendar, comunícate con ellos."}
+        </span>
+      </div>
+      <LlamarClinica telefono={cita.telefonoClinica} />
     </div>
+  );
+}
+
+function LlamarClinica({ telefono }) {
+  const digitos = String(telefono || "").replace(/\D/g, "");
+  if (digitos.length < 10) return null;
+  return (
+    <a className="pase-llamar" href={`tel:+52${digitos.slice(-10)}`}>
+      <Phone size={16} aria-hidden="true" /> Llamar a la clínica
+    </a>
   );
 }
 
 function EstadoError({ error }) {
   const usado = error.codigo === "USADO";
   return (
-    <div className="cp-estado">
-      {usado ? <CheckCircle2 size={44} className="cp-icono muted" /> : <AlertCircle size={44} className="cp-icono aviso" />}
-      <h1>{TITULOS[error.codigo] || "No pudimos abrir tu cita"}</h1>
+    <div className="pase-tarjeta pase-estado">
+      {usado ? <CheckCircle2 size={40} className="pase-icono ok" /> : <AlertCircle size={40} className="pase-icono aviso" />}
       <p>{error.mensaje}</p>
     </div>
   );
@@ -205,11 +232,4 @@ async function llamar(method, token, body) {
     };
   }
   return data;
-}
-
-/** "martes 19 de noviembre de 2026" — parte UTC, convención de reloj de las citas. */
-function fechaLarga(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return "";
-  return date.toLocaleDateString("es-MX", { weekday: "long", day: "numeric", month: "long", year: "numeric", timeZone: UTC });
 }

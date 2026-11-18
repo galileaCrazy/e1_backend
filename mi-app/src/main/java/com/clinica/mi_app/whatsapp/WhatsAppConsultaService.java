@@ -54,7 +54,7 @@ public class WhatsAppConsultaService {
             if (tel == null) throw new IllegalArgumentException("Teléfono inválido: se esperan 10 dígitos");
             mensajes = repo.findByOrganizacionIdAndTelefonoOrderByCreatedAtAsc(organizacionId, tel);
         } else {
-            throw new IllegalArgumentException("Indica citaId o telefono");
+            throw new IllegalArgumentException("Indica citaId o teléfono");
         }
         return mensajes.stream().map(WhatsAppMensajeResponse::of).toList();
     }

@@ -81,7 +81,9 @@ public class PublicCitaService {
                 c.getConsultorio() == null ? null : c.getConsultorio().getDireccion(),
                 c.getFechaHora(),
                 c.getEstado(),
-                resultado);
+                resultado,
+                c.getDuracionMin(),
+                c.getConsultorio() == null ? null : c.getConsultorio().getTelefono());
     }
 
     /** Solo el primer nombre: la página es pública y no debe exponer el nombre completo. */

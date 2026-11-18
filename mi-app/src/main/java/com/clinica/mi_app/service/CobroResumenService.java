@@ -50,7 +50,7 @@ public class CobroResumenService {
             throw new IllegalArgumentException("'desde' no puede ser posterior a 'hasta'");
         }
         if (ChronoUnit.DAYS.between(inicio, fin) + 1 > MAX_DIAS) {
-            throw new IllegalArgumentException("El rango maximo es de " + MAX_DIAS + " dias");
+            throw new IllegalArgumentException("El rango máximo es de " + MAX_DIAS + " días");
         }
 
         List<Pago> pagos = pagoRepo.findPagadosEnRango(organizacionId,

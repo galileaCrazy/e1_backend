@@ -66,17 +66,37 @@
 }
 
 .agenda-time strong {
-  color: var(--primary);
-  font-size: 20px;
-  line-height: 1;
+  color: var(--tinta);
+  font-family: var(--fuente-titulos);
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.1;
 }
 
 .agenda-time span,
 .agenda-detail span,
 .agenda-detail small,
 .upcoming-item span {
-  color: var(--muted);
-  font-size: 12px;
+  color: var(--texto-2);
+  font-size: 13px;
+}
+
+.agenda-detail strong,
+.upcoming-item strong {
+  font-weight: 600;
+}
+
+.agenda-item {
+  padding: 14px 12px;
+  border-radius: var(--radio-sm);
+}
+
+.agenda-item:hover {
+  background: var(--lienzo);
+}
+
+.agenda-controls {
+  border-radius: var(--radio-md);
 }
 
 .agenda-detail strong,
@@ -108,7 +128,7 @@
 
 /* Cita abierta desde Actividad */
 .agenda-item.resaltada {
-  border-radius: 10px;
-  background: var(--primary-soft);
-  box-shadow: inset 4px 0 0 var(--primary-ui);
+  border-radius: var(--radio-sm);
+  background: var(--bruma-suave);
+  box-shadow: inset 4px 0 0 var(--laguna-boton);
 }
