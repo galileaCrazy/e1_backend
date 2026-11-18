@@ -46,8 +46,11 @@ public class RecordatorioController {
     public ResponseEntity<EnvioRecordatorioResponse> enviar(@PathVariable UUID citaId,
                                                             @RequestParam(defaultValue = "false") boolean reenviar) {
         UUID medicoId = Roles.MEDICO.equals(AuthenticatedUser.getRol()) ? AuthenticatedUser.getMedicoId() : null;
-        Notificacion n = service.enviarManual(AuthenticatedUser.getOrganizacionId(), medicoId, citaId, reenviar);
+        RecordatorioService.EnvioRecordatorio envio =
+                service.enviarManualDetalle(AuthenticatedUser.getOrganizacionId(), medicoId, citaId, reenviar);
+        Notificacion n = envio.notificacion();
         HttpStatus status = "ENVIADO".equals(n.getEstado()) ? HttpStatus.OK : HttpStatus.BAD_GATEWAY;
-        return ResponseEntity.status(status).body(EnvioRecordatorioResponse.of(n, mensajeria.proveedor()));
+        return ResponseEntity.status(status)
+                .body(EnvioRecordatorioResponse.of(n, mensajeria.proveedor(), envio.waUrl()));
     }
 }

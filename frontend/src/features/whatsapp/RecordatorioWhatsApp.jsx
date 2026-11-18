@@ -30,8 +30,35 @@ export function useRecordatorioEstados(context, citaIds, tick = 0) {
   return [estados, cargar];
 }
 
+// Proveedor activo (simulado | twilio | meta | intoglobe | enlace); se pide una sola vez por carga de página
+let canalCache = null;
+
+export function useCanalWhatsApp(context) {
+  const [canal, setCanal] = React.useState(() => (typeof canalCache === "string" ? canalCache : null));
+  React.useEffect(() => {
+    if (canal) return undefined;
+    let activo = true;
+    if (!canalCache) {
+      canalCache = context
+        .api("/api/whatsapp/canal")
+        .then((data) => (canalCache = data?.proveedor || "?"))
+        .catch(() => {
+          canalCache = null;
+          return null;
+        });
+    }
+    Promise.resolve(canalCache).then((valor) => activo && valor && setCanal(valor));
+    return () => {
+      activo = false;
+    };
+  }, [context, canal]);
+  return canal;
+}
+
 /** Botón "Enviar recordatorio WhatsApp" + indicador del último estado (enviado / respondió / falló). */
 export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compacto = false }) {
+  const canal = useCanalWhatsApp(context);
+  const esEnlace = canal === "enlace";
   const [enviando, setEnviando] = React.useState(false);
   const [confirmarReenvio, setConfirmarReenvio] = React.useState(false);
   const yaEnviado = estado && ["ENVIADO", "RESPONDIO"].includes(estado.estado);
@@ -40,14 +67,26 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
   async function enviar(reenviar) {
     setEnviando(true);
     setConfirmarReenvio(false);
+    // Canal "enlace": la pestaña se abre dentro del clic; si se abriera después del await,
+    // el navegador la bloquearía como ventana emergente.
+    const pestana = esEnlace ? window.open("", "_blank") : null;
     try {
-      await context.api(`/api/admin/recordatorios/${cita.id}/enviar${reenviar ? "?reenviar=true" : ""}`, { method: "POST" });
-      context.notify(reenviar ? "Recordatorio reenviado por WhatsApp" : "Recordatorio enviado por WhatsApp");
+      const r = await context.api(`/api/admin/recordatorios/${cita.id}/enviar${reenviar ? "?reenviar=true" : ""}`, { method: "POST" });
+      if (r?.waUrl) {
+        if (pestana && !pestana.closed) {
+          pestana.opener = null;
+          pestana.location.href = r.waUrl;
+        } else {
+          window.open(r.waUrl, "_blank", "noopener");
+        }
+        context.notify("Se abrió WhatsApp con el recordatorio y el enlace. Envíalo al paciente.");
+      } else {
+        pestana?.close();
+        context.notify(reenviar ? "Recordatorio reenviado por WhatsApp" : "Recordatorio enviado por WhatsApp");
+      }
     } catch (err) {
-      const mensaje = err.message === "HTTP 502"
-        ? "El proveedor de WhatsApp no respondió; el intento quedó registrado como fallido."
-        : err.message;
-      context.notify(mensaje, "error");
+      pestana?.close();
+      context.notify(mensajeErrorCanal(err.message), "error");
     } finally {
       setEnviando(false);
       onEnviado?.();
@@ -58,7 +97,7 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
 
   return (
     <div className={`wa-recordatorio ${compacto ? "compacto" : ""}`}>
-      <IndicadorRecordatorio estado={estado} />
+      <IndicadorRecordatorio estado={estado} esEnlace={esEnlace} />
       {puedeEnviar && !confirmarReenvio && (
         <button
           type="button"
@@ -81,7 +120,7 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
   );
 }
 
-function IndicadorRecordatorio({ estado }) {
+function IndicadorRecordatorio({ estado, esEnlace }) {
   if (!estado) return null;
   const hora = estado.fecha ? formatHoraLocal(estado.fecha) : "";
   if (estado.estado === "RESPONDIO") {
@@ -100,9 +139,17 @@ function IndicadorRecordatorio({ estado }) {
   }
   return (
     <span className="badge info wa-indicador" title={hora}>
-      <Check size={13} /> Recordatorio enviado{hora ? ` · ${hora}` : ""}
+      <Check size={13} /> {esEnlace ? "Enlace enviado" : "Recordatorio enviado"}{hora ? ` · ${hora}` : ""}
     </span>
   );
+}
+
+/** Mensajes de error del canal en español (los del backend ya vienen en español). */
+function mensajeErrorCanal(mensaje) {
+  if (mensaje === "HTTP 502") return "El proveedor de WhatsApp no respondió; el intento quedó registrado como fallido.";
+  if (mensaje === "Failed to fetch") return "No hay conexión con el servidor. Revisa que el backend esté levantado.";
+  if (/^HTTP \d+$/.test(mensaje || "")) return `No se pudo enviar el recordatorio (${mensaje}).`;
+  return mensaje;
 }
 
 // fecha de envío/respuesta = instante real → hora local del navegador

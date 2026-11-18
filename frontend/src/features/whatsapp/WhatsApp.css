@@ -384,3 +384,23 @@
     height: 560px;
   }
 }
+
+/* Canal "enlace" */
+.wa-enlace-etiqueta {
+  background: var(--secondary-soft);
+  border-radius: 999px;
+  color: var(--secondary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 6px;
+}
+
+.bell-item.confirmacion.nueva::before {
+  background: var(--secondary);
+}
+
+.bell-origen {
+  color: var(--primary);
+  font-size: 11px;
+  font-style: normal;
+}

@@ -66,7 +66,7 @@ class WhatsAppControllerTest {
     @Test
     void simulador_conProveedorSimulado_usaLaOrganizacionDelJwt() throws Exception {
         when(consulta.mensajes(ORG, null, "9511234567")).thenReturn(List.of(new WhatsAppMensajeResponse(
-                UUID.randomUUID(), null, "9511234567", "ENTRANTE", "1", "RECIBIDO", OffsetDateTime.now())));
+                UUID.randomUUID(), null, "9511234567", "ENTRANTE", "1", "RECIBIDO", OffsetDateTime.now(), null)));
 
         mockMvc.perform(post("/api/whatsapp/simulador/responder").with(como("ADMIN", ORG))
                         .contentType(MediaType.APPLICATION_JSON).content(SIMULAR))

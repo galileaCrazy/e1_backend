@@ -28,7 +28,7 @@ public class Notificacion {
     private String canal = "WHATSAPP";
 
     @Column(nullable = false, length = 40)
-    private String tipo; // RECORDATORIO_48H | RECORDATORIO_24H | RECORDATORIO_MANUAL | ADJUNTO | CANCELACION_PACIENTE
+    private String tipo; // RECORDATORIO_48H | RECORDATORIO_24H | RECORDATORIO_MANUAL | ADJUNTO | CANCELACION_PACIENTE | CONFIRMACION_PACIENTE
 
     @Column(nullable = false, length = 20)
     private String estado = "PENDIENTE"; // PENDIENTE | ENVIADO | FALLIDO

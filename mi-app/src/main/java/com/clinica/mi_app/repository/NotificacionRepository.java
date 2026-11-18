@@ -26,6 +26,23 @@ public interface NotificacionRepository extends JpaRepository<Notificacion, UUID
 
     long countByOrganizacionIdAndTipoAndLeidaFalse(UUID organizacionId, String tipo);
 
+    // Campana con varios tipos (cancelaciones y confirmaciones del paciente)
+    @EntityGraph(attributePaths = {"cita", "cita.paciente", "cita.medico"})
+    List<Notificacion> findTop20ByOrganizacionIdAndTipoInOrderByCreadaEnDesc(UUID organizacionId, Collection<String> tipos);
+
+    @EntityGraph(attributePaths = {"cita", "cita.paciente", "cita.medico"})
+    List<Notificacion> findTop20ByOrganizacionIdAndTipoInAndCita_Medico_IdOrderByCreadaEnDesc(
+            UUID organizacionId, Collection<String> tipos, UUID medicoId);
+
+    long countByOrganizacionIdAndTipoInAndLeidaFalse(UUID organizacionId, Collection<String> tipos);
+
+    long countByOrganizacionIdAndTipoInAndCita_Medico_IdAndLeidaFalse(UUID organizacionId, Collection<String> tipos, UUID medicoId);
+
+    List<Notificacion> findByOrganizacionIdAndTipoInAndLeidaFalse(UUID organizacionId, Collection<String> tipos);
+
+    List<Notificacion> findByOrganizacionIdAndTipoInAndCita_Medico_IdAndLeidaFalse(
+            UUID organizacionId, Collection<String> tipos, UUID medicoId);
+
     long countByOrganizacionIdAndTipoAndCita_Medico_IdAndLeidaFalse(UUID organizacionId, String tipo, UUID medicoId);
 
     List<Notificacion> findByOrganizacionIdAndTipoAndLeidaFalse(UUID organizacionId, String tipo);

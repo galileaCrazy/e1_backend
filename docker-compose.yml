@@ -44,8 +44,12 @@ services:
       SUPABASE_URL: ${SUPABASE_URL:-https://cgfkxsfyucybzytqfyoi.supabase.co}
       SUPABASE_SERVICE_KEY: ${SUPABASE_SERVICE_KEY}
       SUPABASE_STORAGE_BUCKET: ${SUPABASE_STORAGE_BUCKET:-adjuntos}
-      # WhatsApp: simulado | twilio | meta | intoglobe (valores en .env)
-      NOTIF_PROVIDER: ${NOTIF_PROVIDER:-simulado}
+      # WhatsApp: enlace | simulado | twilio | meta | intoglobe (valores en .env)
+      NOTIF_PROVIDER: ${NOTIF_PROVIDER:-enlace}
+      # URL pública del frontend para los enlaces /c/{token} del canal "enlace"
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-http://localhost:5173}
+      # Orígenes CORS extra separados por comas (APP_PUBLIC_URL ya se permite solo)
+      APP_CORS_EXTRA_ORIGINS: ${APP_CORS_EXTRA_ORIGINS:-}
       TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID:-}
       TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN:-}
       TWILIO_WHATSAPP_FROM: ${TWILIO_WHATSAPP_FROM:-whatsapp:+17372508034}
@@ -83,16 +87,18 @@ services:
     networks:
       - clinica-network
 
-  # Túnel público para el webhook de Twilio/Meta. Solo con: docker compose --profile tunnel up -d tunnel
+  # Túnel público hacia el FRONTEND (Vite en el host, puerto 5173). Las llamadas a /api pasan por el
+  # proxy de Vite al backend, así que también sirve para los webhooks (/api/whatsapp/twilio).
+  # Solo con: docker compose --profile tunnel up -d tunnel
   # La URL (https://<algo>.trycloudflare.com) aparece en: docker compose logs tunnel
-  # y CAMBIA cada vez que se reinicia el contenedor.
+  # y CAMBIA cada vez que se reinicia el contenedor (actualiza APP_PUBLIC_URL y reinicia mi-app).
   tunnel:
     image: cloudflare/cloudflared:2024.12.2
     container_name: clinica-tunnel
     profiles: ["tunnel"]
-    command: tunnel --no-autoupdate --url http://mi-app:8080
-    depends_on:
-      - mi-app
+    command: tunnel --no-autoupdate --url http://host.docker.internal:5173
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     networks:
       - clinica-network
 

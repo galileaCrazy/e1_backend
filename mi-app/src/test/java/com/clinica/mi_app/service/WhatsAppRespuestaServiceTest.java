@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.contains;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -113,6 +114,61 @@ public class WhatsAppRespuestaServiceTest {
 
         assertDoesNotThrow(() -> service.procesarRespuesta(cita, TEL, "1"));
         verify(citaRepo).save(cita);
+    }
+
+    @Test
+    public void enlace_confirmar_notificaConfirmacionYRegistraEntrante_sinResponderPorWhatsApp() {
+        Cita cita = cita();
+
+        service.confirmarDesdeEnlace(cita);
+
+        assertEquals("CONFIRMADA", cita.getEstado());
+        verify(citaRepo).save(cita);
+
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(notificacionRepo).save(captor.capture());
+        Notificacion n = captor.getValue();
+        assertEquals("CONFIRMACION_PACIENTE", n.getTipo());
+        assertEquals("Confirmó desde el enlace", n.getRespuesta());
+        assertFalse(n.getLeida());
+        assertEquals(cita.getOrganizacion(), n.getOrganizacion());
+
+        verify(mensajeria).registrarEntrante(cita.getOrganizacion(), cita, TEL, "Confirmó desde el enlace", null);
+        verify(mensajeria, never()).enviarTexto(any(), any(), any(), any());
+        verify(auditClient).audit(eq("appointment.updated"), eq("CITA"), eq(citaId), eq(orgId), eq(null),
+                argThat(m -> "enlace".equals(m.get("canal"))));
+    }
+
+    @Test
+    public void enlace_cancelar_cancelaNotificaYRegistraEntrante() {
+        Cita cita = cita();
+
+        service.cancelarDesdeEnlace(cita);
+
+        assertEquals("CANCELADA", cita.getEstado());
+        assertEquals("PACIENTE", cita.getCanceladaPor());
+        assertEquals(OffsetDateTime.parse("2026-11-10T10:00:00Z"), cita.getCanceladaEn());
+
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(notificacionRepo).save(captor.capture());
+        assertEquals("CANCELACION_PACIENTE", captor.getValue().getTipo());
+        assertEquals("Canceló desde el enlace", captor.getValue().getRespuesta());
+
+        verify(mensajeria).registrarEntrante(cita.getOrganizacion(), cita, TEL, "Canceló desde el enlace", null);
+        verify(mensajeria, never()).enviarTexto(any(), any(), any(), any());
+    }
+
+    @Test
+    public void enlace_textosDistintosParaConfirmacionYCancelacion() {
+        Cita a = cita();
+        Cita b = cita();
+        service.confirmarDesdeEnlace(a);
+        service.cancelarDesdeEnlace(b);
+
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(notificacionRepo, times(2)).save(captor.capture());
+        assertNotEquals(captor.getAllValues().get(0).getTipo(), captor.getAllValues().get(1).getTipo());
+        assertNotEquals(captor.getAllValues().get(0).getRespuesta(), captor.getAllValues().get(1).getRespuesta());
     }
 
     private Cita cita() {

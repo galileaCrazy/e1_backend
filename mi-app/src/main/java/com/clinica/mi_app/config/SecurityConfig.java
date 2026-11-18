@@ -8,6 +8,7 @@ import com.clinica.mi_app.security.JwtFilter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -38,6 +39,14 @@ public class SecurityConfig {
 
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
     private String allowedOrigins;
+
+    /** URL pública del frontend (canal "enlace"): el proxy de Vite reenvía ese Origin desde el celular. */
+    @Value("${app.public-url:}")
+    private String publicUrl;
+
+    /** Orígenes extra separados por comas (APP_CORS_EXTRA_ORIGINS), p. ej. el dominio del túnel. */
+    @Value("${app.cors.extra-origins:}")
+    private String extraOrigins;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -73,6 +82,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**"
                         ).permitAll()
+                        // Canal "enlace": SOLO la página pública de una cita por token (un segmento).
+                        // Cualquier otra ruta bajo /api/public sigue exigiendo JWT.
+                        .requestMatchers(HttpMethod.GET, "/api/public/citas/*").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/public/citas/*").permitAll()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
@@ -89,7 +102,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        config.setAllowedOrigins(List.of(allowedOrigins.split(",")));
+        config.setAllowedOrigins(origenesPermitidos(allowedOrigins, publicUrl, extraOrigins));
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         config.setAllowedHeaders(List.of("*"));
         config.setAllowCredentials(true);
@@ -97,5 +110,21 @@ public class SecurityConfig {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
         return source;
+    }
+
+    /**
+     * Lista exacta de orígenes: base (cors.allowed-origins) + app.public-url + extras. Sin barra final,
+     * sin vacíos, sin duplicados y nunca "*" (incompatible con allowCredentials).
+     */
+    static List<String> origenesPermitidos(String... listas) {
+        java.util.LinkedHashSet<String> origenes = new java.util.LinkedHashSet<>();
+        for (String lista : listas) {
+            if (lista == null) continue;
+            for (String o : lista.split(",")) {
+                String limpio = o.trim().replaceAll("/+$", "");
+                if (!limpio.isEmpty() && !limpio.contains("*")) origenes.add(limpio);
+            }
+        }
+        return List.copyOf(origenes);
     }
 }

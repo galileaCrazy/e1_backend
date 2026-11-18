@@ -8,6 +8,7 @@ import com.clinica.mi_app.model.Notificacion;
 import com.clinica.mi_app.security.JwtFilter;
 import com.clinica.mi_app.security.JwtUtil;
 import com.clinica.mi_app.service.RecordatorioService;
+import com.clinica.mi_app.service.RecordatorioService.EnvioRecordatorio;
 import com.clinica.mi_app.whatsapp.WhatsAppMensajeria;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -77,9 +78,25 @@ class RecordatorioControllerTest {
         return n;
     }
 
+    private EnvioRecordatorio envio(String estado, String waUrl) {
+        return new EnvioRecordatorio(notif(estado), waUrl);
+    }
+
+    @Test
+    void canalEnlace_devuelveWaUrl() throws Exception {
+        when(mensajeria.proveedor()).thenReturn("enlace");
+        String waUrl = "https://wa.me/529513197872?text=Hola";
+        when(service.enviarManualDetalle(ORG, null, citaId, false)).thenReturn(envio("ENVIADO", waUrl));
+
+        mockMvc.perform(post("/api/admin/recordatorios/{id}/enviar", citaId).with(como("ADMIN", ORG)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.proveedor").value("enlace"))
+                .andExpect(jsonPath("$.waUrl").value(waUrl));
+    }
+
     @Test
     void admin_enviado_200() throws Exception {
-        when(service.enviarManual(ORG, null, citaId, false)).thenReturn(notif("ENVIADO"));
+        when(service.enviarManualDetalle(ORG, null, citaId, false)).thenReturn(envio("ENVIADO", null));
 
         mockMvc.perform(post("/api/admin/recordatorios/{id}/enviar", citaId).with(como("ADMIN", ORG)))
                 .andExpect(status().isOk())
@@ -91,17 +108,17 @@ class RecordatorioControllerTest {
     @Test
     void medico_pasaSuMedicoIdYReenviar() throws Exception {
         UUID medicoId = UUID.randomUUID();
-        when(service.enviarManual(ORG, medicoId, citaId, true)).thenReturn(notif("ENVIADO"));
+        when(service.enviarManualDetalle(ORG, medicoId, citaId, true)).thenReturn(envio("ENVIADO", null));
 
         mockMvc.perform(post("/api/admin/recordatorios/{id}/enviar", citaId).param("reenviar", "true")
                         .with(medico(ORG, medicoId)))
                 .andExpect(status().isOk());
-        verify(service).enviarManual(ORG, medicoId, citaId, true);
+        verify(service).enviarManualDetalle(ORG, medicoId, citaId, true);
     }
 
     @Test
     void proveedorFalla_502ConFallido() throws Exception {
-        when(service.enviarManual(eq(ORG), isNull(), eq(citaId), anyBoolean())).thenReturn(notif("FALLIDO"));
+        when(service.enviarManualDetalle(eq(ORG), isNull(), eq(citaId), anyBoolean())).thenReturn(envio("FALLIDO", null));
 
         mockMvc.perform(post("/api/admin/recordatorios/{id}/enviar", citaId).with(como("ADMIN", ORG)))
                 .andExpect(status().isBadGateway())
@@ -110,7 +127,7 @@ class RecordatorioControllerTest {
 
     @Test
     void yaEnviado_409_citaAjena_404_cancelada_400() throws Exception {
-        when(service.enviarManual(any(), any(), eq(citaId), anyBoolean()))
+        when(service.enviarManualDetalle(any(), any(), eq(citaId), anyBoolean()))
                 .thenThrow(new ConflictException("Ya se envió"))
                 .thenThrow(new ResourceNotFoundException("Cita", citaId.toString()))
                 .thenThrow(new IllegalArgumentException("No se envían recordatorios a citas en estado CANCELADA"));

@@ -39,6 +39,19 @@ public final class RecordatorioPlantilla {
         return String.format(CUERPO, params.toArray());
     }
 
+    /** Canal "enlace": mismo recordatorio, pero el paciente responde en la página pública. */
+    public static final String CUERPO_ENLACE =
+            "Hola %s, te recordamos tu cita con %s el %s a las %s en %s. Confírmala o cancélala aquí: %s";
+
+    /** Textos que se registran como mensaje ENTRANTE cuando el paciente responde desde el enlace. */
+    public static final String CONFIRMO_ENLACE = "Confirmó desde el enlace";
+    public static final String CANCELO_ENLACE = "Canceló desde el enlace";
+
+    public static String conEnlace(Cita cita, String url) {
+        List<String> p = parametros(cita);
+        return String.format(CUERPO_ENLACE, p.get(0), p.get(1), p.get(2), p.get(3), p.get(4), url);
+    }
+
     public static String confirmada(Cita cita) {
         return "¡Gracias! Tu cita del " + fecha(cita.getFechaHora()) + " a las " + hora(cita.getFechaHora())
                 + " quedó confirmada. Te esperamos.";

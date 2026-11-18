@@ -5,7 +5,10 @@ import "./WhatsApp.css";
 
 const REFRESCO_MS = 30000;
 
-/** Campana con las cancelaciones del paciente por WhatsApp (CANCELACION_PACIENTE) y contador de no leídas. */
+/**
+ * Campana con las respuestas del paciente y contador de no leídas: cancelaciones (CANCELACION_PACIENTE,
+ * por WhatsApp o desde el enlace) y confirmaciones desde el enlace (CONFIRMACION_PACIENTE).
+ */
 export default function NotificacionesBell({ context }) {
   const [datos, setDatos] = React.useState({ noLeidas: 0, items: [] });
   const [abierto, setAbierto] = React.useState(false);
@@ -71,21 +74,29 @@ export default function NotificacionesBell({ context }) {
         {datos.noLeidas > 0 && <span className="bell-contador">{datos.noLeidas > 9 ? "9+" : datos.noLeidas}</span>}
       </button>
       {abierto && (
-        <div className="bell-panel" role="dialog" aria-label="Cancelaciones recientes">
+        <div className="bell-panel" role="dialog" aria-label="Respuestas recientes de pacientes">
           <div className="bell-head">
-            <strong>Cancelaciones por WhatsApp</strong>
+            <strong>Respuestas de pacientes</strong>
             {datos.noLeidas > 0 && (
               <button type="button" className="btn small ghost" onClick={marcarTodas}>Marcar todas</button>
             )}
           </div>
           {datos.items.length === 0 ? (
-            <p className="bell-vacio">Sin cancelaciones recientes.</p>
+            <p className="bell-vacio">Sin respuestas recientes.</p>
           ) : (
             <ul className="bell-lista">
               {datos.items.map((item) => (
                 <li key={item.id}>
-                  <button type="button" className={`bell-item ${item.leida ? "" : "nueva"}`} onClick={() => marcarLeida(item)}>
-                    <strong>{item.pacienteNombre || "Paciente"} canceló su cita</strong>
+                  <button
+                    type="button"
+                    className={`bell-item ${item.leida ? "" : "nueva"} ${item.tipo === "CONFIRMACION_PACIENTE" ? "confirmacion" : "cancelacion"}`}
+                    onClick={() => marcarLeida(item)}
+                  >
+                    <strong>
+                      {item.pacienteNombre || "Paciente"}{" "}
+                      {item.tipo === "CONFIRMACION_PACIENTE" ? "confirmó su asistencia" : "canceló su cita"}
+                    </strong>
+                    {item.respuesta && /enlace/i.test(item.respuesta) && <em className="bell-origen">Desde el enlace</em>}
                     <span>
                       {item.citaFechaHora ? `${formatCitaFecha(item.citaFechaHora)} · ${formatCitaHora12(item.citaFechaHora)}` : ""}
                       {item.medicoNombre ? ` · ${item.medicoNombre}` : ""}

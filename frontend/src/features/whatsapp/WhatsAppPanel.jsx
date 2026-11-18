@@ -150,6 +150,9 @@ function Mensajes({ mensajes }) {
           <p>{m.texto}</p>
           <span className="wa-meta">
             {formatHoraLocal(m.createdAt)}
+            {m.direccion === "SALIENTE" && m.canal === "enlace" && m.estado !== "FALLIDO" && (
+              <span className="wa-enlace-etiqueta">Enlace enviado</span>
+            )}
             {m.direccion === "SALIENTE" && <EstadoTicks estado={m.estado} />}
           </span>
         </div>
@@ -228,5 +231,5 @@ function formatTelefono(tel) {
 }
 
 function nombreProveedor(p) {
-  return { twilio: "Twilio", meta: "Meta", intoglobe: "InToGlobe" }[p] || p;
+  return { twilio: "Twilio", meta: "Meta", intoglobe: "InToGlobe", enlace: "Enlace (wa.me)" }[p] || p;
 }

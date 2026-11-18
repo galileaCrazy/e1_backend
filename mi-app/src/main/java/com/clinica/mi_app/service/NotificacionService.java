@@ -37,18 +37,21 @@ public class NotificacionService {
         this.adjuntoRepo = adjuntoRepo;
     }
 
-    // ── Campana: cancelaciones del paciente (admin: toda la org; médico: solo sus citas) ──
+    // ── Campana: respuestas del paciente (admin: toda la org; médico: solo sus citas) ──
 
     public static final String CANCELACION_PACIENTE = "CANCELACION_PACIENTE";
+    public static final String CONFIRMACION_PACIENTE = "CONFIRMACION_PACIENTE";
+    /** Tipos que aparecen en la campana: cancelaciones (WhatsApp o enlace) y confirmaciones desde el enlace. */
+    public static final List<String> TIPOS_CAMPANA = List.of(CANCELACION_PACIENTE, CONFIRMACION_PACIENTE);
 
     @Transactional(readOnly = true)
     public CampanaResponse campana(UUID organizacionId, UUID medicoId) {
         List<Notificacion> items = medicoId == null
-                ? repo.findTop20ByOrganizacionIdAndTipoOrderByCreadaEnDesc(organizacionId, CANCELACION_PACIENTE)
-                : repo.findTop20ByOrganizacionIdAndTipoAndCita_Medico_IdOrderByCreadaEnDesc(organizacionId, CANCELACION_PACIENTE, medicoId);
+                ? repo.findTop20ByOrganizacionIdAndTipoInOrderByCreadaEnDesc(organizacionId, TIPOS_CAMPANA)
+                : repo.findTop20ByOrganizacionIdAndTipoInAndCita_Medico_IdOrderByCreadaEnDesc(organizacionId, TIPOS_CAMPANA, medicoId);
         long noLeidas = medicoId == null
-                ? repo.countByOrganizacionIdAndTipoAndLeidaFalse(organizacionId, CANCELACION_PACIENTE)
-                : repo.countByOrganizacionIdAndTipoAndCita_Medico_IdAndLeidaFalse(organizacionId, CANCELACION_PACIENTE, medicoId);
+                ? repo.countByOrganizacionIdAndTipoInAndLeidaFalse(organizacionId, TIPOS_CAMPANA)
+                : repo.countByOrganizacionIdAndTipoInAndCita_Medico_IdAndLeidaFalse(organizacionId, TIPOS_CAMPANA, medicoId);
         return new CampanaResponse(noLeidas, items.stream().map(NotificacionRecienteResponse::of).toList());
     }
 
@@ -65,8 +68,8 @@ public class NotificacionService {
     @Transactional
     public int marcarTodasLeidas(UUID organizacionId, UUID medicoId) {
         List<Notificacion> pendientes = medicoId == null
-                ? repo.findByOrganizacionIdAndTipoAndLeidaFalse(organizacionId, CANCELACION_PACIENTE)
-                : repo.findByOrganizacionIdAndTipoAndCita_Medico_IdAndLeidaFalse(organizacionId, CANCELACION_PACIENTE, medicoId);
+                ? repo.findByOrganizacionIdAndTipoInAndLeidaFalse(organizacionId, TIPOS_CAMPANA)
+                : repo.findByOrganizacionIdAndTipoInAndCita_Medico_IdAndLeidaFalse(organizacionId, TIPOS_CAMPANA, medicoId);
         pendientes.forEach(n -> n.setLeida(true));
         repo.saveAll(pendientes);
         return pendientes.size();

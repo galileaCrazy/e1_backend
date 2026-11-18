@@ -10,14 +10,18 @@ import com.clinica.mi_app.model.Organizacion;
 import com.clinica.mi_app.model.Paciente;
 import com.clinica.mi_app.repository.CitaRepository;
 import com.clinica.mi_app.repository.NotificacionRepository;
+import com.clinica.mi_app.model.CitaEnlace;
 import com.clinica.mi_app.whatsapp.WhatsAppMensajeria;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -28,6 +32,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 public class RecordatorioServiceTest {
@@ -35,6 +41,7 @@ public class RecordatorioServiceTest {
     @Mock private CitaRepository citaRepo;
     @Mock private NotificacionRepository notificacionRepo;
     @Mock private WhatsAppMensajeria mensajeria;
+    @Mock private CitaEnlaceService enlaceService;
 
     /** ahora (reloj de la clínica en UTC) = 2026-11-10T10:00Z */
     private final ClinicaReloj reloj = new ClinicaReloj(Clock.fixed(Instant.parse("2026-11-10T16:00:00Z"), ZoneOffset.UTC));
@@ -46,7 +53,7 @@ public class RecordatorioServiceTest {
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
-        service = new RecordatorioService(citaRepo, notificacionRepo, mensajeria, reloj);
+        service = new RecordatorioService(citaRepo, notificacionRepo, mensajeria, reloj, enlaceService);
         when(notificacionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
         when(notificacionRepo.findByCitaId(any())).thenReturn(List.of());
     }
@@ -64,6 +71,53 @@ public class RecordatorioServiceTest {
         assertEquals("WHATSAPP", n.getCanal());
         assertNotNull(n.getEnviadaEn());
         assertSame(cita, n.getCita());
+    }
+
+    @Test
+    void enlace_generaTokenYDevuelveWaMeConElTextoYLaUrl() {
+        Cita cita = cita("SIN_CONFIRMAR", "2026-11-11T09:00:00Z", orgId);
+        when(citaRepo.findById(cita.getId())).thenReturn(Optional.of(cita));
+        when(mensajeria.proveedor()).thenReturn("enlace");
+        String url = "http://192.168.0.10:5173/c/abc";
+        when(enlaceService.generar(cita)).thenReturn(new CitaEnlaceService.Generado("abc", url, new CitaEnlace()));
+        when(mensajeria.enviarTexto(eq(cita.getOrganizacion()), eq(cita), eq("9511234567"), anyString()))
+                .thenReturn(Optional.of("enlace-1"));
+
+        RecordatorioService.EnvioRecordatorio envio = service.enviarManualDetalle(orgId, null, cita.getId(), false);
+
+        ArgumentCaptor<String> texto = ArgumentCaptor.forClass(String.class);
+        verify(mensajeria).enviarTexto(any(), eq(cita), eq("9511234567"), texto.capture());
+        assertTrue(texto.getValue().startsWith("Hola Ana Ramírez, te recordamos tu cita"));
+        assertTrue(texto.getValue().endsWith("Confírmala o cancélala aquí: " + url));
+        verify(mensajeria, never()).enviarRecordatorio(any());
+
+        assertEquals("ENVIADO", envio.notificacion().getEstado());
+        assertEquals("RECORDATORIO_MANUAL", envio.notificacion().getTipo());
+        assertTrue(envio.waUrl().startsWith("https://wa.me/529511234567?text="));
+        String decodificado = URLDecoder.decode(envio.waUrl().substring(envio.waUrl().indexOf("=") + 1), StandardCharsets.UTF_8);
+        assertEquals(texto.getValue(), decodificado);
+        assertFalse(envio.waUrl().contains("+"), "los espacios van como %20");
+    }
+
+    @Test
+    void otrosProveedores_noGeneranEnlaceNiWaUrl() {
+        Cita cita = cita("SIN_CONFIRMAR", "2026-11-11T09:00:00Z", orgId);
+        when(citaRepo.findById(cita.getId())).thenReturn(Optional.of(cita));
+        when(mensajeria.proveedor()).thenReturn("simulado");
+        when(mensajeria.enviarRecordatorio(cita)).thenReturn(Optional.of("wamid.SIM.9"));
+
+        assertNull(service.enviarManualDetalle(orgId, null, cita.getId(), false).waUrl());
+        verifyNoInteractions(enlaceService);
+    }
+
+    @Test
+    void enlace_citaDeOtraOrganizacion_404_sinGenerarToken() {
+        Cita ajena = cita("SIN_CONFIRMAR", "2026-11-11T09:00:00Z", UUID.randomUUID());
+        when(citaRepo.findById(ajena.getId())).thenReturn(Optional.of(ajena));
+        when(mensajeria.proveedor()).thenReturn("enlace");
+
+        assertThrows(ResourceNotFoundException.class, () -> service.enviarManualDetalle(orgId, null, ajena.getId(), false));
+        verifyNoInteractions(enlaceService);
     }
 
     @Test

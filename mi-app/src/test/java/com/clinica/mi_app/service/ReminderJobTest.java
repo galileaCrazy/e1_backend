@@ -115,4 +115,14 @@ public class ReminderJobTest {
         c.setId(UUID.randomUUID());
         return c;
     }
+
+    @Test
+    public void enlace_nuncaEnvia_aunqueHayaCitas() {
+        ReminderJob job = job("enlace", true);
+        assertFalse(job.isHabilitado());
+
+        job.enviarRecordatorios();
+
+        verifyNoInteractions(citaRepository, recordatorioService);
+    }
 }

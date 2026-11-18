@@ -16,6 +16,8 @@ import java.util.List;
  * Recordatorios automáticos a 48 h y 24 h. Delega en {@link RecordatorioService} (mismas validaciones
  * que el envío manual). Con {@code notif.provider=twilio} no envía salvo
  * {@code whatsapp.twilio.job-enabled=true}: el sandbox tiene cupo de mensajes y un solo destinatario.
+ * Con {@code notif.provider=enlace} nunca envía: el mensaje lo abre una persona en wa.me con el botón
+ * manual; si el job corriera marcaría como ENVIADO un recordatorio que nadie mandó.
  */
 @Component
 public class ReminderJob {
@@ -35,13 +37,14 @@ public class ReminderJob {
         this.citaRepository = citaRepository;
         this.recordatorioService = recordatorioService;
         this.reloj = reloj;
-        this.habilitado = !"twilio".equalsIgnoreCase(provider) || twilioJobEnabled;
+        this.habilitado = !"enlace".equalsIgnoreCase(provider)
+                && (!"twilio".equalsIgnoreCase(provider) || twilioJobEnabled);
     }
 
     @Scheduled(cron = "${reminder.job.cron:0 */15 * * * *}")
     public void enviarRecordatorios() {
         if (!habilitado) {
-            log.debug("ReminderJob deshabilitado para el proveedor twilio (whatsapp.twilio.job-enabled=false)");
+            log.debug("ReminderJob deshabilitado para este proveedor (enlace, o twilio sin job-enabled)");
             return;
         }
         // Hora de reloj de la clínica expresada en UTC, igual que cita.fecha_hora

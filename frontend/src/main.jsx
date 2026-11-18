@@ -37,6 +37,7 @@ import PacienteDashboard from "./features/paciente/dashboard/PacienteDashboard";
 import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
 import WhatsAppPanel from "./features/whatsapp/WhatsAppPanel";
 import NotificacionesBell from "./features/whatsapp/NotificacionesBell";
+import CitaPublica from "./features/publico/CitaPublica";
 import {
   citaDateKey,
   clinicToday,
@@ -49,7 +50,30 @@ import "./styles.css";
 
 const STORAGE_KEY = "medinflow.session";
 const API_KEY = "medinflow.apiUrl";
-const DEFAULT_API_URL = normalizeApiUrl(import.meta.env.VITE_API_URL || "http://localhost:8081");
+// VITE_API_URL vacía o sin definir = URL relativa ("/api/..."), que pasa por el proxy /api de Vite.
+// Así funciona igual desde la PC (localhost:5173) que desde el celular (http://<ip-local>:5173).
+const DEFAULT_API_URL = normalizeApiUrl(import.meta.env.VITE_API_URL ?? "");
+const HOSTS_LOCALES = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+/** true si la URL (absoluta) apunta a la propia máquina: localhost / 127.0.0.1. */
+function apuntaALocalhost(url) {
+  try {
+    return HOSTS_LOCALES.has(new URL(url).hostname);
+  } catch {
+    return false; // relativa ("") o inválida
+  }
+}
+
+/**
+ * URL efectiva de la API. Si la guardada en localStorage (o VITE_API_URL) apunta a localhost pero la
+ * página NO se abrió desde localhost (p. ej. desde el celular por Wi-Fi o por el túnel), "localhost"
+ * sería el propio teléfono: se ignora y se usa la URL relativa del proxy de Vite.
+ */
+function resolverApiUrl(guardada) {
+  const candidata = normalizeApiUrl(guardada ?? DEFAULT_API_URL);
+  if (apuntaALocalhost(candidata) && !HOSTS_LOCALES.has(window.location.hostname)) return "";
+  return candidata;
+}
 
 const iconMap = {
   dashboard: LayoutDashboard,
@@ -429,7 +453,13 @@ function normalizeApiUrl(value) {
 
 function App() {
   const [session, setSession] = React.useState(() => readJson(STORAGE_KEY));
-  const [apiUrl, setApiUrlState] = React.useState(() => localStorage.getItem(API_KEY) || DEFAULT_API_URL);
+  const [apiUrl, setApiUrlState] = React.useState(() => {
+    try {
+      return resolverApiUrl(localStorage.getItem(API_KEY));
+    } catch {
+      return resolverApiUrl(null);
+    }
+  });
   const [route, setRoute] = React.useState(() => {
     const path = location.pathname.replace(/^\//, "");
     return path || (session ? "dashboard" : "login");
@@ -459,8 +489,12 @@ function App() {
 
   const setApiUrl = React.useCallback((value) => {
     const clean = normalizeApiUrl(value);
-    localStorage.setItem(API_KEY, clean);
-    setApiUrlState(clean);
+    try {
+      localStorage.setItem(API_KEY, clean);
+    } catch {
+      // sin localStorage (modo privado): solo vale para esta sesión
+    }
+    setApiUrlState(resolverApiUrl(clean));
   }, []);
 
   const api = React.useCallback(
@@ -2250,8 +2284,12 @@ function SettingsView({ context }) {
           }}
         >
           <label className="field full">
-            <span>API Spring Boot</span>
-            <input value={value} onChange={(event) => setValue(event.target.value)} required />
+            <span>API Spring Boot (vacío = proxy /api de Vite)</span>
+            <input
+              value={value}
+              onChange={(event) => setValue(event.target.value)}
+              placeholder="Vacío: usa el proxy /api del mismo servidor"
+            />
           </label>
           <label className="field">
             <span>Rol</span>
@@ -3609,4 +3647,9 @@ function AdjuntosModulePaciente({ context }) {
   );
 }
 
-createRoot(document.getElementById("app")).render(<App />);
+// /c/{token}: página pública del canal "enlace" (sin sesión ni layout de la app)
+const enlacePublico = location.pathname.match(/^\/c\/([^/]+)\/?$/);
+
+createRoot(document.getElementById("app")).render(
+  enlacePublico ? <CitaPublica token={decodeURIComponent(enlacePublico[1])} /> : <App />
+);
