@@ -38,6 +38,7 @@ import AdminDashboard from "./features/admin/dashboard/AdminDashboard";
 import WhatsAppPanel from "./features/whatsapp/WhatsAppPanel";
 import NotificacionesBell from "./features/whatsapp/NotificacionesBell";
 import CitaPublica from "./features/publico/CitaPublica";
+import ActividadView from "./features/actividad/ActividadView";
 import {
   citaDateKey,
   clinicToday,
@@ -353,10 +354,11 @@ const modules = {
       { key: "notificar", label: "Notificar", type: "checkbox" },
     ],
   },
+  // Se muestra como la vista "Actividad" (ActividadView); esta config solo define menú y permisos
   notificaciones: {
-    label: "Notificaciones",
+    label: "Actividad",
     roles: ["ADMIN", "MEDICO"],
-    description: "Recordatorios y avisos ligados a citas.",
+    description: "Respuestas de pacientes y recordatorios enviados.",
     list: ({ filters, role }) => {
       if (filters.citaId) return `/api/notificaciones/cita/${filters.citaId}`;
       return role === "ADMIN" ? "/api/notificaciones/pendientes" : null;
@@ -649,7 +651,7 @@ function Shell({ context, route, logout, children }) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState("");
   const allowed = Object.entries(modules).filter(([, config]) => config.roles.includes(context.role));
-  const active = route.startsWith("modulo/") ? route.split("/")[1] : route;
+  const active = route.startsWith("modulo/") ? moduloDeRuta(route) : route;
   const navigate = React.useCallback(
     (nextRoute) => {
       context.go(nextRoute);
@@ -755,8 +757,12 @@ function NavButton({ id, label, active, onClick }) {
 
 function CurrentView({ route, context }) {
   if (route === "dashboard") return <Dashboard context={context} />;
-  if (route === "medico/agenda") {
-    return context.role === "MEDICO" ? <MedicoAgenda context={context} /> : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
+  if (route === "medico/agenda" || route.startsWith("medico/agenda/")) {
+    // medico/agenda/{YYYY-MM-DD}/{citaId}: abre ese día y resalta la cita (desde Actividad)
+    const [, , fecha, citaId] = route.split("/");
+    return context.role === "MEDICO"
+      ? <MedicoAgenda key={route} context={context} fechaInicial={fecha} citaResaltada={citaId} />
+      : <ErrorBox message="Tu rol no tiene acceso a esta vista." />;
   }
   if (route.startsWith("medico/consulta/")) {
     const citaId = route.split("/")[2];
@@ -781,14 +787,27 @@ function CurrentView({ route, context }) {
   if (route === "ia") return <Chat context={context} />;
   if (route === "settings") return <SettingsView context={context} />;
   if (route.startsWith("modulo/")) {
-    const key = route.split("/")[1];
+    const key = moduloDeRuta(route);
     const config = modules[key];
     if (!config?.roles.includes(context.role)) return <ErrorBox message="Tu rol no tiene acceso a este modulo." />;
+    if (key === "notificaciones") return <ActividadView context={context} />;
     if (key === "diagnosticos") return <DiagnosticosModule context={context} />;
     if (key === "adjuntos")    return <AdjuntosModule context={context} />;
     return <ModuleView moduleKey={key} config={config} context={context} />;
   }
   return <Dashboard context={context} />;
+}
+
+/** "modulo/citas?cita=..." → "citas" */
+function moduloDeRuta(route) {
+  return route.split("/")[1].split("?")[0];
+}
+
+/** Filtros iniciales desde la URL: modulo/citas?cita={id} (clic en un aviso de Actividad, rol ADMIN). */
+function filtrosDesdeUrl(moduleKey) {
+  if (moduleKey !== "citas") return {};
+  const cita = new URLSearchParams(window.location.search).get("cita");
+  return cita ? { selectedId: cita } : {};
 }
 
 function Dashboard({ context }) {
@@ -840,7 +859,7 @@ function applyClientFilters(rows, filters, support) {
 
 function ModuleView({ moduleKey, config, context }) {
   const [support, setSupport] = React.useState({});
-  const [filters, setFilters] = React.useState({});
+  const [filters, setFilters] = React.useState(() => filtrosDesdeUrl(moduleKey));
   const [liveFilters, setLiveFilters] = React.useState({});
   const [filterResetKey, setFilterResetKey] = React.useState(0);
   const [rows, setRows] = React.useState([]);

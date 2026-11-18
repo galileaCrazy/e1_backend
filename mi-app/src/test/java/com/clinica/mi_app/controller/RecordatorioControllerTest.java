@@ -85,7 +85,7 @@ class RecordatorioControllerTest {
     @Test
     void canalEnlace_devuelveWaUrl() throws Exception {
         when(mensajeria.proveedor()).thenReturn("enlace");
-        String waUrl = "https://wa.me/529513197872?text=Hola";
+        String waUrl = "https://wa.me/529511234567?text=Hola";
         when(service.enviarManualDetalle(ORG, null, citaId, false)).thenReturn(envio("ENVIADO", waUrl));
 
         mockMvc.perform(post("/api/admin/recordatorios/{id}/enviar", citaId).with(como("ADMIN", ORG)))

@@ -144,7 +144,12 @@ function DoctorPatientList({ pacientes, citas }) {
   return (
     <div className="patient-mini-list">
       {pacientes.map((paciente) => {
-        const nextCita = citas.find((cita) => String(cita.pacienteId) === String(paciente.id) && isFuture(cita.fechaHora));
+        const nextCita = citas.find(
+          (cita) =>
+            String(cita.pacienteId) === String(paciente.id) &&
+            isFuture(cita.fechaHora) &&
+            !["CANCELADA", "NO_ASISTIO", "REAGENDADA"].includes(cita.estado)
+        );
         return (
           <article className="patient-mini-row" key={paciente.id}>
             <div>

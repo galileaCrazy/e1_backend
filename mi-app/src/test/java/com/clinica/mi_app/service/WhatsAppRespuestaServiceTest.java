@@ -53,7 +53,7 @@ public class WhatsAppRespuestaServiceTest {
     }
 
     @Test
-    public void uno_confirmaYRespondeAlPaciente() {
+    public void uno_confirmaNotificaYRespondeAlPaciente() {
         Cita cita = cita();
 
         service.procesarRespuesta(cita, TEL, " 1 ");
@@ -61,7 +61,12 @@ public class WhatsAppRespuestaServiceTest {
         assertEquals("CONFIRMADA", cita.getEstado());
         verify(citaRepo).save(cita);
         verify(mensajeria).enviarTexto(eq(cita.getOrganizacion()), eq(cita), eq(TEL), contains("quedó confirmada"));
-        verify(notificacionRepo, never()).save(any());
+        // La confirmación por WhatsApp (webhook) también llega a la campana / Actividad ("Por WhatsApp")
+        ArgumentCaptor<Notificacion> captor = ArgumentCaptor.forClass(Notificacion.class);
+        verify(notificacionRepo).save(captor.capture());
+        assertEquals("CONFIRMACION_PACIENTE", captor.getValue().getTipo());
+        assertEquals(" 1 ", captor.getValue().getRespuesta());
+        assertEquals(cita.getOrganizacion(), captor.getValue().getOrganizacion());
         verify(auditClient).audit(eq("appointment.updated"), eq("CITA"), eq(citaId), eq(orgId), eq(null), anyMap());
     }
 

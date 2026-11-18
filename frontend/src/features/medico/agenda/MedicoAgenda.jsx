@@ -20,10 +20,11 @@ const REFRESCO_MS = 15000;
 
 const STATUS_OPTIONS = ["", "SIN_CONFIRMAR", "CONFIRMADA", "CANCELADA", "REAGENDADA", "NO_ASISTIO"];
 
-export default function MedicoAgenda({ context }) {
+export default function MedicoAgenda({ context, fechaInicial, citaResaltada }) {
   const [data, setData] = React.useState(null);
   const [error, setError] = React.useState("");
-  const [selectedDate, setSelectedDate] = React.useState(todayInput());
+  const [selectedDate, setSelectedDate] = React.useState(() =>
+    /^\d{4}-\d{2}-\d{2}$/.test(fechaInicial || "") ? fechaInicial : todayInput());
   const [statusFilter, setStatusFilter] = React.useState("");
   const [creating, setCreating] = React.useState(false);
   const [editing, setEditing] = React.useState(null);
@@ -172,6 +173,7 @@ export default function MedicoAgenda({ context }) {
               onRecordatorio={recargarRecordatorios}
               onOpen={(citaId) => context.go(`medico/consulta/${citaId}`)}
               onEdit={(cita) => { setEditing(cita); setCreating(false); }}
+              resaltada={citaResaltada}
             />
           </Section>
         </section>
@@ -207,12 +209,20 @@ export default function MedicoAgenda({ context }) {
   );
 }
 
-function AgendaTimeline({ citas, support, context, recordatorios, onRecordatorio, onOpen, onEdit }) {
+function AgendaTimeline({ citas, support, context, recordatorios, onRecordatorio, onOpen, onEdit, resaltada }) {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    ref.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }, [resaltada, citas.length]);
   if (!citas.length) return <Empty label="No hay citas para este dia." />;
   return (
     <div className="agenda-timeline">
       {citas.map((cita) => (
-        <article className="agenda-item" key={cita.id}>
+        <article
+          className={`agenda-item ${cita.id === resaltada ? "resaltada" : ""}`}
+          key={cita.id}
+          ref={cita.id === resaltada ? ref : undefined}
+        >
           <div className="agenda-time">
             <strong>{formatTime(cita.fechaHora)}</strong>
             <span>{cita.duracionMin} min</span>

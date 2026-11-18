@@ -96,6 +96,10 @@ public class WhatsAppConsultaService {
                 .forEach(m -> ultimoEntrante.merge(m.getCita().getId(), m,
                         (a, b) -> b.getCreatedAt().isAfter(a.getCreatedAt()) ? b : a));
 
+        // Canal con el que se envió cada recordatorio (según su mensaje saliente, no el canal actual)
+        Set<UUID> porEnlace = ultimaNotif.isEmpty() ? Set.of() : CanalRecordatorio.porEnlace(ultimaNotif.values(),
+                repo.findByOrganizacionIdAndCitaIdInAndDireccion(organizacionId, ultimaNotif.keySet(), WhatsAppMensaje.SALIENTE));
+
         Map<UUID, RecordatorioEstadoResponse> resultado = new LinkedHashMap<>();
         for (UUID id : citaIds) {
             Notificacion n = ultimaNotif.get(id);
@@ -104,7 +108,8 @@ public class WhatsAppConsultaService {
                 resultado.put(id, new RecordatorioEstadoResponse("RESPONDIO", e.getCreatedAt(), e.getTexto()));
             } else if (n != null) {
                 OffsetDateTime fecha = n.getEnviadaEn() != null ? n.getEnviadaEn() : n.getCreadaEn();
-                resultado.put(id, new RecordatorioEstadoResponse(n.getEstado(), fecha, null));
+                resultado.put(id, new RecordatorioEstadoResponse(n.getEstado(), fecha, null,
+                        porEnlace.contains(n.getId()) ? EnlaceWhatsAppSender.PROVEEDOR : null));
             }
         }
         return resultado;

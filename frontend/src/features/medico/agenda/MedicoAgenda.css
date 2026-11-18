@@ -105,3 +105,10 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Cita abierta desde Actividad */
+.agenda-item.resaltada {
+  border-radius: 10px;
+  background: var(--primary-soft);
+  box-shadow: inset 4px 0 0 var(--primary-ui);
+}

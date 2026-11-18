@@ -3,6 +3,10 @@ import { Bell } from "lucide-react";
 import { formatCitaFecha, formatCitaHora12, formatInstant } from "../../lib/display";
 import "./WhatsApp.css";
 
+// Mismo evento que ActividadView: la campana y Actividad comparten el estado de leído (tabla notificacion)
+const EVENTO_NOTIFICACIONES = "medinflow:notificaciones";
+const avisar = () => window.dispatchEvent(new CustomEvent(EVENTO_NOTIFICACIONES));
+
 const REFRESCO_MS = 30000;
 
 /**
@@ -13,10 +17,16 @@ export default function NotificacionesBell({ context }) {
   const [datos, setDatos] = React.useState({ noLeidas: 0, items: [] });
   const [abierto, setAbierto] = React.useState(false);
   const ref = React.useRef(null);
+  const ultimoId = React.useRef(null);
 
   const cargar = React.useCallback(async () => {
     try {
-      setDatos((await context.api("/api/notificaciones/recientes")) || { noLeidas: 0, items: [] });
+      const nuevos = (await context.api("/api/notificaciones/recientes")) || { noLeidas: 0, items: [] };
+      setDatos(nuevos);
+      // Llegó una respuesta nueva: que Actividad (si está abierta) se refresque sin esperar su ciclo
+      const primero = nuevos.items?.[0]?.id || null;
+      if (ultimoId.current !== null && primero && primero !== ultimoId.current) avisar();
+      ultimoId.current = primero || "";
     } catch {
       // silencioso: la campana no debe romper el layout
     }
@@ -25,7 +35,14 @@ export default function NotificacionesBell({ context }) {
   React.useEffect(() => {
     cargar();
     const id = window.setInterval(cargar, REFRESCO_MS);
-    return () => window.clearInterval(id);
+    const alVolver = () => document.visibilityState === "visible" && cargar();
+    document.addEventListener("visibilitychange", alVolver);
+    window.addEventListener(EVENTO_NOTIFICACIONES, cargar);
+    return () => {
+      window.clearInterval(id);
+      document.removeEventListener("visibilitychange", alVolver);
+      window.removeEventListener(EVENTO_NOTIFICACIONES, cargar);
+    };
   }, [cargar]);
 
   React.useEffect(() => {
@@ -46,7 +63,7 @@ export default function NotificacionesBell({ context }) {
     if (item.leida) return;
     try {
       await context.api(`/api/notificaciones/${item.id}/leida`, { method: "PATCH" });
-      await cargar();
+      avisar();
     } catch (err) {
       context.notify(err.message, "error");
     }
@@ -55,7 +72,7 @@ export default function NotificacionesBell({ context }) {
   async function marcarTodas() {
     try {
       await context.api("/api/notificaciones/leidas", { method: "POST" });
-      await cargar();
+      avisar();
     } catch (err) {
       context.notify(err.message, "error");
     }

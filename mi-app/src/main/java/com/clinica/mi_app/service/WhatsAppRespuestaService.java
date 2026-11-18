@@ -24,7 +24,8 @@ import java.util.Set;
  *
  * <ul>
  *   <li>Por WhatsApp (webhook ya resuelto por WhatsAppWebhookProcessor): "1" confirma, "2" cancela
- *       (y genera CANCELACION_PACIENTE para la campana); en ambos casos se le contesta al paciente.
+ *       (generan CONFIRMACION_PACIENTE / CANCELACION_PACIENTE para la campana y Actividad); en ambos casos
+ *       se le contesta al paciente.
  *       Cualquier otro texto recibe el mensaje de ayuda.</li>
  *   <li>Desde el enlace público (/c/{token}): misma lógica de confirmar/cancelar, pero se registra un
  *       mensaje ENTRANTE ("Confirmó desde el enlace" / "Canceló desde el enlace") y no se envía respuesta
@@ -65,6 +66,7 @@ public class WhatsAppRespuestaService {
 
         if (CONFIRMAR.contains(texto)) {
             confirmar(cita);
+            notificar(cita, CONFIRMACION_PACIENTE, mensaje);
             mensajeria.enviarTexto(cita.getOrganizacion(), cita, telefono, RecordatorioPlantilla.confirmada(cita));
         } else if (CANCELAR.contains(texto)) {
             cancelar(cita);

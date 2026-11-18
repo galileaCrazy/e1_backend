@@ -2,6 +2,7 @@ package com.clinica.mi_app.seed;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.context.event.EventListener;
@@ -36,10 +37,26 @@ public class SeedDataLoader {
     private final JdbcTemplate jdbc;
     private final TransactionTemplate tx;
     private final Random rnd = new Random(20261110L);
+    private final Clock clock;
+    /** Notificaciones acumuladas durante la generación; se insertan al final (dedupe + leídas). */
+    private final List<NotifSeed> notificaciones = new ArrayList<>();
 
+    /** Cuántas respuestas recientes (últimas 48 h) quedan sin leer para que la campana se vea natural. */
+    static final int RESPUESTAS_SIN_LEER = 4;
+    static final Duration RECIENTE = Duration.ofDays(2);
+
+    /** Notificación del seed. {@code enviada} es un instante REAL (no la convención de reloj en UTC). */
+    record NotifSeed(UUID org, UUID cita, String tipo, String estado, Instant enviada, String respuesta) {}
+
+    @Autowired
     public SeedDataLoader(JdbcTemplate jdbc, TransactionTemplate tx) {
+        this(jdbc, tx, Clock.systemUTC());
+    }
+
+    SeedDataLoader(JdbcTemplate jdbc, TransactionTemplate tx, Clock clock) {
         this.jdbc = jdbc;
         this.tx = tx;
+        this.clock = clock;
     }
 
     @EventListener(ApplicationReadyEvent.class)
@@ -87,13 +104,14 @@ public class SeedDataLoader {
             "López", "Sánchez", "Bautista", "Luna", "Velasco", "Toledo", "Matus"};
 
     // ---------------------------------------------------------------- generación
-    private void generar() {
+    void generar() {
+        notificaciones.clear();
         BCryptPasswordEncoder enc = new BCryptPasswordEncoder();
         String hash = enc.encode(PASSWORD);
 
         UUID org = UUID.randomUUID();
         jdbc.update("INSERT INTO organizacion (id, nombre, plan, trial_hasta, activo) VALUES (?,?,?,?,true)",
-                org, "Clínica Santa Lucía", "CLINICA", Timestamp.from(Instant.now().plus(Duration.ofDays(21))));
+                org, "Clínica Santa Lucía", "CLINICA", Timestamp.from(clock.instant().plus(Duration.ofDays(21))));
         jdbc.update("INSERT INTO configuracion_tenant (organizacion_id, whatsapp_conectado, whatsapp_numero) VALUES (?,true,?)",
                 org, "9515550100");
 
@@ -148,7 +166,7 @@ public class SeedDataLoader {
             if (!usados.add(nom)) continue;
             UUID id = UUID.randomUUID();
             String tel = "951" + (1000000 + rnd.nextInt(8999999));
-            LocalDate nac = LocalDate.now().minusYears(rnd.nextInt(pacientes.size() % 4 == 0 ? 12 : 70) + 1).minusDays(rnd.nextInt(365));
+            LocalDate nac = LocalDate.now(clock.withZone(CLINICA_TZ)).minusYears(rnd.nextInt(pacientes.size() % 4 == 0 ? 12 : 70) + 1).minusDays(rnd.nextInt(365));
             String email = slug(nom) + "@correo.mx";
             jdbc.update("INSERT INTO paciente (id, organizacion_id, nombre, telefono, fecha_nacimiento, sexo, email) VALUES (?,?,?,?,?,?,?)",
                     id, org, nom, tel, java.sql.Date.valueOf(nac), mujer ? "F" : "M", email);
@@ -157,8 +175,8 @@ public class SeedDataLoader {
         }
 
         // Citas: de hace 4 semanas a 2 semanas adelante
-        LocalDate hoy = LocalDate.now(CLINICA_TZ);
-        LocalDateTime ahoraReloj = LocalDateTime.now(CLINICA_TZ);
+        LocalDate hoy = LocalDate.now(clock.withZone(CLINICA_TZ));
+        LocalDateTime ahoraReloj = LocalDateTime.now(clock.withZone(CLINICA_TZ));
         int totalCitas = 0;
         boolean anaHoyProgramada = false;
         for (int off = -28; off <= 14; off++) {
@@ -183,8 +201,9 @@ public class SeedDataLoader {
                 }
             }
         }
-        log.info("Seed: Clínica Santa Lucía cargada — {} médicos, {} pacientes, {} citas. Contraseña: {}",
-                medicos.length, pacientes.size(), totalCitas, PASSWORD);
+        int notifs = insertarNotificaciones(clock.instant());
+        log.info("Seed: Clínica Santa Lucía cargada — {} médicos, {} pacientes, {} citas, {} notificaciones",
+                medicos.length, pacientes.size(), totalCitas, notifs);
     }
 
     private String estadoPara(boolean pasada, int off, boolean forzarSinConfirmar) {
@@ -209,26 +228,26 @@ public class SeedDataLoader {
                            LocalDateTime inicio, String estado, boolean pasada) {
         Doc d = DOCS[m];
         UUID cita = UUID.randomUUID();
+        // fecha_hora: convención del proyecto (hora de reloj de la clínica expresada en UTC)
         OffsetDateTime fh = inicio.atOffset(ZoneOffset.UTC);
+        // Todo lo demás (creación, cancelación, envíos, pagos) son momentos REALES
+        Instant real = inicio.atZone(CLINICA_TZ).toInstant();
+        Instant ahora = clock.instant();
+        Instant creada = minimo(real.minus(Duration.ofDays(2 + rnd.nextInt(10))), ahora.minus(Duration.ofHours(1 + rnd.nextInt(48))));
         String canceladaPor = null;
-        Timestamp canceladaEn = null;
+        Instant canceladaEn = null;
         if ("CANCELADA".equals(estado)) {
             canceladaPor = rnd.nextDouble() < 0.7 ? "PACIENTE" : "ADMIN";
-            canceladaEn = Timestamp.from(fh.minusHours(6 + rnd.nextInt(40)).toInstant());
+            canceladaEn = minimo(real, ahora).minus(Duration.ofHours(1 + rnd.nextInt(40)));
+            if (!canceladaEn.isAfter(creada)) canceladaEn = creada.plus(Duration.ofMinutes(30));
         }
         jdbc.update("INSERT INTO cita (id, organizacion_id, paciente_id, medico_id, consultorio_id, fecha_hora, duracion_min, estado, motivo, cancelada_en, cancelada_por, created_at) " +
                         "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
                 cita, org, paciente, medico, consultorio, Timestamp.from(fh.toInstant()), 30, estado, pick(d.motivos()),
-                canceladaEn, canceladaPor, Timestamp.from(fh.minusDays(2 + rnd.nextInt(10)).toInstant()));
+                canceladaEn == null ? null : Timestamp.from(canceladaEn), canceladaPor, Timestamp.from(creada));
 
-        // Recordatorios ya enviados para citas próximas o recientes
-        if (!"CANCELADA".equals(estado) && fh.isAfter(OffsetDateTime.now(ZoneOffset.UTC).minusDays(3))) {
-            notif(org, cita, "RECORDATORIO_48H", "ENVIADO", fh.minusHours(48), null);
-            if ("CONFIRMADA".equals(estado)) notif(org, cita, "RECORDATORIO_24H", "ENVIADO", fh.minusHours(24), "1");
-        }
-        if ("CANCELADA".equals(estado) && "PACIENTE".equals(canceladaPor)) {
-            notif(org, cita, "CANCELACION_PACIENTE", "ENVIADO", fh.minusHours(20), "2");
-        }
+        notificaciones.addAll(notificacionesDeCita(org, cita, real, estado, canceladaPor, canceladaEn, ahora,
+                Duration.ofMinutes(10 + rnd.nextInt(170))));
 
         if (pasada && "CONFIRMADA".equals(estado)) {
             // Pago de la consulta
@@ -238,24 +257,80 @@ public class SeedDataLoader {
             jdbc.update("INSERT INTO pago (organizacion_id, cita_id, monto, metodo, concepto, estado, referencia, pagado_en) VALUES (?,?,?,?,?,?,?,?)",
                     org, cita, d.tarifa(), metodo, "Consulta · " + d.especialidad(), pagado ? "PAGADO" : "PENDIENTE",
                     "TRANSFERENCIA".equals(metodo) ? "SPEI-" + (100000 + rnd.nextInt(899999)) : null,
-                    pagado ? Timestamp.from(fh.plusMinutes(35).toInstant()) : null);
+                    pagado ? Timestamp.from(real.plus(Duration.ofMinutes(35))) : null);
             // Diagnóstico CIE-10
             String[] dx = d.cie10()[rnd.nextInt(d.cie10().length)];
             jdbc.update("INSERT INTO diagnostico (cita_id, codigo_cie10, descripcion, tipo, created_at) VALUES (?,?,?,?,?)",
-                    cita, dx[0], dx[1], "PRINCIPAL", Timestamp.from(fh.plusMinutes(25).toInstant()));
+                    cita, dx[0], dx[1], "PRINCIPAL", Timestamp.from(real.plus(Duration.ofMinutes(25))));
             if (rnd.nextDouble() < 0.25) {
                 String[] dx2 = d.cie10()[rnd.nextInt(d.cie10().length)];
                 if (!dx2[0].equals(dx[0])) {
                     jdbc.update("INSERT INTO diagnostico (cita_id, codigo_cie10, descripcion, tipo, created_at) VALUES (?,?,?,?,?)",
-                            cita, dx2[0], dx2[1], "SECUNDARIO", Timestamp.from(fh.plusMinutes(26).toInstant()));
+                            cita, dx2[0], dx2[1], "SECUNDARIO", Timestamp.from(real.plus(Duration.ofMinutes(26))));
                 }
             }
         }
     }
 
-    private void notif(UUID org, UUID cita, String tipo, String estado, OffsetDateTime enviada, String respuesta) {
-        jdbc.update("INSERT INTO notificacion (organizacion_id, cita_id, canal, tipo, estado, enviada_en, respuesta) VALUES (?,?,?,?,?,?,?)",
-                org, cita, "WHATSAPP", tipo, estado, Timestamp.from(enviada.toInstant()), respuesta);
+    /**
+     * Notificaciones realistas de una cita, todas con instantes reales y nunca en el futuro:
+     * <ul>
+     *   <li>RECORDATORIO_48H / 24H exactamente 48 / 24 h antes de la cita, solo si ese momento ya pasó,
+     *       solo para citas recientes o próximas (últimos 3 días en adelante) y nunca después de cancelarse.</li>
+     *   <li>CONFIRMACION_PACIENTE ("1") un rato después del primer recordatorio, si la cita está confirmada.</li>
+     *   <li>CANCELACION_PACIENTE ("2") en el momento real de la cancelación hecha por el paciente.</li>
+     * </ul>
+     */
+    static List<NotifSeed> notificacionesDeCita(UUID org, UUID cita, Instant real, String estado, String canceladaPor,
+                                                Instant canceladaEn, Instant ahora, Duration demoraRespuesta) {
+        List<NotifSeed> out = new ArrayList<>();
+        boolean cancelada = "CANCELADA".equals(estado);
+        if (real.isAfter(ahora.minus(Duration.ofDays(3)))) {
+            for (Object[] r : new Object[][]{{"RECORDATORIO_48H", 48}, {"RECORDATORIO_24H", 24}}) {
+                Instant envio = real.minus(Duration.ofHours((Integer) r[1]));
+                if (!envio.isBefore(ahora)) continue;                                       // nunca en el futuro
+                if (cancelada && canceladaEn != null && !envio.isBefore(canceladaEn)) continue; // ya estaba cancelada
+                out.add(new NotifSeed(org, cita, (String) r[0], "ENVIADO", envio, null));
+            }
+        }
+        if ("CONFIRMADA".equals(estado) && !out.isEmpty()) {
+            Instant respuesta = out.get(0).enviada().plus(demoraRespuesta);
+            if (respuesta.isBefore(ahora) && respuesta.isBefore(real)) {
+                out.add(new NotifSeed(org, cita, "CONFIRMACION_PACIENTE", "ENVIADO", respuesta, "1"));
+            }
+        }
+        if (cancelada && "PACIENTE".equals(canceladaPor) && canceladaEn != null && canceladaEn.isBefore(ahora)) {
+            out.add(new NotifSeed(org, cita, "CANCELACION_PACIENTE", "ENVIADO", canceladaEn, "2"));
+        }
+        return out;
+    }
+
+    /**
+     * Inserta las notificaciones sin duplicados (cita + tipo), con creada_en = enviada_en. Solo quedan sin
+     * leer las {@value #RESPUESTAS_SIN_LEER} respuestas de pacientes más recientes de las últimas 48 h.
+     */
+    int insertarNotificaciones(Instant ahora) {
+        Map<String, NotifSeed> unicas = new LinkedHashMap<>();
+        for (NotifSeed n : notificaciones) {
+            if (n.enviada().isAfter(ahora)) continue;
+            unicas.putIfAbsent(n.cita() + "|" + n.tipo(), n);
+        }
+        Set<NotifSeed> sinLeer = new HashSet<>(unicas.values().stream()
+                .filter(n -> n.tipo().endsWith("_PACIENTE") && n.enviada().isAfter(ahora.minus(RECIENTE)))
+                .sorted(Comparator.comparing(NotifSeed::enviada).reversed())
+                .limit(RESPUESTAS_SIN_LEER)
+                .toList());
+        for (NotifSeed n : unicas.values()) {
+            Timestamp cuando = Timestamp.from(n.enviada());
+            jdbc.update("INSERT INTO notificacion (organizacion_id, cita_id, canal, tipo, estado, enviada_en, creada_en, leida, respuesta) " +
+                            "VALUES (?,?,?,?,?,?,?,?,?)",
+                    n.org(), n.cita(), "WHATSAPP", n.tipo(), n.estado(), cuando, cuando, !sinLeer.contains(n), n.respuesta());
+        }
+        return unicas.size();
+    }
+
+    private static Instant minimo(Instant a, Instant b) {
+        return a.isBefore(b) ? a : b;
     }
 
     private void horario(UUID medico, int dia, String ini, String fin, int dur) {

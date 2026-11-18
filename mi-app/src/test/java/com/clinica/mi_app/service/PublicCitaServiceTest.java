@@ -51,7 +51,7 @@ class PublicCitaServiceTest {
         assertEquals(OffsetDateTime.parse("2026-11-19T10:00:00Z"), r.fechaHora());
         assertEquals("SIN_CONFIRMAR", r.estado());
         assertNull(r.resultado());
-        assertFalse(r.toString().contains("9513197872"), "nunca expone el teléfono");
+        assertFalse(r.toString().contains("9511234567"), "nunca expone el teléfono");
         verifyNoInteractions(respuestaService);
     }
 
@@ -158,7 +158,7 @@ class PublicCitaServiceTest {
         o.setNombre("Clínica Centro");
         Paciente p = new Paciente();
         p.setNombre("Ana Sofía Ramírez Mendoza");
-        p.setTelefono("9513197872");
+        p.setTelefono("9511234567");
         Medico m = new Medico();
         m.setNombre("Dra. Mariana López Ruiz");
         m.setEspecialidad("Pediatría");

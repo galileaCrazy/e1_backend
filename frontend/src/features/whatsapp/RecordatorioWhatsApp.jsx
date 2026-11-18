@@ -1,5 +1,6 @@
 import React from "react";
 import { AlertTriangle, Check, MessageSquareReply, Send } from "lucide-react";
+import { CLINIC_TIME_ZONE } from "../../lib/display";
 import "./WhatsApp.css";
 
 /**
@@ -86,7 +87,11 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
       }
     } catch (err) {
       pestana?.close();
-      context.notify(mensajeErrorCanal(err.message), "error");
+      if (/ya se envi/i.test(err.message || "")) {
+        context.notify("Esta cita ya tenía recordatorio. Usa \"Reenviar\" si quieres mandarlo otra vez.");
+      } else {
+        context.notify(mensajeErrorCanal(err.message), "error");
+      }
     } finally {
       setEnviando(false);
       onEnviado?.();
@@ -97,7 +102,7 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
 
   return (
     <div className={`wa-recordatorio ${compacto ? "compacto" : ""}`}>
-      <IndicadorRecordatorio estado={estado} esEnlace={esEnlace} />
+      <IndicadorRecordatorio estado={estado} />
       {puedeEnviar && !confirmarReenvio && (
         <button
           type="button"
@@ -120,9 +125,9 @@ export function RecordatorioWhatsApp({ context, cita, estado, onEnviado, compact
   );
 }
 
-function IndicadorRecordatorio({ estado, esEnlace }) {
+function IndicadorRecordatorio({ estado }) {
   if (!estado) return null;
-  const hora = estado.fecha ? formatHoraLocal(estado.fecha) : "";
+  const hora = estado.fecha ? formatMomentoEnvio(estado.fecha) : "";
   if (estado.estado === "RESPONDIO") {
     return (
       <span className="badge ok wa-indicador" title={`Respondió ${hora}`}>
@@ -139,7 +144,8 @@ function IndicadorRecordatorio({ estado, esEnlace }) {
   }
   return (
     <span className="badge info wa-indicador" title={hora}>
-      <Check size={13} /> {esEnlace ? "Enlace enviado" : "Recordatorio enviado"}{hora ? ` · ${hora}` : ""}
+      {/* Canal con el que se ENVIÓ (lo dice el backend según el mensaje), no el canal configurado hoy */}
+      <Check size={13} /> {estado.canal === "enlace" ? "Enlace enviado" : "Enviado"}{hora ? ` · ${hora}` : ""}
     </span>
   );
 }
@@ -150,6 +156,20 @@ function mensajeErrorCanal(mensaje) {
   if (mensaje === "Failed to fetch") return "No hay conexión con el servidor. Revisa que el backend esté levantado.";
   if (/^HTTP \d+$/.test(mensaje || "")) return `No se pudo enviar el recordatorio (${mensaje}).`;
   return mensaje;
+}
+
+/**
+ * Momento real de envío/respuesta en la hora de la clínica: "10:30 a.m." si fue hoy,
+ * "17 nov, 10:30 a.m." si fue otro día.
+ */
+export function formatMomentoEnvio(value) {
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "";
+  const dia = (x) => x.toLocaleDateString("en-CA", { timeZone: CLINIC_TIME_ZONE });
+  const hora = d.toLocaleTimeString("es-MX", { hour: "numeric", minute: "2-digit", hour12: true, timeZone: CLINIC_TIME_ZONE });
+  if (dia(d) === dia(new Date())) return hora;
+  const fecha = d.toLocaleDateString("es-MX", { day: "numeric", month: "short", timeZone: CLINIC_TIME_ZONE }).replace(".", "");
+  return `${fecha}, ${hora}`;
 }
 
 // fecha de envío/respuesta = instante real → hora local del navegador
