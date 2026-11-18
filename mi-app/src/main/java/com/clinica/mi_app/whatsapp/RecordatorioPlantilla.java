@@ -14,7 +14,7 @@ import java.util.Locale;
  * se registra como plantilla en Meta.
  *
  * <p>Fecha y hora siguen la convención del proyecto: la hora de la cita es la hora de reloj de la
- * clínica guardada en UTC, así que se formatea en UTC (10:00Z → "10:00 a. m.").
+ * clínica guardada en UTC, así que se formatea en UTC (10:00Z → "10:00 a.m.", mismo formato que la app).
  */
 public final class RecordatorioPlantilla {
 
@@ -70,11 +70,11 @@ public final class RecordatorioPlantilla {
         return FECHA.format(fechaHora.withOffsetSameInstant(ZoneOffset.UTC));
     }
 
-    /** "9:00 a. m." — formateo manual para no depender de la versión de CLDR del JDK. */
+    /** "9:00 a.m." (igual que la app web) — formateo manual para no depender de la versión de CLDR del JDK. */
     static String hora(OffsetDateTime fechaHora) {
         OffsetDateTime f = fechaHora.withOffsetSameInstant(ZoneOffset.UTC);
         int h = f.getHour() % 12 == 0 ? 12 : f.getHour() % 12;
-        return String.format("%d:%02d %s", h, f.getMinute(), f.getHour() < 12 ? "a. m." : "p. m.");
+        return String.format("%d:%02d %s", h, f.getMinute(), f.getHour() < 12 ? "a.m." : "p.m.");
     }
 
     private static String valor(String v, String porDefecto) {

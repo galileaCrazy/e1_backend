@@ -84,7 +84,7 @@ class TwilioWhatsAppSenderTest {
 
     @Test
     void sendTemplate_mandaElTextoRenderizadoYStatusCallback() {
-        List<String> params = List.of("Ana Ramírez", "Dra. Mariana López", "martes 11 de noviembre", "9:00 a. m.", "Consultorio 1");
+        List<String> params = List.of("Ana Ramírez", "Dra. Mariana López", "martes 11 de noviembre", "9:00 a.m.", "Consultorio 1");
 
         sender(SID, TOKEN, "https://demo.trycloudflare.com/api/whatsapp/twilio")
                 .sendTemplate(UUID.randomUUID(), "+52 1 951 123 4567", "recordatorio_cita", params);

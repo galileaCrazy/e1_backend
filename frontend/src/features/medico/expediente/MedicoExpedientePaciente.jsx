@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, ExternalLink, RefreshCw } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
-import { formatDate, formatMoney, statusVariant } from "../../../lib/display";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado, etiquetaEstado } from "../../../components/ui";
+import { formatDate, formatMoney, statusVariant, formatFechaCorta, formatSexo } from "../../../lib/display";
 import "./MedicoExpedientePaciente.css";
 
 export default function MedicoExpedientePaciente({ context, pacienteId }) {
@@ -125,11 +125,11 @@ function PatientCard({ paciente, ultimaCita }) {
       </div>
       <div>
         <span>Nacimiento</span>
-        <strong>{paciente.fechaNacimiento || "-"}</strong>
+        <strong>{formatFechaCorta(paciente.fechaNacimiento)}</strong>
       </div>
       <div>
         <span>Sexo</span>
-        <strong>{paciente.sexo || "-"}</strong>
+        <strong>{formatSexo(paciente.sexo)}</strong>
       </div>
       <div>
         <span>Última cita</span>
@@ -174,7 +174,7 @@ function DiagnosisHistory({ diagnosticos, citas }) {
               <span>{diagnostico.descripcion}</span>
               <small>{cita ? formatDate(cita.fechaHora) : "Cita no disponible"}</small>
             </div>
-            <span className={`badge ${diagnostico.tipo === "PRINCIPAL" ? "ok" : "info"}`}>{diagnostico.tipo || "SIN TIPO"}</span>
+            <span className={`badge ${diagnostico.tipo === "PRINCIPAL" ? "ok" : "info"}`}>{etiquetaEstado(diagnostico.tipo) || "Sin tipo"}</span>
           </article>
         );
       })}
@@ -190,7 +190,7 @@ function PaymentHistory({ pagos }) {
         <article className="side-item" key={pago.id}>
           <div>
             <strong>{formatMoney(pago.monto)}</strong>
-            <span>{pago.concepto || pago.metodo}</span>
+            <span>{pago.concepto || etiquetaEstado(pago.metodo)}</span>
           </div>
           <Estado valor={pago.estado} />
         </article>
@@ -207,7 +207,7 @@ function AttachmentHistory({ adjuntos }) {
         <a className="side-item link-item" href={adjunto.urlArchivo} target="_blank" rel="noreferrer" key={adjunto.id}>
           <div>
             <strong>{adjunto.nombreArchivo}</strong>
-            <span>{adjunto.tipo} / {adjunto.mimeType || "archivo"}</span>
+            <span>{etiquetaEstado(adjunto.tipo)} · {adjunto.mimeType || "archivo"}</span>
           </div>
           <ExternalLink size={16} />
         </a>

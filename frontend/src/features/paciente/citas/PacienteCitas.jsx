@@ -74,7 +74,7 @@ export default function PacienteCitas({ context }) {
                 </div>
                 <div className="patient-appointment-info">
                   <strong>{cita.motivo || "Consulta médica"}</strong>
-                  <span>Médico {doctorName(cita.medicoId, medicos)}</span>
+                  <span>Con {doctorName(cita.medicoId, medicos)}</span>
                   <small>{cita.duracionMin || 0} min</small>
                 </div>
                 <Estado valor={cita.estado} />

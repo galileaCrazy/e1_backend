@@ -11,8 +11,10 @@ Uso (desde la raíz del repo, con el backend levantado en :8080):
     python scripts/demo_ana.py --telefono 951XXXXXXX
     python scripts/demo_ana.py --hora 12:30          # otra hora
     python scripts/demo_ana.py --api http://localhost:8080
+    python scripts/demo_ana.py --limpiar             # además borra las DEMÁS citas de Ana de mañana
 
 Es idempotente: si la cita ya existe y no está cancelada, solo imprime su id.
+--limpiar solo borra citas de Ana Sofía de MAÑANA distintas de la de la demo, e imprime cuáles borró.
 Lee la contraseña del seed desde SeedDataLoader.java y NUNCA imprime token ni contraseña.
 """
 import argparse
@@ -60,6 +62,8 @@ def main():
     ap.add_argument("--api", default="http://localhost:8080")
     ap.add_argument("--hora", default="11:00")
     ap.add_argument("--telefono", help="10 dígitos; si no, DEMO_TELEFONO del entorno o del .env")
+    ap.add_argument("--limpiar", action="store_true",
+                    help="borra por API las demás citas de Ana de mañana (p. ej. la que crea el seed)")
     args = ap.parse_args()
     telefono = telefono_demo(args.telefono)
 
@@ -121,8 +125,34 @@ def main():
             "consultorioId": mariana["consultorioId"], "fechaHora": fecha_hora, "duracionMin": 30,
             "estado": "SIN_CONFIRMAR", "motivo": "Demo recordatorio por enlace"}, tok)
         if st not in (200, 201):
-            sys.exit(f"No se pudo crear la cita ({st}): {cita}  (¿el horario ya está ocupado? prueba --hora 12:30)")
+            mensaje = cita.get("mensaje") if isinstance(cita, dict) else cita
+            _, libres = call("GET", f"/api/citas/medico/{mariana['id']}/disponibilidad?fecha={manana.isoformat()}", token=tok)
+            horas = ", ".join(h["hora"] for h in libres) if isinstance(libres, list) and libres else "ninguna"
+            propias = [str(c.get("fechaHora", ""))[11:16] for c in citas
+                       if str(c.get("fechaHora", "")).startswith(manana.isoformat())
+                       and c.get("medicoId") == mariana["id"] and c.get("estado") != "CANCELADA"]
+            sys.exit(f"No se pudo crear la cita de las {args.hora} ({st}): {mensaje}\n"
+                     f"  Horas libres de la Dra. Mariana mañana: {horas}\n"
+                     + (f"  Ana ya tiene cita mañana a las: {', '.join(propias)} (puedes usarla con --hora)\n" if propias else "")
+                     + "  No se borró nada.")
     print(f"CITA_ID: {cita['id']} · {cita['estado']} · {cita['fechaHora']}")
+    if cita.get("estado") != "SIN_CONFIRMAR":
+        print(f"⚠ La cita de las {args.hora} está {cita.get('estado')}; no la modifico. Para la demo debe estar SIN_CONFIRMAR.")
+
+    # 3. --limpiar: borra (por API) las DEMÁS citas de Ana de mañana, para que salga una sola vez
+    if args.limpiar:
+        clave_manana = manana.isoformat()
+        otras = [c for c in citas
+                 if str(c.get("fechaHora", "")).startswith(clave_manana) and c.get("id") != cita["id"]]
+        if not otras:
+            print("Limpieza: no había otras citas de Ana mañana.")
+        for c in otras:
+            st, _ = call("DELETE", f"/api/citas/{c['id']}", token=tok)
+            hora = str(c.get("fechaHora", ""))[11:16]
+            if st in (200, 204):
+                print(f"Borrada: cita {c['id']} · mañana {hora} · {c.get('estado')}")
+            else:
+                print(f"⚠ No se pudo borrar la cita {c['id']} ({hora}): HTTP {st}")
 
 
 if __name__ == "__main__":

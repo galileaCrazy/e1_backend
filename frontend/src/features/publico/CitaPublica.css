@@ -391,3 +391,21 @@
     align-items: center;
   }
 }
+
+/* El corazón decorativo nunca cruza el texto: detrás y en la esquina */
+.pase-corazon {
+  z-index: 0;
+}
+
+.pase-logo,
+.pase-saludo {
+  z-index: 1;
+}
+
+@media (max-width: 639px) {
+  .pase-corazon {
+    top: -150px;
+    right: -170px;
+    opacity: 0.18;
+  }
+}

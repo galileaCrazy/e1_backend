@@ -59,16 +59,16 @@ class TelefonoYPlantillaTest {
 
         List<String> params = RecordatorioPlantilla.parametros(cita);
 
-        assertEquals(List.of("Ana Ramírez", "Dra. Mariana López", "miércoles 11 de noviembre", "9:00 a. m.", "Consultorio Centro"), params);
+        assertEquals(List.of("Ana Ramírez", "Dra. Mariana López", "miércoles 11 de noviembre", "9:00 a.m.", "Consultorio Centro"), params);
         assertEquals("Hola Ana Ramírez, te recordamos tu cita con Dra. Mariana López el miércoles 11 de noviembre"
-                        + " a las 9:00 a. m. en Consultorio Centro. Responde 1 para confirmar o 2 para cancelar.",
+                        + " a las 9:00 a.m. en Consultorio Centro. Responde 1 para confirmar o 2 para cancelar.",
                 RecordatorioPlantilla.renderizar(params));
     }
 
     @Test
     void plantilla_horasDeTarde() {
-        assertEquals("12:30 p. m.", RecordatorioPlantilla.hora(OffsetDateTime.parse("2026-11-11T12:30:00Z")));
-        assertEquals("4:05 p. m.", RecordatorioPlantilla.hora(OffsetDateTime.parse("2026-11-11T16:05:00Z")));
-        assertEquals("12:00 a. m.", RecordatorioPlantilla.hora(OffsetDateTime.parse("2026-11-11T00:00:00Z")));
+        assertEquals("12:30 p.m.", RecordatorioPlantilla.hora(OffsetDateTime.parse("2026-11-11T12:30:00Z")));
+        assertEquals("4:05 p.m.", RecordatorioPlantilla.hora(OffsetDateTime.parse("2026-11-11T16:05:00Z")));
+        assertEquals("12:00 a.m.", RecordatorioPlantilla.hora(OffsetDateTime.parse("2026-11-11T00:00:00Z")));
     }
 }

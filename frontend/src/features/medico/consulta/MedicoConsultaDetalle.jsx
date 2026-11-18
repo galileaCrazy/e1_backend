@@ -1,7 +1,7 @@
 import React from "react";
 import { ArrowLeft, ExternalLink, RefreshCw, Save } from "lucide-react";
 import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado, etiquetaEstado } from "../../../components/ui";
-import { formatDate, formatMoney, nameById, statusVariant } from "../../../lib/display";
+import { formatDate, formatMoney, nameById, statusVariant, formatFechaCorta } from "../../../lib/display";
 import "./MedicoConsultaDetalle.css";
 
 export default function MedicoConsultaDetalle({ context, citaId }) {
@@ -80,7 +80,7 @@ export default function MedicoConsultaDetalle({ context, citaId }) {
         <Metric label="Estado de la cita" value={etiquetaEstado(data.cita.estado)} />
         <Metric label="Diagnósticos" value={data.diagnosticos.length} variant="secondary" />
         <Metric label="Adjuntos" value={data.adjuntos.length} variant="warning" />
-        <Metric label="Pago" value={pagoEstado} variant="danger" />
+        <Metric label="Pago" value={etiquetaEstado(pagoEstado) || "Sin pago"} variant={pagoEstado === "PAGADO" ? "secondary" : "warning"} />
       </section>
 
       <div className="consulta-grid">
@@ -136,7 +136,7 @@ function PatientPanel({ paciente, onOpen }) {
       <strong>{paciente.nombre}</strong>
       <span>{paciente.email || "Sin correo"}</span>
       <span>{paciente.telefono || "Sin teléfono"}</span>
-      <small>{paciente.fechaNacimiento ? `Nacimiento: ${paciente.fechaNacimiento}` : "Sin fecha de nacimiento"}</small>
+      <small>{paciente.fechaNacimiento ? `Nacimiento: ${formatFechaCorta(paciente.fechaNacimiento)}` : "Sin fecha de nacimiento"}</small>
       <button className="btn" onClick={onOpen}>Abrir expediente</button>
     </div>
   );
@@ -148,7 +148,7 @@ function PaymentPanel({ pago }) {
     <div className="consulta-panel">
       <strong>{formatMoney(pago.monto)}</strong>
       <span>{pago.concepto || "Consulta médica"}</span>
-      <span>{pago.metodo}</span>
+      <span>{etiquetaEstado(pago.metodo)}</span>
       <small>{pago.referencia || "Sin referencia"}</small>
       <Estado valor={pago.estado} />
     </div>
@@ -165,7 +165,7 @@ function DiagnosticoList({ diagnosticos }) {
             <strong>{diagnostico.codigoCie10 || "Sin CIE-10"}</strong>
             <span>{diagnostico.descripcion}</span>
           </div>
-          <span className={`badge ${diagnostico.tipo === "PRINCIPAL" ? "ok" : "info"}`}>{diagnostico.tipo || "SIN TIPO"}</span>
+          <span className={`badge ${diagnostico.tipo === "PRINCIPAL" ? "ok" : "info"}`}>{etiquetaEstado(diagnostico.tipo) || "Sin tipo"}</span>
         </article>
       ))}
     </div>
@@ -180,7 +180,7 @@ function AttachmentList({ adjuntos }) {
         <a className="attachment-item" href={adjunto.urlArchivo} target="_blank" rel="noreferrer" key={adjunto.id}>
           <div>
             <strong>{adjunto.nombreArchivo}</strong>
-            <span>{adjunto.tipo} / {adjunto.mimeType || "archivo"}</span>
+            <span>{etiquetaEstado(adjunto.tipo)} · {adjunto.mimeType || "archivo"}</span>
           </div>
           <ExternalLink size={16} />
         </a>
@@ -222,7 +222,7 @@ function DiagnosticoForm({ citaId, onSubmit }) {
       </label>
       <div className="actions full">
         <button className="btn primary">
-          <Save size={16} /> Guardar diagnostico
+          <Save size={16} /> Guardar diagnóstico
         </button>
       </div>
     </form>

@@ -50,6 +50,8 @@ import {
   formatDate,
   formatHoraTexto,
   formatInstant,
+  formatSexo,
+  rolLegible,
 } from "./lib/display";
 import "./styles/tokens.css";
 import "./styles.css";
@@ -58,6 +60,8 @@ import "./styles/cliniclick.css";
 const STORAGE_KEY = "medinflow.session";
 /** El chatbot sigue en el código, pero su ítem del menú solo aparece con VITE_SHOW_CHAT=true. */
 const MOSTRAR_CHAT = import.meta.env.VITE_SHOW_CHAT === "true";
+/** Datos técnicos de la sesión (token, id de organización) solo con VITE_DEBUG=true. */
+const MODO_DEBUG = import.meta.env.VITE_DEBUG === "true";
 const API_KEY = "medinflow.apiUrl";
 // VITE_API_URL vacía o sin definir = URL relativa ("/api/..."), que pasa por el proxy /api de Vite.
 // Así funciona igual desde la PC (localhost:5173) que desde el celular (http://<ip-local>:5173).
@@ -155,7 +159,7 @@ const modules = {
       ["nombre", "Paciente"],
       ["telefono", "Teléfono"],
       ["email", "Correo"],
-      ["sexo", "Sexo"],
+      ["sexo", "Sexo", "sexo"],
       ["activo", "Activo", "bool"],
     ],
     filters: [
@@ -241,13 +245,17 @@ const modules = {
     roles: ["ADMIN"],
     description: "Disponibilidad semanal por médico.",
     list: ({ filters }) => (filters.medicoId ? `/api/horarios/medico/${filters.medicoId}` : null),
+    // Sin médico elegido se muestran los horarios de todos los médicos de la organización
+    listMany: ({ filters, support }) =>
+      filters.medicoId ? null : (support.medicos || []).map((m) => `/api/horarios/medico/${m.id}`),
+    vacio: "Aún no hay horarios registrados.",
     endpoint: "/api/horarios",
     columns: [
       ["medicoId", "Médico", "doctor"],
       ["diaSemana", "Día", "day"],
       ["horaInicio", "Inicio", "hora"],
       ["horaFin", "Fin", "hora"],
-      ["duracionConsulta", "Duración"],
+      ["duracionConsulta", "Duración", "min"],
     ],
     filters: [{ key: "medicoId", label: "Médico", type: "combobox", source: "medicos", live: true }],
     fields: [
@@ -256,10 +264,10 @@ const modules = {
         { value: "0", label: "Domingo" },
         { value: "1", label: "Lunes" },
         { value: "2", label: "Martes" },
-        { value: "3", label: "Miercoles" },
+        { value: "3", label: "Miércoles" },
         { value: "4", label: "Jueves" },
         { value: "5", label: "Viernes" },
-        { value: "6", label: "Sabado" },
+        { value: "6", label: "Sábado" },
       ], required: true },
       { key: "horaInicio", label: "Hora inicio", type: "time", required: true },
       { key: "horaFin", label: "Hora fin", type: "time", required: true },
@@ -275,7 +283,7 @@ const modules = {
       if (filters.estado) return `/api/pagos/organizacion/${orgId}/estado/${filters.estado}`;
       return role === "PACIENTE" ? null : `/api/pagos/organizacion/${orgId}`;
     },
-    support: ["citas"],
+    support: ["citas", "pacientes"],
     clientFilter: (rows, filters, role, support) => {
       if (role !== "MEDICO") return rows;
       const citaIds = new Set((support.citas || []).map((cita) => String(cita.id)));
@@ -285,7 +293,7 @@ const modules = {
     columns: [
       ["citaId", "Cita", "appointment"],
       ["monto", "Monto", "money"],
-      ["metodo", "Método"],
+      ["metodo", "Método", "label"],
       ["estado", "Estado", "status"],
       ["referencia", "Referencia"],
     ],
@@ -800,7 +808,7 @@ function Shell({ context, route, logout, children }) {
             <span className="sidebar-avatar" aria-hidden="true">{initials(context.userName)}</span>
             <span className="sidebar-usuario-texto">
               <strong>{context.userName}</strong>
-              <span>{etiquetaEstado(context.role)}</span>
+              <span>{rolLegible(context.role, context.userName)}</span>
             </span>
           </div>
         </div>
@@ -990,8 +998,14 @@ function ModuleView({ moduleKey, config, context }) {
       setLoading(true);
       setError("");
       try {
-        const path = config.list({ orgId: context.orgId, filters: nextFilters, role: context.role, medicoId: context.medicoId });
-        setRows(path ? await context.list(path) : []);
+        const muchas = config.listMany?.({ filters: nextFilters, support: nextSupport, context });
+        if (muchas && muchas.length) {
+          const partes = await Promise.all(muchas.map((p) => context.list(p, true).catch(() => [])));
+          setRows(partes.flat());
+        } else {
+          const path = config.list({ orgId: context.orgId, filters: nextFilters, role: context.role, medicoId: context.medicoId });
+          setRows(path ? await context.list(path) : []);
+        }
         setSupport(nextSupport);
       } catch (err) {
         setError(err.message);
@@ -1137,8 +1151,8 @@ function ModuleView({ moduleKey, config, context }) {
         onLiveChange={handleLiveChange}
         resetKey={filterResetKey}
       />
-      <div className="split">
-        <Section title={loading ? "Cargando..." : `${displayRows.length} registros`}>
+      <div className={`split ${formState ? "" : "solo"}`}>
+        <Section title={loading ? "Cargando..." : `${displayRows.length} ${displayRows.length === 1 ? "registro" : "registros"}`}>
           {error ? <ErrorBox message={error} /> : (
             <DataTable
               rows={displayRows}
@@ -1150,11 +1164,12 @@ function ModuleView({ moduleKey, config, context }) {
               onChangeStatus={moduleKey === "citas" ? (item) => setEstadoTarget(item) : undefined}
               onToggleActive={["pacientes", "medicos", "consultorios"].includes(moduleKey) ? handleToggleActivo : undefined}
               togglingId={togglingId}
-              emptyLabel={hasActiveFilters ? "No se encontraron coincidencias." : `No hay ${config.label.toLowerCase()} registradas.`}
+              emptyLabel={hasActiveFilters ? "No se encontraron coincidencias." : (config.vacio || "Aún no hay registros.")}
               emptyHint={hasActiveFilters ? "Intenta limpiar los filtros para ver todos los registros." : `Presiona «Nuevo» para crear el primer registro.`}
             />
           )}
         </Section>
+        {formState && (
         <Section title={formState?.mode === "edit" ? "Editar registro" : "Nuevo registro"}>
           {formState ? (
             moduleKey === "citas" ? (
@@ -1181,6 +1196,7 @@ function ModuleView({ moduleKey, config, context }) {
             </div>
           )}
         </Section>
+        )}
       </div>
       {estadoTarget && (
         <CambiarEstadoModal
@@ -1535,7 +1551,7 @@ function CambiarEstadoModal({ item, saving, onClose, onSubmit }) {
           <span>Estado</span>
           <select value={estado} onChange={(e) => setEstado(e.target.value)} disabled={saving}>
             {ESTADOS_CITA.map((s) => (
-              <option key={s} value={s}>{s.replace(/_/g, " ")}</option>
+              <option key={s} value={s}>{etiquetaEstado(s)}</option>
             ))}
           </select>
         </label>
@@ -2413,16 +2429,20 @@ function SettingsView({ context }) {
           </label>
           <label className="field">
             <span>Rol</span>
-            <input value={context.role} disabled />
+            <input value={rolLegible(context.role, context.userName)} disabled />
           </label>
-          <label className="field">
-            <span>Organización</span>
-            <input value={context.orgId} disabled />
-          </label>
-          <label className="field full">
-            <span>Token</span>
-            <textarea value={context.session.token || ""} disabled />
-          </label>
+          {MODO_DEBUG && (
+            <>
+              <label className="field">
+                <span>Organización (depuración)</span>
+                <input value={context.orgId} disabled />
+              </label>
+              <label className="field full">
+                <span>Token (depuración)</span>
+                <textarea value={context.session.token || ""} disabled />
+              </label>
+            </>
+          )}
           <div className="actions full">
             <button className="btn primary">Guardar ajustes</button>
           </div>
@@ -2480,20 +2500,20 @@ function DataTable({ rows, columns, support = {}, onOpen, onEdit, onDelete, onCh
       <table>
         <thead>
           <tr>
-            {columns.map(([, label]) => (
-              <th key={label}>{label}</th>
+            {columns.map(([key, label]) => (
+              <th key={label} className={`col-${key}`}>{label}</th>
             ))}
-            {(onOpen || onEdit || onDelete || onChangeStatus || onToggleActive) && <th className="right">Acciones</th>}
+            {(onOpen || onEdit || onDelete || onChangeStatus || onToggleActive) && <th className="right col-acciones">Acciones</th>}
           </tr>
         </thead>
         <tbody>
           {rows.map((row) => (
             <tr key={row.id} className={onToggleActive && row.activo === false ? "row-inactive" : ""}>
               {columns.map(([key, , type]) => (
-                <td key={key}>{formatCell(row[key], type, support)}</td>
+                <td key={key} className={`col-${key}`}>{formatCell(row[key], type, support)}</td>
               ))}
               {(onOpen || onEdit || onDelete || onChangeStatus || onToggleActive) && (
-                <td>
+                <td className="col-acciones">
                   <div className="row-actions">
                     {onOpen && (
                       <button className="btn icon" onClick={() => onOpen(row)} data-tooltip="Abrir expediente">
@@ -2620,19 +2640,23 @@ function fieldValue(field, item, context, support = {}) {
 
 function formatCell(value, type, support) {
   if (value == null || value === "") return <span className="muted">-</span>;
-  if (type === "datetime") return formatDate(value);
+  if (type === "datetime") return <span className="nowrap">{formatDate(value)}</span>;
   if (type === "instant") return formatInstant(value);
   if (type === "money") return `$${Number(value).toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
   if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "Sí" : "No"}</span>;
   if (type === "status") return <Estado valor={value} />;
   if (type === "patient") return nameById("pacientes", value, support);
   if (type === "doctor") return nameById("medicos", value, support);
+  if (type === "sexo") return formatSexo(value);
+  if (type === "min") return `${value} min`;
   if (type === "office") return nameById("consultorios", value, support);
   if (type === "appointment") return nameById("citas", value, support);
   if (type === "hora") return formatHoraTexto(value);
+  if (type === "label") return etiquetaEstado(value);
   if (type === "day") return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][Number(value)] || value;
   if (type === "motivo") return <MotivoCellWithModal text={String(value)} />;
-  return String(value).length > 42 ? <span className="mono">{shortId(value)}</span> : String(value);
+  // Solo los identificadores (UUID) se acortan; los textos largos (p. ej. direcciones) se muestran completos
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(value)) ? <span className="mono">{shortId(value)}</span> : String(value);
 }
 
 function statusVariant(value) {
@@ -2644,7 +2668,7 @@ function statusVariant(value) {
 }
 
 function displayName(row, source, support) {
-  if (source === "citas") return `${formatDate(row.fechaHora)} / ${nameById("pacientes", row.pacienteId, support)}`;
+  if (source === "citas") return `${formatDate(row.fechaHora)} · ${nameById("pacientes", row.pacienteId, support)}`;
   if (source === "usuarios") return row.email || row.id;
   if (source === "adjuntos") return row.nombreArchivo || row.id;
   return row.nombre || row.email || shortId(row.id);

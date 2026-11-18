@@ -1,7 +1,7 @@
 import React from "react";
 import { ExternalLink, RefreshCw, Save } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader } from "../../../components/ui";
-import { formatDate } from "../../../lib/display";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, etiquetaEstado } from "../../../components/ui";
+import { formatDate, formatFechaCorta, formatSexo } from "../../../lib/display";
 import "./MedicoDiagnosticosAdjuntos.css";
 
 export default function MedicoDiagnosticosAdjuntos({ context }) {
@@ -148,7 +148,7 @@ export default function MedicoDiagnosticosAdjuntos({ context }) {
           <select value={selectedCitaId} onChange={(event) => setSelectedCitaId(event.target.value)}>
             <option value="">Todo el expediente</option>
             {citasPaciente.map((cita) => (
-              <option key={cita.id} value={cita.id}>{formatDate(cita.fechaHora)} / {cita.estado}</option>
+              <option key={cita.id} value={cita.id}>{formatDate(cita.fechaHora)} · {etiquetaEstado(cita.estado)}</option>
             ))}
           </select>
         </label>
@@ -200,11 +200,11 @@ function PatientSummary({ paciente }) {
       </div>
       <div>
         <span>Nacimiento</span>
-        <strong>{paciente.fechaNacimiento || "-"}</strong>
+        <strong>{formatFechaCorta(paciente.fechaNacimiento)}</strong>
       </div>
       <div>
         <span>Sexo</span>
-        <strong>{paciente.sexo || "-"}</strong>
+        <strong>{formatSexo(paciente.sexo)}</strong>
       </div>
     </div>
   );
@@ -223,7 +223,7 @@ function DiagnosisList({ diagnosticos, citas }) {
               <span>{diagnostico.descripcion}</span>
               <small>{cita ? formatDate(cita.fechaHora) : "Cita no disponible"}</small>
             </div>
-            <span className={`badge ${diagnostico.tipo === "PRINCIPAL" ? "ok" : "info"}`}>{diagnostico.tipo || "SIN TIPO"}</span>
+            <span className={`badge ${diagnostico.tipo === "PRINCIPAL" ? "ok" : "info"}`}>{etiquetaEstado(diagnostico.tipo) || "Sin tipo"}</span>
           </article>
         );
       })}
@@ -239,7 +239,7 @@ function AttachmentList({ adjuntos }) {
         <a className="clinical-item clinical-link" href={adjunto.urlArchivo} target="_blank" rel="noreferrer" key={adjunto.id}>
           <div>
             <strong>{adjunto.nombreArchivo}</strong>
-            <span>{adjunto.tipo} / {adjunto.mimeType || "archivo"}</span>
+            <span>{etiquetaEstado(adjunto.tipo)} · {adjunto.mimeType || "archivo"}</span>
           </div>
           <ExternalLink size={16} />
         </a>
@@ -283,7 +283,7 @@ function DiagnosisForm({ citaId, onSubmit }) {
       </label>
       <div className="actions full">
         <button className="btn primary" disabled={!citaId}>
-          <Save size={16} /> Guardar diagnostico
+          <Save size={16} /> Guardar diagnóstico
         </button>
       </div>
     </form>

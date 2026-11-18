@@ -1,7 +1,7 @@
-import { Estado } from "../components/ui";
+import { Estado, etiquetaEstado } from "../components/ui";
 export function formatCell(value, type, support) {
   if (value == null || value === "") return <span className="muted">-</span>;
-  if (type === "datetime") return formatDate(value);
+  if (type === "datetime") return <span className="nowrap">{formatDate(value)}</span>;
   if (type === "instant") return formatInstant(value);
   if (type === "money") return formatMoney(value);
   if (type === "bool") return <span className={`badge ${value ? "ok" : "danger"}`}>{value ? "Sí" : "No"}</span>;
@@ -11,8 +11,10 @@ export function formatCell(value, type, support) {
   if (type === "office") return nameById("consultorios", value, support);
   if (type === "appointment") return nameById("citas", value, support);
   if (type === "hora") return formatHoraTexto(value);
+  if (type === "label") return etiquetaEstado(value);
   if (type === "day") return ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"][Number(value)] || value;
-  return String(value).length > 42 ? <span className="mono">{shortId(value)}</span> : String(value);
+  // Solo los identificadores (UUID) se acortan; los textos largos (p. ej. direcciones) se muestran completos
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-/i.test(String(value)) ? <span className="mono">{shortId(value)}</span> : String(value);
 }
 
 export function statusVariant(value) {
@@ -24,7 +26,7 @@ export function statusVariant(value) {
 }
 
 export function displayName(row, source, support) {
-  if (source === "citas") return `${formatDate(row.fechaHora)} / ${nameById("pacientes", row.pacienteId, support)}`;
+  if (source === "citas") return `${formatDate(row.fechaHora)} · ${nameById("pacientes", row.pacienteId, support)}`;
   if (source === "usuarios") return row.email || row.id;
   if (source === "adjuntos") return row.nombreArchivo || row.id;
   return row.nombre || row.email || shortId(row.id);
@@ -127,6 +129,37 @@ export function addDaysKey(dateKey, days) {
 export function hora12(h, m) {
   const hh = h % 12 === 0 ? 12 : h % 12;
   return `${hh}:${String(m).padStart(2, "0")} ${h < 12 ? "a.m." : "p.m."}`;
+}
+
+/** "1994-03-18" → "18 mar 1994" (fecha de calendario, sin zona). */
+export function formatFechaCorta(value) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(value || ""));
+  if (!m) return value ? String(value) : "-";
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 12));
+  return d.toLocaleDateString("es-MX", { day: "numeric", month: "short", year: "numeric", timeZone: "UTC" }).replace(".", "");
+}
+
+/** "F" → "Femenino", "M" → "Masculino", "O" → "Otro". */
+export function formatSexo(value) {
+  return { F: "Femenino", M: "Masculino", O: "Otro" }[String(value || "").toUpperCase()] || (value || "-");
+}
+
+/** Rol legible: "Administración", "Médica"/"Médico" (según el nombre) o "Paciente". */
+export function rolLegible(rol, nombre = "") {
+  if (rol === "ADMIN") return "Administración";
+  if (rol === "PACIENTE") return "Paciente";
+  if (rol === "MEDICO") return /^dra\.?\s/i.test(String(nombre).trim()) ? "Médica" : "Médico";
+  return rol || "";
+}
+
+/**
+ * Texto de un mensaje tal como se MUESTRA en pantalla (el mensaje real guardado o enviado no cambia):
+ * oculta el token del enlace personal /c/{token} y unifica la hora de mensajes antiguos ("9:30 a. m." → "9:30 a.m.").
+ */
+export function enmascararEnlaces(texto) {
+  return String(texto || "")
+    .replace(/(\/c\/)[A-Za-z0-9_-]{12,}/g, "$1••••••")
+    .replace(/(\d) ([ap])\. m\./g, "$1 $2.m.");
 }
 
 /** Hora "HH:MM" o "HH:MM:SS" (horarios, horas disponibles) → "9:30 a.m.". */

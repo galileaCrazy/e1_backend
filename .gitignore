@@ -56,3 +56,7 @@ stich_medinflow_clinic_management_system
 
 # Llaves RSA (dev-private.pem, etc.) — nunca versionar
 *.pem
+
+# Grabación de la demo (Playwright)
+demo-video/
+scripts/demo/node_modules/

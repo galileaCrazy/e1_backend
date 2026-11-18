@@ -1,6 +1,6 @@
 import React from "react";
 import { CalendarDays, Users } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado, etiquetaEstado } from "../../../components/ui";
 import {
   formatCell,
   formatDate,
@@ -88,7 +88,7 @@ export default function MedicoDashboard({ context }) {
         <Metric label="Citas hoy" value={todayCitas.length} />
         <Metric label="Próximas citas" value={upcomingCitas.length} variant="secondary" />
         <Metric label="Por confirmar" value={unconfirmed} variant="warning" />
-        <Metric label="Pacientes vinculados" value={myPatients.length} variant="danger" />
+        <Metric label="Pacientes vinculados" value={myPatients.length} />
       </section>
 
       <div className="doctor-grid">
@@ -190,7 +190,7 @@ function DoctorPendingPayments({ pagos, support }) {
         <div className="payment-row" key={pago.id}>
           <div>
             <strong>{formatCell(pago.citaId, "appointment", support)}</strong>
-            <span>{pago.concepto || pago.metodo}</span>
+            <span>{pago.concepto || etiquetaEstado(pago.metodo)}</span>
           </div>
           <strong>{formatMoney(pago.monto)}</strong>
         </div>

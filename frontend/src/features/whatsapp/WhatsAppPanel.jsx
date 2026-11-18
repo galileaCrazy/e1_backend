@@ -1,4 +1,5 @@
 import React from "react";
+import { enmascararEnlaces } from "../../lib/display";
 import { AlertTriangle, Check, CheckCheck, RefreshCw, Send, Smartphone } from "lucide-react";
 import { Empty, ErrorBox, Loading, ViewHeader } from "../../components/ui";
 import { formatHoraLocal } from "./RecordatorioWhatsApp";
@@ -147,7 +148,7 @@ function Mensajes({ mensajes }) {
       {mensajes.length === 0 && <div className="wa-sin-mensajes">Sin mensajes</div>}
       {mensajes.map((m) => (
         <div key={m.id} className={`wa-burbuja ${m.direccion === "SALIENTE" ? "saliente" : "entrante"}`}>
-          <p>{m.texto}</p>
+          <p>{enmascararEnlaces(m.texto)}</p>
           <span className="wa-meta">
             {formatHoraLocal(m.createdAt)}
             {m.direccion === "SALIENTE" && m.canal === "enlace" && m.estado !== "FALLIDO" && (

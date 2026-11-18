@@ -1,7 +1,7 @@
 import React from "react";
 import { CalendarDays, CalendarPlus, CreditCard, FileText, Upload } from "lucide-react";
-import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado } from "../../../components/ui";
-import { formatDate, formatMoney, formatTime, isFuture, sessionDisplayName, shortId, statusVariant } from "../../../lib/display";
+import { Empty, ErrorBox, Loading, Metric, Section, ViewHeader, Estado, etiquetaEstado } from "../../../components/ui";
+import { formatDate, formatMoney, formatTime, isFuture, sessionDisplayName, shortId, statusVariant, formatCitaHora12 } from "../../../lib/display";
 import "./PacienteDashboard.css";
 
 export default function PacienteDashboard({ context }) {
@@ -41,7 +41,7 @@ export default function PacienteDashboard({ context }) {
   if (error) {
     return (
       <>
-        <ViewHeader title="Inicio" subtitle={`Bienvenido, ${context.userName}.`} />
+        <ViewHeader title="Inicio" subtitle={`Te damos la bienvenida, ${context.userName}.`} />
         <ErrorBox message={error} />
       </>
     );
@@ -56,7 +56,7 @@ export default function PacienteDashboard({ context }) {
 
   return (
     <>
-      <ViewHeader title="Inicio" subtitle={`Bienvenido, ${displayPatientName(data.paciente, context)}.`}>
+      <ViewHeader title="Inicio" subtitle={`Te damos la bienvenida, ${displayPatientName(data.paciente, context)}.`}>
         <button className="btn" onClick={() => context.go("paciente/citas")}>
           <CalendarDays size={16} /> Mis citas
         </button>
@@ -66,7 +66,11 @@ export default function PacienteDashboard({ context }) {
       </ViewHeader>
 
       <section className="metrics">
-        <Metric label="Próxima cita" value={nextCita ? formatDate(nextCita.fechaHora) : "Sin cita"} />
+        <Metric
+          label="Próxima cita"
+          variant="texto"
+          value={nextCita ? <>{formatDate(nextCita.fechaHora).split(", ")[0]}<br />{formatCitaHora12(nextCita.fechaHora)}</> : "Sin cita"}
+        />
         <Metric label="Pagos pendientes" value={formatMoney(totalPending)} variant="warning" />
         <Metric label="Diagnósticos" value={data.diagnosticos.length} variant="secondary" />
         <Metric label="Adjuntos" value={data.adjuntos.length} variant="danger" />
@@ -131,7 +135,7 @@ function PatientDiagnosisList({ rows }) {
           <FileText size={18} />
           <div>
             <strong>{row.descripcion}</strong>
-            <span>{row.codigoCie10 || "Sin CIE-10"} / {row.tipo}</span>
+            <span>{row.codigoCie10 || "Sin CIE-10"} · {etiquetaEstado(row.tipo)}</span>
           </div>
         </article>
       ))}
